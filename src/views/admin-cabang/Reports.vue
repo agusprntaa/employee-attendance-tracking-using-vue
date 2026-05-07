@@ -1,0 +1,741 @@
+<script setup>
+import { ref, onMounted, onUnmounted, nextTick } from "vue";
+import Chart from "chart.js/auto";
+import AdminSidebar from "@/components/AdminSidebar.vue";
+import AdminProfile from "@/components/AdminProfile.vue";
+import { useAuth } from "@/composables/useAuth";
+import API from "@/services/api";
+
+const { user, loadUser } = useAuth();
+
+const loading = ref(false);
+
+const summary = ref({
+  average_attendance_rate: 0,
+  total_present: 0,
+  late_arrivals: 0,
+  attendance_rate_change: 0,
+  total_present_change: 0,
+  late_arrivals_change: 0,
+});
+
+const weeklyData = ref([]);
+const monthlyData = ref([]);
+const daily = ref([]);
+const divisions = ref([]);
+
+const startDate = ref("");
+const endDate = ref("");
+const year = ref(new Date().getFullYear());
+
+const weeklyCanvasRef = ref(null);
+const monthlyCanvasRef = ref(null);
+
+let weeklyInstance = null;
+let monthlyInstance = null;
+
+async function fetchReports() {
+  loading.value = true;
+  try {
+    const params = {};
+
+    if (startDate.value) params.start_date = startDate.value;
+    if (endDate.value) params.end_date = endDate.value;
+    if (year.value) params.year = year.value;
+
+    const res = await getReportsAttendance(params); // ✅ INI YANG KURANG
+    const data = res.data.data;
+
+    summary.value = data.summary || {};
+    weeklyData.value = data.weekly_chart || [];
+    monthlyData.value = data.monthly_chart || [];
+    daily.value = data.daily || [];
+    divisions.value = data.division || [];
+
+    await nextTick();
+    renderWeekly();
+    renderMonthly();
+  } catch (err) {
+    console.error("REPORT ERROR:", err);
+  } finally {
+    loading.value = false;
+  }
+}
+
+function renderWeekly() {
+  weeklyInstance?.destroy();
+  if (!weeklyCanvasRef.value || !weeklyData.value.length) return;
+
+  weeklyInstance = new Chart(weeklyCanvasRef.value, {
+    type: "bar",
+    data: {
+      labels: weeklyData.value.map((d) => d.day),
+      datasets: [
+        {
+          label: "Present",
+          data: weeklyData.value.map((d) => d.present),
+          backgroundColor: "#4f46e5",
+          borderRadius: 4,
+          borderSkipped: false,
+        },
+        {
+          label: "Late",
+          data: weeklyData.value.map((d) => d.late),
+          backgroundColor: "#f59e0b",
+          borderRadius: 4,
+          borderSkipped: false,
+        },
+        {
+          label: "WFA",
+          data: weeklyData.value.map((d) => d.wfa),
+          backgroundColor: "#a78bfa",
+          borderRadius: 4,
+          borderSkipped: false,
+        },
+        {
+          label: "Absent",
+          data: weeklyData.value.map((d) => d.absent),
+          backgroundColor: "#fca5a5",
+          borderRadius: 4,
+          borderSkipped: false,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 12, family: "Segoe UI" }, color: "#9ca3af" },
+          border: { display: false },
+        },
+        y: {
+          grid: { color: "#f3f4f6", drawBorder: false },
+          beginAtZero: true,
+          ticks: { font: { size: 12, family: "Segoe UI" }, color: "#9ca3af" },
+          border: { display: false },
+        },
+      },
+    },
+  });
+}
+
+function renderMonthly() {
+  monthlyInstance?.destroy();
+  if (!monthlyCanvasRef.value || !monthlyData.value.length) return;
+
+  monthlyInstance = new Chart(monthlyCanvasRef.value, {
+    type: "line",
+    data: {
+      labels: monthlyData.value.map((d) => d.month),
+      datasets: [
+        {
+          label: "Attendance Rate",
+          data: monthlyData.value.map((d) => d.attendance_rate),
+          borderColor: "#4f46e5",
+          backgroundColor: "rgba(79, 70, 229, 0.08)",
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: "#4f46e5",
+          pointBorderColor: "#fff",
+          pointBorderWidth: 2,
+          pointRadius: 5,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 12, family: "Segoe UI" }, color: "#9ca3af" },
+          border: { display: false },
+        },
+        y: {
+          grid: { color: "#f3f4f6" },
+          min: 60,
+          max: 100,
+          ticks: {
+            font: { size: 12, family: "Segoe UI" },
+            color: "#9ca3af",
+            callback: (v) => v + "%",
+          },
+          border: { display: false },
+        },
+      },
+    },
+  });
+}
+
+function formatChange(val) {
+  if (val === undefined || val === null) return "—";
+  const n = parseFloat(val);
+  return n >= 0 ? `+${n}%` : `${n}%`;
+}
+
+function isPositive(val) {
+  return parseFloat(val) >= 0;
+}
+
+function formatDate(str) {
+  if (!str) return "-";
+  return new Date(str).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+// ─── LIFECYCLE ───────────────────────────────────────────
+onMounted(() => {
+  loadUser();
+  fetchReports();
+});
+
+onUnmounted(() => {
+  weeklyInstance?.destroy();
+  monthlyInstance?.destroy();
+});
+</script>
+
+<template>
+  <div class="layout">
+    <AdminSidebar />
+
+    <main class="main">
+      <div class="header">
+        <div>
+          <h2>Reports</h2>
+          <p class="subtitle">Attendance analytics and insights</p>
+        </div>
+        <AdminProfile :user="user" />
+      </div>
+
+      <!-- TOOLBAR -->
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label>Start Date</label>
+          <input type="date" v-model="startDate" />
+        </div>
+
+        <div class="filter-group">
+          <label>End Date</label>
+          <input type="date" v-model="endDate" />
+        </div>
+
+        <button class="btn-apply" @click="fetchReports" :disabled="loading">
+          {{ loading ? "Loading..." : "Apply" }}
+        </button>
+      </div>
+
+      <!-- SUMMARY CARDS -->
+      <div class="cards">
+        <div class="card">
+          <p class="card-label">Average Attendance Rate</p>
+          <h3 class="card-value">
+            {{ summary.average_attendance_rate ?? 0 }}%
+          </h3>
+          <span
+            class="card-change"
+            :class="
+              isPositive(summary.attendance_rate_change)
+                ? 'positive'
+                : 'negative'
+            "
+          >
+            {{ formatChange(summary.attendance_rate_change) }} vs last period
+          </span>
+        </div>
+
+        <div class="card">
+          <p class="card-label">Total Present</p>
+          <h3 class="card-value">{{ summary.total_present ?? 0 }}</h3>
+          <span
+            class="card-change"
+            :class="
+              isPositive(summary.total_present_change) ? 'positive' : 'negative'
+            "
+          >
+            {{ formatChange(summary.total_present_change) }} vs last period
+          </span>
+        </div>
+
+        <div class="card">
+          <p class="card-label">Late Arrivals</p>
+          <h3 class="card-value late">{{ summary.late_arrivals ?? 0 }}</h3>
+          <span
+            class="card-change"
+            :class="
+              isPositive(summary.late_arrivals_change) ? 'negative' : 'positive'
+            "
+          >
+            {{ formatChange(summary.late_arrivals_change) }} vs last period
+          </span>
+        </div>
+      </div>
+
+      <!-- CHARTS -->
+      <div class="chart-row">
+        <div class="panel">
+          <div class="panel-header">
+            <h3>Weekly Attendance</h3>
+            <div class="legend">
+              <span class="dot" style="background: #4f46e5"></span>Present
+              <span class="dot" style="background: #f59e0b"></span>Late
+              <span class="dot" style="background: #a78bfa"></span>WFA
+              <span class="dot" style="background: #fca5a5"></span>Absent
+            </div>
+          </div>
+          <div class="chart-body">
+            <canvas
+              ref="weeklyCanvasRef"
+              role="img"
+              aria-label="Bar chart showing weekly attendance by day"
+            ></canvas>
+            <p v-if="!weeklyData.length && !loading" class="empty">
+              No data available
+            </p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h3>Monthly Trend</h3>
+            <div class="legend">
+              <span class="dot" style="background: #4f46e5"></span>Attendance
+              Rate
+            </div>
+          </div>
+          <div class="chart-body">
+            <canvas
+              ref="monthlyCanvasRef"
+              role="img"
+              aria-label="Line chart showing monthly attendance rate trend"
+            ></canvas>
+            <p v-if="!monthlyData.length && !loading" class="empty">
+              No data available
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIVISION PERFORMANCE TABLE -->
+      <div class="panel">
+        <div class="panel-header">
+          <h3>Division Performance</h3>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Division</th>
+              <th>Total Employees</th>
+              <th>Attendance Rate</th>
+              <th>Progress</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="!divisions.length">
+              <td colspan="5" class="empty-cell">No division data</td>
+            </tr>
+            <tr v-for="d in divisions" :key="d.division_name">
+              <td class="bold">{{ d.division_name }}</td>
+              <td>{{ d.total_employees }}</td>
+              <td>{{ d.attendance_rate }}%</td>
+              <td>
+                <div class="progress-bar">
+                  <div
+                    class="progress-fill"
+                    :style="{ width: d.attendance_rate + '%' }"
+                  ></div>
+                </div>
+              </td>
+              <td>
+                <span
+                  class="badge"
+                  :class="{
+                    'badge-excellent': d.status === 'Excellent',
+                    'badge-good': d.status === 'Good',
+                    'badge-poor': d.status === 'Poor',
+                  }"
+                  >{{ d.status }}</span
+                >
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- DAILY ATTENDANCE TABLE -->
+      <div class="panel">
+        <div class="panel-header">
+          <h3>Daily Breakdown</h3>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Present</th>
+              <th>Late</th>
+              <th>WFA</th>
+              <th>Absent</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="!daily.length">
+              <td colspan="5" class="empty-cell">No daily data</td>
+            </tr>
+            <tr v-for="d in daily" :key="d.date">
+              <td class="bold">{{ formatDate(d.date) }}</td>
+              <td>
+                <span class="badge badge-PRESENT">{{ d.total_present }}</span>
+              </td>
+              <td>
+                <span class="badge badge-LATE">{{ d.total_late }}</span>
+              </td>
+              <td>
+                <span class="badge badge-WFA">{{ d.total_wfa }}</span>
+              </td>
+              <td>
+                <span class="badge badge-ABSENT">{{ d.total_absent }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</template>
+
+<style scoped>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.layout {
+  display: flex;
+  height: 100vh;
+  background: #f0f2ff;
+  font-family: "Segoe UI", sans-serif;
+  overflow: hidden;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 28px 32px;
+  gap: 20px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.header h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e1b4b;
+  letter-spacing: -0.3px;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 3px;
+}
+
+.filter-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  background: #fff;
+  padding: 16px 20px;
+  border-radius: 14px;
+  border: 1px solid #e8e8f0;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 120px;
+}
+
+.filter-group label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.filter-group input {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #1f2937;
+  background: #ffffff;
+  outline: none;
+
+  transition: all 0.2s ease;
+}
+
+.btn-apply {
+  padding: 9px 20px;
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.btn-apply:hover {
+  background: #4338ca;
+}
+
+.btn-apply:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px;
+  border: 1px solid #e8e8f0;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
+}
+
+.card:hover {
+  box-shadow: 0 4px 20px rgba(79, 70, 229, 0.1);
+  transform: translateY(-2px);
+}
+
+.card-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card-value {
+  font-size: 30px;
+  font-weight: 700;
+  color: #1e1b4b;
+  letter-spacing: -0.5px;
+  margin: 8px 0 6px;
+  line-height: 1;
+}
+
+.card-value.late {
+  color: #dc2626;
+}
+
+.card-change {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.positive {
+  color: #16a34a;
+}
+
+.negative {
+  color: #dc2626;
+}
+
+.chart-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.chart-body {
+  padding: 16px 20px 20px;
+  height: 240px;
+  position: relative;
+}
+
+.empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.panel {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e8e8f0;
+  overflow: hidden;
+}
+
+.panel-header {
+  padding: 16px 22px;
+  border-bottom: 1px solid #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-header h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e1b4b;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead tr {
+  background: #f8f8ff;
+}
+
+th {
+  padding: 11px 22px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  text-align: left;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+td {
+  padding: 13px 22px;
+  font-size: 13px;
+  color: #374151;
+  border-bottom: 1px solid #f9fafb;
+}
+
+tbody tr:hover {
+  background: #fafafe;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+td.bold {
+  font-weight: 600;
+  color: #1e1b4b;
+}
+
+.empty-cell {
+  text-align: center;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #4f46e5;
+  border-radius: 10px;
+  transition: width 0.4s ease;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.badge-excellent {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.badge-good {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.badge-poor {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.badge-PRESENT {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.badge-LATE {
+  background: #fef9c3;
+  color: #b45309;
+}
+
+.badge-WFA {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.badge-ABSENT {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+</style>
