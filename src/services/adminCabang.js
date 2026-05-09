@@ -7,11 +7,11 @@ export function getDashboardSummary(params) {
 
 // qrcode
 export function getQRCode() {
-  return API.get('/admin-cabang/qr/today')
+  return API.get('/qr/today')
 }
 
 export function refreshQRCode() {
-  return API.post('/admin-cabang/qr/regenerate')
+  return API.post('/qr/regenerate')
 }
 
 // employees
@@ -50,9 +50,9 @@ export function getReportsAttendance(params) {
 }
 
 //scedules
-export function getSchedules(params) {
-  return API.get('/admin-cabang/schedules', { params })
-}
+// export function getSchedules(params) {
+  // return API.get('/admin-cabang/schedules', { params })
+// }
 
 // settings
 export function getBranchSettings() {

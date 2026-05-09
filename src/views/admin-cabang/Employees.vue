@@ -14,7 +14,7 @@ import {
 
 const { user } = useAuth();
 
-//const employees = ref([]);
+const employees = ref([]);
 const loading = ref(false);
 
 const search = ref("");
@@ -42,7 +42,6 @@ const form = ref({
   password: "",
   role: "karyawan",
   tipe: "cabang",
-  position: "",
   division_id: null,
   status: "active",
 });
@@ -57,7 +56,14 @@ async function fetchEmployees() {
       limit: limit.value,
     });
 
-    employees.value = res.data.data.data;
+    console.log("FETCH EMPLOYEES:", res.data.data.data);
+
+    // employees.value = res.data.data.data;
+    employees.value = res.data.data.data.map((emp) => ({
+      ...emp,
+
+      status: emp.status?.toLowerCase(),
+    }));
     meta.value = res.data.data.pagination;
   } catch (err) {
     console.error(err);
@@ -97,7 +103,6 @@ function openAdd() {
     password: "",
     role: "karyawan",
     tipe: "cabang",
-    position: "",
     division_id: null,
     status: "active",
   };
@@ -115,7 +120,6 @@ function openEdit(emp) {
     password: "",
     role: emp.role,
     tipe: emp.tipe,
-    position: emp.position || "",
     division_id: emp.division_id,
     status: emp.status,
   };
@@ -142,16 +146,76 @@ async function submitModal() {
   modalError.value = "";
 
   try {
+    // ADD EMPLOYEE
     if (modalMode.value === "add") {
-      await addEmployee(form.value);
+      const payload = {
+        username: form.value.username,
+        password: form.value.password,
+        role: form.value.role,
+        tipe: form.value.tipe,
+        division_id: form.value.division_id,
+      };
+
+      console.log("[FE] Add employee payload:", payload);
+
+      const res = await addEmployee(payload);
+
+      console.log("[BE] Add employee success:", res.data);
     } else {
-      await updateEmployee(form.value.id, form.value);
+      // EDIT EMPLOYEE
+      const payload = {
+        role: form.value.role,
+        status: form.value.status,
+        division_id: form.value.division_id,
+      };
+
+      console.log("[FE] Update employee payload:", payload);
+
+      const res = await updateEmployee(form.value.id, payload);
+
+      console.log("[BE] Update employee success:", res.data);
+      // UPDATE UI LANGSUNG
+      employees.value = employees.value.map((emp) => {
+        if (emp.id === form.value.id) {
+          return {
+            ...emp,
+            role: payload.role,
+            status: payload.status,
+            division_id: payload.division_id,
+          };
+        }
+
+        return emp;
+      });
     }
 
     closeModal();
     fetchEmployees();
   } catch (err) {
-    modalError.value = err.response?.data?.message || "Gagal";
+    // BACKEND ERROR
+    if (err.response) {
+      console.error("[BE ERROR]", {
+        status: err.response.status,
+        code: err.response.data?.code,
+        message: err.response.data?.message,
+      });
+
+      modalError.value = err.response.data?.message || "Backend error";
+
+      // NETWORK / CORS
+    } else if (err.request) {
+      console.error(
+        "[NETWORK ERROR] Backend tidak dapat diakses / CORS / ngrok",
+      );
+
+      modalError.value = "Backend tidak dapat diakses";
+
+      // FRONTEND ERROR
+    } else {
+      console.error("[FE ERROR]", err.message);
+
+      modalError.value = "Terjadi kesalahan pada frontend";
+    }
   } finally {
     modalLoading.value = false;
   }
@@ -165,49 +229,10 @@ async function handleToggle(emp) {
   fetchEmployees();
 }
 
-//async function handleDelete(id) {
-//if (!confirm("Hapus employee?")) return;
-//await deleteEmployee(id);
-//fetchEmployees();
-//}
-
-// DUMMY
-const employees = ref([
-  {
-    id: 1,
-    username: "Widi",
-    division_name: "Frontend Developer",
-    status: "active",
-    created_at: "2026-05-06",
-  },
-  {
-    id: 2,
-    username: "Agus",
-    division_name: "Backend Developer",
-    status: "inactive",
-    created_at: "2026-05-05",
-  },
-  {
-    id: 3,
-    username: "Wahyu",
-    division_name: "Backend Developer",
-    status: "active",
-    created_at: "2026-05-11",
-  },
-]);
-
-function handleDelete(id) {
-  selectedId.value = id;
-  showDeleteModal.value = true;
-}
-
-function confirmDelete() {
-  console.log("delete id:", selectedId.value);
-  showDeleteModal.value = false;
-}
-
-function cancelDelete() {
-  showDeleteModal.value = false;
+async function handleDelete(id) {
+  if (!confirm("Hapus employee?")) return;
+  await deleteEmployee(id);
+  fetchEmployees();
 }
 </script>
 
@@ -263,8 +288,8 @@ function cancelDelete() {
               <td class="highlight">{{ emp.division_name }}</td>
 
               <td>
-                <span :class="['badge', emp.status]">
-                  {{ emp.status }}
+                <span :class="['badge', emp.status?.toLowerCase()]">
+                  {{ emp.status || "-" }}
                 </span>
               </td>
 
@@ -346,22 +371,34 @@ function cancelDelete() {
           </div>
 
           <div class="form-group">
-            <label>Password (KOSONGKAN JIKA TIDAK DIUBAH)</label>
+            <label>Password</label>
             <input v-model="form.password" type="password" />
           </div>
 
           <div class="form-group">
-            <label>Position</label>
-            <input v-model="form.position" />
+            <label>Division</label>
+
+            <select v-model.number="form.division_id">
+              <option :value="null">Pilih Divisi</option>
+              <option :value="1">IT</option>
+              <option :value="2">HR</option>
+              <option :value="3">Marketing</option>
+            </select>
           </div>
 
-          <div class="form-group">
+          <div v-if="modalMode === 'edit'" class="form-group">
             <label>Status</label>
+
             <select v-model="form.status">
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
           </div>
+
+          <!-- <div class="form-group">
+            <label>Position</label>
+            <input v-model="form.position" />
+          </div> -->
         </div>
 
         <div class="modal-footer">
@@ -702,7 +739,7 @@ td.actions button:hover:nth-child(3) {
 }
 
 .modal-box {
-  background: #fff;
+  background: #ffffff;
   border-radius: 18px;
   width: 100%;
   max-width: 460px;
@@ -853,19 +890,6 @@ td.actions button:hover:nth-child(3) {
 .btn-submit:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-/*nanti hapus DUMMY*/
-.actions button {
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-.action-icon {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
 }
 
 /* modal delete */

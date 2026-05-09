@@ -41,7 +41,7 @@ const route = useRoute();
         Settings
       </button>
 
-      <button>Schedules</button>
+      <!-- <button>Schedules</button> -->
     </div>
 
     <div class="logout-wrap">

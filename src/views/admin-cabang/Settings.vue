@@ -1,8 +1,11 @@
 <script setup>
 import { ref, onMounted } from "vue";
+
 import AdminSidebar from "@/components/AdminSidebar.vue";
 import AdminProfile from "@/components/AdminProfile.vue";
+
 import { useAuth } from "@/composables/useAuth";
+
 import {
   getBranchSettings,
   updateBranchSettings,
@@ -12,67 +15,147 @@ const { user, loadUser } = useAuth();
 
 const loading = ref(false);
 const saving = ref(false);
-const saveSuccess = ref(false);
 
-// FORM STATE
+const successMessage = ref("");
+const errorMessage = ref("");
+
+// FORM
 const form = ref({
   branch_name: "",
-  branch_code: "",
+  address: "",
+  latitude: "",
+  longitude: "",
+  radius_meter: 100,
+
+  // working hours
   start_time: "",
   end_time: "",
   late_threshold_min: 15,
-  auto_refresh_qr: false,
-  require_approval: false,
+  checkin_cutoff_min: 120,
+  work_days: "1,2,3,4,5",
+
+  // security
+  auto_refresh_qr: true,
+  require_admin_approval: false,
+
+  // notifications
   admin_email: "",
-  email_notif: false,
-  late_alert: false,
-  weekly_report: false,
+  email_notifications: true,
+  late_arrival_alerts: true,
+  weekly_reports: false,
 });
 
-// FETCH
+// FETCH SETTINGS
 async function fetchSettings() {
-  loading.value = true;
   try {
+    loading.value = true;
+
     const res = await getBranchSettings();
+
+    console.log("SETTINGS:", res.data);
+
     const data = res.data.data;
 
     form.value = {
-      branch_name: data.branch_name ?? "",
-      branch_code: data.branch_code ?? "",
-      start_time: data.start_time ?? "",
-      end_time: data.end_time ?? "",
-      late_threshold_min: data.late_threshold_min ?? 15,
-      auto_refresh_qr: data.auto_refresh_qr ?? false,
-      require_approval: data.require_approval ?? false,
-      admin_email: data.admin_email ?? "",
-      email_notif: data.email_notif ?? false,
-      late_alert: data.late_alert ?? false,
-      weekly_report: data.weekly_report ?? false,
+      branch_name: data.branch_information?.branch_name || "",
+
+      address: data.branch_information?.address || "",
+
+      latitude: data.branch_information?.latitude || "",
+
+      longitude: data.branch_information?.longitude || "",
+
+      radius_meter: data.branch_information?.radius_meter || 100,
+
+      // working hours
+      start_time: data.working_hours?.start_time?.slice(0, 5) || "",
+
+      end_time: data.working_hours?.end_time?.slice(0, 5) || "",
+
+      late_threshold_min: data.working_hours?.late_threshold_min || 15,
+
+      checkin_cutoff_min: data.working_hours?.checkin_cutoff_min || 120,
+
+      work_days: data.working_hours?.work_days || "1,2,3,4,5",
+
+      // security
+      auto_refresh_qr: data.security?.auto_refresh_qr || false,
+
+      require_admin_approval: data.security?.require_admin_approval || false,
+
+      // notifications
+      admin_email: data.notifications?.admin_email || "",
+
+      email_notifications: data.notifications?.email_notifications || false,
+
+      late_arrival_alerts: data.notifications?.late_arrival_alerts || false,
+
+      weekly_reports: data.notifications?.weekly_reports || false,
     };
   } catch (err) {
-    console.error("FETCH SETTINGS ERROR:", err);
+    console.error("SETTINGS ERROR:", err);
+
+    errorMessage.value = err.response?.data?.message || "Gagal memuat settings";
   } finally {
     loading.value = false;
   }
 }
 
-// SAVE
 async function saveSettings() {
-  if (saving.value) return;
-
-  saving.value = true;
-  saveSuccess.value = false;
-
   try {
+    saving.value = true;
+
+    successMessage.value = "";
+    errorMessage.value = "";
+
     await updateBranchSettings({
-      ...form.value,
+      branch_name: form.value.branch_name,
+
+      address: form.value.address,
+
+      latitude: Number(form.value.latitude),
+
+      longitude: Number(form.value.longitude),
+
+      radius_meter: Number(form.value.radius_meter),
+
+      start_time: form.value.start_time + ":00",
+
+      end_time: form.value.end_time + ":00",
+
       late_threshold_min: Number(form.value.late_threshold_min),
+
+      checkin_cutoff_min: Number(form.value.checkin_cutoff_min),
+
+      work_days: form.value.work_days,
+
+      // security
+      auto_refresh_qr: form.value.auto_refresh_qr,
+
+      require_admin_approval: form.value.require_admin_approval,
+
+      // notifications
+      admin_email: form.value.admin_email,
+
+      email_notifications: form.value.email_notifications,
+
+      late_arrival_alerts: form.value.late_arrival_alerts,
+
+      weekly_reports: form.value.weekly_reports,
     });
 
-    saveSuccess.value = true;
-    setTimeout(() => (saveSuccess.value = false), 2500);
+    successMessage.value = "Settings berhasil disimpan";
   } catch (err) {
     console.error("SAVE SETTINGS ERROR:", err);
+
+    if (err.message === "Network Error") {
+      errorMessage.value = "Tidak dapat terhubung ke server";
+
+      return;
+    }
+
+    errorMessage.value =
+      err.response?.data?.message || "Gagal menyimpan settings";
   } finally {
     saving.value = false;
   }
@@ -92,8 +175,9 @@ onMounted(() => {
       <div class="header">
         <div>
           <h2>Settings</h2>
-          <p class="subtitle">Configure branch and system settings</p>
+          <p class="subtitle">Configure branch settings</p>
         </div>
+
         <AdminProfile :user="user" />
       </div>
 
@@ -108,12 +192,30 @@ onMounted(() => {
           <div class="section-body grid-2">
             <div class="field">
               <label>Branch Name</label>
-              <input v-model="form.branch_name" />
+              <input v-model="form.branch_name" disabled />
             </div>
 
             <div class="field">
-              <label>Branch Code</label>
-              <input v-model="form.branch_code" />
+              <label>Address</label>
+              <textarea v-model="form.address" disabled />
+            </div>
+
+            <div class="grid-2">
+              <div class="field">
+                <label>Latitude</label>
+                <input type="number" v-model="form.latitude" disabled />
+              </div>
+
+              <div class="field">
+                <label>Longitude</label>
+                <input type="number" v-model="form.longitude" disabled />
+              </div>
+            </div>
+
+            <div class="field">
+              <label> Attendance Radius (meter) </label>
+
+              <input type="number" v-model="form.radius_meter" disabled />
             </div>
           </div>
         </div>
@@ -126,34 +228,49 @@ onMounted(() => {
           <div class="section-body grid-3">
             <div class="field">
               <label>Start Time</label>
+
               <input type="time" v-model="form.start_time" />
             </div>
 
             <div class="field">
               <label>End Time</label>
+
               <input type="time" v-model="form.end_time" />
             </div>
 
             <div class="field">
-              <label>Late Threshold (minutes)</label>
+              <label> Late Threshold (minutes) </label>
+
               <input type="number" v-model="form.late_threshold_min" />
+            </div>
+
+            <div class="field">
+              <label> Check-in Cutoff (minutes) </label>
+
+              <input type="number" v-model="form.checkin_cutoff_min" />
+            </div>
+
+            <div class="field">
+              <label>Work Days</label>
+
+              <input v-model="form.work_days" placeholder="1,2,3,4,5" />
             </div>
           </div>
         </div>
 
         <div class="section">
           <div class="section-header">
-            <h3>Security & QR Code</h3>
+            <h3>Security & QR</h3>
           </div>
 
           <div class="section-body">
             <div class="toggle-row">
               <div>
-                <p class="toggle-label">Auto-refresh QR Code</p>
-                <p class="toggle-desc">
-                  Automatically regenerate QR every hour
-                </p>
+                <p class="toggle-label">Auto-refresh QR</p>
+
+                <p class="toggle-desc">Automatically regenerate QR</p>
               </div>
+
               <label class="switch">
                 <input type="checkbox" v-model="form.auto_refresh_qr" />
                 <span></span>
@@ -163,10 +280,12 @@ onMounted(() => {
             <div class="toggle-row">
               <div>
                 <p class="toggle-label">Require Admin Approval</p>
+
                 <p class="toggle-desc">Require approval for changes</p>
               </div>
+
               <label class="switch">
-                <input type="checkbox" v-model="form.require_approval" />
+                <input type="checkbox" v-model="form.require_admin_approval" />
                 <span></span>
               </label>
             </div>
@@ -181,29 +300,33 @@ onMounted(() => {
           <div class="section-body">
             <div class="field">
               <label>Admin Email</label>
+
               <input type="email" v-model="form.admin_email" />
             </div>
 
             <div class="toggle-row">
               <span>Email Notifications</span>
+
               <label class="switch">
-                <input type="checkbox" v-model="form.email_notif" />
+                <input type="checkbox" v-model="form.email_notifications" />
                 <span></span>
               </label>
             </div>
 
             <div class="toggle-row">
               <span>Late Arrival Alerts</span>
+
               <label class="switch">
-                <input type="checkbox" v-model="form.late_alert" />
+                <input type="checkbox" v-model="form.late_arrival_alerts" />
                 <span></span>
               </label>
             </div>
 
             <div class="toggle-row">
               <span>Weekly Reports</span>
+
               <label class="switch">
-                <input type="checkbox" v-model="form.weekly_report" />
+                <input type="checkbox" v-model="form.weekly_reports" />
                 <span></span>
               </label>
             </div>
@@ -212,9 +335,15 @@ onMounted(() => {
       </template>
 
       <div class="save-bar">
-        <span v-if="saveSuccess" class="success">Saved</span>
+        <span v-if="successMessage" class="success">
+          {{ successMessage }}
+        </span>
 
-        <button class="btn-save" @click="saveSettings">
+        <span v-if="errorMessage" class="error">
+          {{ errorMessage }}
+        </span>
+
+        <button class="btn-save" @click="saveSettings" :disabled="saving">
           {{ saving ? "Saving..." : "Save Settings" }}
         </button>
       </div>
@@ -396,5 +525,72 @@ input:focus {
 .success {
   font-size: 12px;
   color: #16a34a;
+}
+
+/* textarea */
+textarea {
+  width: 100%;
+  min-height: 90px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  font-size: 13px;
+  font-family: "Segoe UI", sans-serif;
+  color: #111827;
+  resize: vertical;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+textarea:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+/* textarea field */
+.field textarea {
+  width: 100%;
+}
+
+/* disabled input */
+input:disabled {
+  background: #f9fafb;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+/* fix nested grid spacing */
+.section-body .grid-2,
+.section-body .grid-3 {
+  width: 100%;
+}
+
+/* field consistency */
+.field input,
+.field textarea {
+  width: 100%;
+}
+
+/* responsive */
+@media (max-width: 900px) {
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .main {
+    padding: 22px;
+  }
+
+  .save-bar {
+    justify-content: stretch;
+  }
+
+  .btn-save {
+    width: 100%;
+  }
 }
 </style>

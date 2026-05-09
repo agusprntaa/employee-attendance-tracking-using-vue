@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { loginAPI } from "@/services/auth";
 
@@ -15,6 +15,18 @@ const errorGlobal = ref("");
 const showPassword = ref(false);
 const locationGranted = ref(false);
 const locationError = ref("");
+
+onMounted(() => {
+  const remembered = localStorage.getItem("rememberedLogin");
+
+  if (remembered) {
+    const data = JSON.parse(remembered);
+
+    username.value = data.username || "";
+    password.value = data.password || "";
+    remember.value = true;
+  }
+});
 
 function requestLocation() {
   locationError.value = "";
@@ -55,32 +67,147 @@ async function login() {
   errorGlobal.value = "";
 
   try {
+    // const res = await loginAPI({
+    //   username: username.value.trim(),
+    //   password: password.value.trim(),
+    // });
+
+    //mengubah error handle baru
     const res = await loginAPI({
       username: username.value.trim(),
       password: password.value.trim(),
     });
 
+    console.log("LOGIN RESPONSE:", res.data);
+
+    if (!res.data?.data) {
+      errorGlobal.value = "Response server tidak valid. Cek backend.";
+      return;
+    }
+
     const { token, refresh_token, user } = res.data.data;
 
+    //mengubah error handle baru
+    if (!token || !refresh_token) {
+      errorGlobal.value = "Token login tidak ditemukan dari backend.";
+      return;
+    }
+
+    // simpan auth
     localStorage.setItem("token", token);
+
     localStorage.setItem("refresh_token", refresh_token);
+
     localStorage.setItem("user", JSON.stringify(user));
 
-    if (user.role === "super_admin") {
-      router.push("/admin-pusat/dashboard");
-    } else if (user.role === "admin_cabang") {
-      router.push("/admin-cabang/dashboard");
+    // remember me
+    if (remember.value) {
+      localStorage.setItem(
+        "rememberedLogin",
+        JSON.stringify({
+          username: username.value,
+          password: password.value,
+        }),
+      );
     } else {
+      localStorage.removeItem("rememberedLogin");
+    }
+
+    // redirect sesuai role & tipe
+    if (user.role === "admin" && user.tipe === "pusat") {
+      router.push("/admin-pusat/dashboard");
+    } else if (user.role === "admin" && user.tipe === "cabang") {
+      router.push("/admin-cabang/dashboard");
+    } else if (user.role === "karyawan") {
       router.push("/employee/dashboard");
+    } else {
+      errorGlobal.value = "Role user tidak sesuai sistem. backend.";
     }
   } catch (err) {
     console.error(err);
+
+    //mengubah error handle baru
+    if (err.response?.status === 429) {
+      errorGlobal.value =
+        "Terlalu banyak mencoba login. Coba lagi beberapa menit lagi.";
+      return;
+    }
+
+    if (err.message === "Network Error") {
+      errorGlobal.value = "Tidak dapat terhubung ke server.";
+
+      return;
+    }
 
     errorGlobal.value = err.response?.data?.message || "Login gagal";
   } finally {
     loading.value = false;
   }
 }
+// async function login() {
+//   if (loading.value) return;
+
+//   loading.value = true;
+//   errorGlobal.value = "";
+
+//   try {
+//     const res = await loginAPI({
+//       username: username.value.trim(),
+//       password: password.value.trim(),
+//     });
+
+//     const { token, refresh_token, user } = res.data.data;
+
+//     // simpan auth ke localStorage
+//     localStorage.setItem("token", token);
+
+//     localStorage.setItem("refresh_token", refresh_token);
+
+//     localStorage.setItem("user", JSON.stringify(user));
+
+//     // remember me
+//     if (remember.value) {
+//       localStorage.setItem(
+//         "rememberedLogin",
+//         JSON.stringify({
+//           username: username.value,
+//           password: password.value,
+//         }),
+//       );
+//     } else {
+//       localStorage.removeItem("rememberedLogin");
+//     }
+
+//     // redirect sesuai role
+//     switch (user.role) {
+//       // case "super_admin":
+//       //   router.push("/admin-pusat/dashboard");
+//       //   break;
+
+//       // case "admin_cabang":
+//       //   router.push("/admin-cabang/dashboard");
+//       //   break;
+
+//       case "admin":
+//         router.push("/admin-cabang/dashboard");
+//         break;
+
+//       case "karyawan":
+//         router.push("/employee/dashboard");
+//         break;
+
+//       default:
+//         errorGlobal.value = "Role tidak dikenali";
+//         break;
+//     }
+//   } catch (err) {
+//     console.error(err);
+
+//     errorGlobal.value = err.response?.data?.message || "Login gagal";
+//   } finally {
+//     loading.value = false;
+//   }
+// }
 </script>
 
 <template>
@@ -117,7 +244,7 @@ async function login() {
         />
 
         <img
-          :src="showPassword ? '/eye-hide.png' : '/eye-show.png'"
+          :src="showPassword ? '/eye-show.png' : '/eye-hide.png'"
           class="toggle"
           @click="showPassword = !showPassword"
         />

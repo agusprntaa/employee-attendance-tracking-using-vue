@@ -33,11 +33,16 @@ const canCheckIn = computed(() => {
   return isInRadius.value && !alreadyCheckedIn.value && !loading.value;
 });
 
+//mengubah error handle baru
+console.log("isInRadius:", isInRadius.value);
+console.log("alreadyCheckedIn:", alreadyCheckedIn.value);
+console.log("loading:", loading.value);
+
 // INIT
 onMounted(async () => {
   try {
     await loadProfile();
-    loadUser();
+    await loadUser();
 
     startClock();
 
@@ -151,23 +156,6 @@ async function handleLogout() {
     window.location.href = "/";
   }
 }
-
-async function confirmLogout() {
-  showLogoutConfirm.value = false;
-
-  try {
-    const refresh = localStorage.getItem("refresh_token");
-
-    if (refresh) {
-      await logoutAPI(refresh);
-    }
-  } catch (err) {
-    console.error("LOGOUT ERROR:", err);
-  } finally {
-    localStorage.clear();
-    window.location.href = "/";
-  }
-}
 </script>
 
 <template>
@@ -234,7 +222,7 @@ async function confirmLogout() {
               Tetap di sini
             </button>
 
-            <button class="confirm" @click="confirmLogout">Keluar</button>
+            <button class="confirm" @click="handleLogout">Keluar</button>
           </div>
         </div>
       </div>

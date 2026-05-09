@@ -17,15 +17,23 @@ import {
 
 const { user, loadUser } = useAuth();
 
+const showQRModal = ref(false);
+
 const loading = ref(false);
 
-const summary = ref({});
-// const employees = ref([]);
+const summary = ref({
+  total_employee: 0,
+  present: 0,
+  late: 0,
+  wfa: 0,
+  absent: 0,
+});
+const employees = ref([]);
 const settings = ref({});
 
 const search = ref("");
 const status = ref("");
-const period = ref("daily");
+// const period = ref("daily");
 const date = ref("");
 
 const qrToken = ref("");
@@ -45,27 +53,75 @@ async function fetchAll() {
   await Promise.all([fetchDashboard(), fetchQR(), fetchSettings()]);
 }
 
-async function fetchDashboard() {
-  const res = await getDashboardSummary({
-    search: search.value,
-    status: status.value || undefined,
-    type: period.value,
-    date: date.value,
-  });
+// async function fetchDashboard() {
+//   const res = await getDashboardSummary({
+//     search: search.value || undefined,
+//     status: status.value || undefined,
+//   });
 
-  summary.value = res.data.data.stats;
-  employees.value = res.data.data.attendance;
+//   console.log("[BE] Dashboard response success:", res.data);
+
+//   summary.value = res.data.data.stats;
+//   employees.value = res.data.data.attendance;
+// }
+
+async function fetchDashboard() {
+  loading.value = true;
+
+  try {
+    const res = await getDashboardSummary({
+      search: search.value || undefined,
+      status: status.value || undefined,
+    });
+
+    console.log("DASHBOARD:", res.data);
+
+    if (!res.data?.data) {
+      alert("Data dashboard tidak valid");
+      return;
+    }
+
+    summary.value = res.data.data.stats || {};
+
+    employees.value = res.data.data.attendance || [];
+  } catch (err) {
+    console.error("DASHBOARD ERROR:", err);
+
+    if (err.message === "Network Error") {
+      alert("Tidak dapat terhubung ke server");
+
+      return;
+    }
+
+    alert(
+      err.response?.data?.message ||
+        "Server dashboard sedang bermasalah cek backend",
+    );
+  } finally {
+    loading.value = false;
+  }
 }
 
 async function fetchQR() {
   const res = await getQRCode();
   qrToken.value = res.data.data.qr_content;
   qrExpire.value = res.data.data.expires_at;
+
+  console.log("QR:", res.data);
 }
 
 async function fetchSettings() {
-  const res = await getBranchSettings();
-  settings.value = res.data.data;
+  try {
+    const res = await getBranchSettings();
+
+    console.log("SETTINGS:", res.data);
+
+    settings.value = res.data.data || {};
+  } catch (err) {
+    console.error("SETTINGS ERROR:", err);
+
+    alert(err.response?.data?.message || "Gagal memuat settings");
+  }
 }
 
 async function handleRefreshQR() {
@@ -168,50 +224,6 @@ function exportPDF() {
 
   doc.save("attendance.pdf");
 }
-// DUMMY
-const employees = ref([
-  {
-    id: 1,
-    employee_id: "EMP001",
-    employee_username: "Restu",
-    check_in: "2026-05-06T08:15:00",
-    status: "PRESENT",
-    work_type: "WFO",
-  },
-  {
-    id: 2,
-    employee_id: "EMP002",
-    employee_username: "Agus",
-    check_in: "2026-05-06T09:05:00",
-    status: "LATE",
-    work_type: "WFO",
-  },
-  {
-    id: 3,
-    employee_id: "EMP003",
-    employee_username: "Wahyu",
-    check_in: "2026-05-06T08:45:00",
-    status: "WFA",
-    work_type: "WFA",
-  },
-]);
-
-// DUMMY
-import { computed } from "vue";
-
-const filteredEmployees = computed(() => {
-  return employees.value.filter((item) => {
-    const matchSearch = item.employee_username
-      .toLowerCase()
-      .includes(search.value.toLowerCase());
-
-    // const matchStatus = !status.value || item.status === status.value;
-    // DUMMY
-    const matchStatus =
-      !status.value || item.status.toLowerCase() === status.value.toLowerCase();
-    return matchSearch && matchStatus;
-  });
-});
 </script>
 
 <template>
@@ -241,26 +253,25 @@ const filteredEmployees = computed(() => {
 
         <AdminProfile :user="user" />
       </div>
-      <!-- DUMMY -->
       <div class="stats">
         <div class="card">
-          <h2>25{{ summary.total_employee }}</h2>
+          <h2>{{ summary.total_employee }}</h2>
           <p>Total</p>
         </div>
         <div class="card">
-          <h2>12{{ summary.present }}</h2>
+          <h2>{{ summary.present }}</h2>
           <p>Hadir</p>
         </div>
         <div class="card">
-          <h2>8{{ summary.late }}</h2>
+          <h2>{{ summary.late }}</h2>
           <p>Terlambat</p>
         </div>
         <div class="card">
-          <h2>3{{ summary.wfa }}</h2>
+          <h2>{{ summary.wfa }}</h2>
           <p>WFA</p>
         </div>
         <div class="card">
-          <h2>2{{ summary.absent }}</h2>
+          <h2>{{ summary.absent }}</h2>
           <p>Absen</p>
         </div>
       </div>
@@ -283,12 +294,12 @@ const filteredEmployees = computed(() => {
               <option value="ABSENT">Absen</option>
             </select>
 
-            <select v-model="period">
+            <!-- <select v-model="period">
               <option value="daily">Harian</option>
               <option value="weekly">Mingguan</option>
               <option value="monthly">Bulanan</option>
               <option value="yearly">Tahunan</option>
-            </select>
+            </select> -->
 
             <!-- <input type="date" v-model="date" /> -->
 
@@ -307,14 +318,15 @@ const filteredEmployees = computed(() => {
             </thead>
 
             <tbody>
-              <!-- <tr v-for="item in employees" :key="item.id"> -->
-              <!-- DUMMY -->
-              <tr v-for="item in filteredEmployees" :key="item.id">
+              <tr v-for="item in employees" :key="item.id">
+                <!-- <tr v-for="item in filteredEmployees" :key="item.id"> -->
                 <td>#{{ item.employee_id }}</td>
                 <td>{{ item.employee_username }}</td>
                 <td>{{ formatTime(item.check_in) }}</td>
                 <td>
-                  <span :class="['badge', 'badge-' + item.status]">
+                  <span
+                    :class="['badge', 'badge-' + item.status?.toLowerCase()]"
+                  >
                     {{ item.status }}
                   </span>
                 </td>
@@ -340,7 +352,13 @@ const filteredEmployees = computed(() => {
 
           <div class="qr-body">
             <div class="qr-box">
-              <QRCode v-if="qrToken" :value="qrToken" :size="180" level="H" />
+              <QRCode
+                v-if="qrToken"
+                :value="qrToken"
+                :size="180"
+                level="H"
+                @click="showQRModal = true"
+              />
               <p v-else class="qr-loading">Memuat QR...</p>
             </div>
 
@@ -359,6 +377,23 @@ const filteredEmployees = computed(() => {
               {{ loading ? "Refreshing..." : "Refresh QR" }}
             </button>
           </div>
+        </div>
+      </div>
+      <div
+        v-if="showQRModal"
+        class="qr-modal-overlay"
+        @click="showQRModal = false"
+      >
+        <div class="qr-modal" @click.stop>
+          <button class="qr-close" @click="showQRModal = false">✕</button>
+
+          <!-- ganti ukuran qr modal -->
+          <QRCode :value="qrToken" :size="500" level="H" />
+
+          <p class="qr-modal-expire">
+            Berlaku sampai:
+            {{ formatExpire(qrExpire) }}
+          </p>
         </div>
       </div>
     </main>
@@ -769,5 +804,52 @@ td .badge {
   background: #dc2626;
   color: white;
   box-shadow: 0 4px 14px rgba(220, 38, 38, 0.3);
+}
+
+.qr-box canvas {
+  cursor: pointer;
+}
+
+.qr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 9999;
+}
+
+.qr-modal {
+  position: relative;
+
+  background: white;
+  padding: 28px;
+  border-radius: 24px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  gap: 18px;
+}
+
+.qr-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+
+  border: none;
+  background: transparent;
+
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.qr-modal-expire {
+  font-size: 14px;
+  color: #666;
 }
 </style>

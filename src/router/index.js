@@ -82,42 +82,106 @@ const router = createRouter({
   routes
 })
 
-/*router.beforeEach((to) => {
-  const token = localStorage.getItem('token')
+// guard router role
+// router.beforeEach((to, from, next) => {
 
-  let user = null
+
+//   const user = localStorage.getItem('user')
+
+//   if (!user) {
+//     console.log('masuk not if ini')
+//     next({
+//       path: '/'
+//     })
+//   }
+
+//     if (to.path.startsWith('/admin-pusat') && user.role !== 'super_admin') {
+//        next({ path: '/' })
+//      }
+
+//      if (to.path.startsWith('/admin-cabang') && user.role !== 'admin_cabang') {
+//        next({ path: '/' })
+//      }
+
+//      if (to.path.startsWith('/employee') && user.role !== 'karyawan') {
+//        next({ path: '/' })
+//     }
+// next()
+  
+//  })
+
+//guard router role, tipe
+router.beforeEach((to) => {
+  const token = localStorage.getItem("token");
+
+  let user = null;
+
   try {
-    user = JSON.parse(localStorage.getItem('user'))
-  } catch {}
-
-  if (to.path === '/') {
-    if (token && user) {
-      if (user.role === 'super_admin') return '/admin-pusat/dashboard'
-      if (user.role === 'admin_cabang') return '/admin-cabang/dashboard'
-      return '/employee/dashboard'
-    }
-    return true
+    user = JSON.parse(localStorage.getItem("user"));
+  } catch (error) {
+    user = null;
   }
 
-  if (!token) {
-    return '/'
+  if (!token || !user) {
+    if (to.path !== "/") {
+      return "/";
+    }
+
+    return true;
   }
 
-  if (user) {
-    if (to.path.startsWith('/admin-pusat') && user.role !== 'super_admin') {
-      return '/'
-    }
+  //auto dashboard selama masih ada token di local storage
 
-    if (to.path.startsWith('/admin-cabang') && user.role !== 'admin_cabang') {
-      return '/'
-    }
+  // if (to.path === "/") {
+  //   if (
+  //     user.role === "admin" &&
+  //     user.tipe === "pusat"
+  //   ) {
+  //     return "/admin-pusat/dashboard";
+  //   }
 
-    if (to.path.startsWith('/employee') && user.role !== 'karyawan') {
-      return '/'
-    }
+  //   if (
+  //     user.role === "admin" &&
+  //     user.tipe === "cabang"
+  //   ) {
+  //     return "/admin-cabang/dashboard";
+  //   }
+
+  //   if (user.role === "karyawan") {
+  //     return "/employee/dashboard";
+  //   }
+
+  //   return "/";
+  // }
+
+  if (
+    to.path.startsWith("/admin-pusat") &&
+    !(
+      user.role === "admin" &&
+      user.tipe === "pusat"
+    )
+  ) {
+    return "/";
   }
 
-  return true
-})*/
+  if (
+    to.path.startsWith("/admin-cabang") &&
+    !(
+      user.role === "admin" &&
+      user.tipe === "cabang"
+    )
+  ) {
+    return "/";
+  }
+
+  if (
+    to.path.startsWith("/employee") &&
+    user.role !== "karyawan"
+  ) {
+    return "/";
+  }
+
+  return true;
+});
 
 export default router

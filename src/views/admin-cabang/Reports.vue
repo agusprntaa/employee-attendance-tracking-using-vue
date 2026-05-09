@@ -5,6 +5,10 @@ import AdminSidebar from "@/components/AdminSidebar.vue";
 import AdminProfile from "@/components/AdminProfile.vue";
 import { useAuth } from "@/composables/useAuth";
 import API from "@/services/api";
+import { getReportsAttendance } from "@/services/adminCabang";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 
 const { user, loadUser } = useAuth();
 
@@ -194,9 +198,7 @@ function formatDate(str) {
   });
 }
 
-// ─── LIFECYCLE ───────────────────────────────────────────
 onMounted(() => {
-  loadUser();
   fetchReports();
 });
 
@@ -204,6 +206,53 @@ onUnmounted(() => {
   weeklyInstance?.destroy();
   monthlyInstance?.destroy();
 });
+
+//export
+function exportPDF() {
+  const doc = new jsPDF();
+
+  doc.setFontSize(18);
+  doc.text("Attendance Reports", 14, 18);
+
+  doc.setFontSize(11);
+  doc.text(
+    `Period: ${startDate.value || "-"} to ${endDate.value || "-"}`,
+    14,
+    28,
+  );
+
+  autoTable(doc, {
+    startY: 38,
+    head: [["Date", "Present", "Late", "WFA", "Absent"]],
+    body: daily.value.map((d) => [
+      formatDate(d.date),
+      d.total_present,
+      d.total_late,
+      d.total_wfa,
+      d.total_absent,
+    ]),
+  });
+
+  doc.save("attendance-report.pdf");
+}
+
+function exportExcel() {
+  const worksheet = XLSX.utils.json_to_sheet(
+    daily.value.map((d) => ({
+      Date: formatDate(d.date),
+      Present: d.total_present,
+      Late: d.total_late,
+      WFA: d.total_wfa,
+      Absent: d.total_absent,
+    })),
+  );
+
+  const workbook = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Reports");
+
+  XLSX.writeFile(workbook, "attendance-report.xlsx");
+}
 </script>
 
 <template>
@@ -234,6 +283,15 @@ onUnmounted(() => {
         <button class="btn-apply" @click="fetchReports" :disabled="loading">
           {{ loading ? "Loading..." : "Apply" }}
         </button>
+
+        <!-- export -->
+        <div class="export">
+          <div class="export-actions">
+            <button class="btn-export pdf" @click="exportPDF">PDF</button>
+
+            <button class="btn-export excel" @click="exportExcel">Excel</button>
+          </div>
+        </div>
       </div>
 
       <!-- SUMMARY CARDS -->
@@ -737,5 +795,58 @@ td.bold {
 .badge-ABSENT {
   background: #fee2e2;
   color: #b91c1c;
+}
+
+/* export */
+.export {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-export {
+  margin-top: 40px;
+  margin-right: 10px;
+  padding: 8px 18px;
+  border-radius: 10px;
+  border: 1.5px solid #4f46e5;
+  background: transparent;
+  color: #4f46e5;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.2px;
+}
+
+.btn-export:hover {
+  background: #4f46e5;
+  color: white;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+}
+
+.btn-export:active {
+  transform: scale(0.96);
+}
+
+.btn-export.excel {
+  border-color: #16a34a;
+  color: #16a34a;
+}
+
+.btn-export.excel:hover {
+  background: #16a34a;
+  color: white;
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.3);
+}
+
+.btn-export.pdf {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.btn-export.pdf:hover {
+  background: #dc2626;
+  color: white;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.3);
 }
 </style>
