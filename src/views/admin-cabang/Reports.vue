@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, onMounted, onUnmounted, nextTick, computed } from "vue";
 import Chart from "chart.js/auto";
 import AdminSidebar from "@/components/AdminSidebar.vue";
 import AdminProfile from "@/components/AdminProfile.vue";
@@ -26,6 +26,8 @@ const summary = ref({
 const weeklyData = ref([]);
 const monthlyData = ref([]);
 const daily = ref([]);
+const currentPage = ref(1);
+const itemsPerPage = 10;
 const divisions = ref([]);
 
 const startDate = ref("");
@@ -197,6 +199,18 @@ function formatDate(str) {
     year: "numeric",
   });
 }
+
+const totalPages = computed(() => {
+  return Math.ceil(daily.value.length / itemsPerPage);
+});
+
+const paginatedDaily = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+
+  const end = start + itemsPerPage;
+
+  return daily.value.slice(start, end);
+});
 
 onMounted(() => {
   fetchReports();
@@ -390,7 +404,6 @@ function exportExcel() {
         <div class="panel-header">
           <h3>Division Performance</h3>
         </div>
-
         <table>
           <thead>
             <tr>
@@ -438,38 +451,67 @@ function exportExcel() {
         <div class="panel-header">
           <h3>Daily Breakdown</h3>
         </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Present</th>
+                <th>Late</th>
+                <th>WFA</th>
+                <th>Absent</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="!daily.length">
+                <td colspan="5" class="empty-cell">No daily data</td>
+              </tr>
+              <tr v-for="d in paginatedDaily" :key="d.date">
+                <td class="bold">{{ formatDate(d.date) }}</td>
+                <td>
+                  <span class="badge badge-PRESENT">{{ d.total_present }}</span>
+                </td>
+                <td>
+                  <span class="badge badge-LATE">{{ d.total_late }}</span>
+                </td>
+                <td>
+                  <span class="badge badge-WFA">{{ d.total_wfa }}</span>
+                </td>
+                <td>
+                  <span class="badge badge-ABSENT">{{ d.total_absent }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Present</th>
-              <th>Late</th>
-              <th>WFA</th>
-              <th>Absent</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="!daily.length">
-              <td colspan="5" class="empty-cell">No daily data</td>
-            </tr>
-            <tr v-for="d in daily" :key="d.date">
-              <td class="bold">{{ formatDate(d.date) }}</td>
-              <td>
-                <span class="badge badge-PRESENT">{{ d.total_present }}</span>
-              </td>
-              <td>
-                <span class="badge badge-LATE">{{ d.total_late }}</span>
-              </td>
-              <td>
-                <span class="badge badge-WFA">{{ d.total_wfa }}</span>
-              </td>
-              <td>
-                <span class="badge badge-ABSENT">{{ d.total_absent }}</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div v-if="totalPages > 1" class="pagination">
+          <button
+            class="nav-btn"
+            :disabled="currentPage === 1"
+            @click="currentPage--"
+          >
+            ‹
+          </button>
+
+          <button
+            v-for="page in totalPages"
+            :key="page"
+            class="page-number"
+            :class="{ active: currentPage === page }"
+            @click="currentPage = page"
+          >
+            {{ page }}
+          </button>
+
+          <button
+            class="nav-btn"
+            :disabled="currentPage === totalPages"
+            @click="currentPage++"
+          >
+            ›
+          </button>
+        </div>
       </div>
     </main>
   </div>
@@ -848,5 +890,76 @@ td.bold {
   background: #dc2626;
   color: white;
   box-shadow: 0 4px 14px rgba(220, 38, 38, 0.3);
+}
+
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+
+  padding: 18px 22px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.page-number,
+.nav-btn {
+  width: 38px;
+  height: 38px;
+
+  border: none;
+  background: transparent;
+
+  border-radius: 12px;
+
+  font-size: 15px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+.page-number:hover,
+.nav-btn:hover {
+  background: #f5f3ff;
+  color: #4f46e5;
+}
+
+.page-number.active {
+  background: #0f172a;
+  color: white;
+}
+
+.nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.table-scroll {
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+/* scrollbar */
+.table-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 20px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+
+  background: #f8f8ff;
 }
 </style>

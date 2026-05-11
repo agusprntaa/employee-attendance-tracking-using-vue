@@ -11,7 +11,6 @@ import autoTable from "jspdf-autotable";
 import {
   getDashboardSummary,
   getQRCode,
-  refreshQRCode,
   getBranchSettings,
 } from "@/services/adminCabang";
 
@@ -38,16 +37,23 @@ const date = ref("");
 
 const qrToken = ref("");
 const qrExpire = ref("");
+const countdown = ref(180);
 
-let interval = null;
+const popupMessage = ref("");
+const showPopup = ref(false);
+
+let countdownInterval = null;
 
 onMounted(async () => {
   loadUser();
   await fetchAll();
-  interval = setInterval(fetchQR, 3 * 60 * 1000);
+  // refresh tiap 2 menit 30 detik
+  startQRCountdown();
 });
 
-onUnmounted(() => clearInterval(interval));
+onUnmounted(() => {
+  clearInterval(countdownInterval);
+});
 
 async function fetchAll() {
   await Promise.all([fetchDashboard(), fetchQR(), fetchSettings()]);
@@ -65,6 +71,17 @@ async function fetchAll() {
 //   employees.value = res.data.data.attendance;
 // }
 
+function openPopup(message) {
+  popupMessage.value = message;
+
+  showPopup.value = true;
+
+  setTimeout(() => {
+    showPopup.value = false;
+    popupMessage.value = "";
+  }, 3000);
+}
+
 async function fetchDashboard() {
   loading.value = true;
 
@@ -77,7 +94,7 @@ async function fetchDashboard() {
     console.log("DASHBOARD:", res.data);
 
     if (!res.data?.data) {
-      alert("Data dashboard tidak valid");
+      openPopup("Data dashboard tidak valid");
       return;
     }
 
@@ -88,12 +105,12 @@ async function fetchDashboard() {
     console.error("DASHBOARD ERROR:", err);
 
     if (err.message === "Network Error") {
-      alert("Tidak dapat terhubung ke server");
+      openPopup("Tidak dapat terhubung ke server");
 
       return;
     }
 
-    alert(
+    openPopup(
       err.response?.data?.message ||
         "Server dashboard sedang bermasalah cek backend",
     );
@@ -103,11 +120,18 @@ async function fetchDashboard() {
 }
 
 async function fetchQR() {
-  const res = await getQRCode();
-  qrToken.value = res.data.data.qr_content;
-  qrExpire.value = res.data.data.expires_at;
+  try {
+    const res = await getQRCode();
 
-  console.log("QR:", res.data);
+    qrToken.value = res.data.data.qr_content;
+    qrExpire.value = res.data.data.expires_at;
+
+    console.log("QR:", res.data);
+  } catch (err) {
+    console.error("QR ERROR:", err);
+
+    openPopup(err.response?.data?.message || "Gagal memuat QR");
+  }
 }
 
 async function fetchSettings() {
@@ -120,19 +144,42 @@ async function fetchSettings() {
   } catch (err) {
     console.error("SETTINGS ERROR:", err);
 
-    alert(err.response?.data?.message || "Gagal memuat settings");
+    openPopup(err.response?.data?.message || "Gagal memuat settings");
   }
 }
 
-async function handleRefreshQR() {
-  loading.value = true;
-  try {
-    const res = await refreshQRCode();
-    qrToken.value = res.data.data.qr_content;
-    qrExpire.value = res.data.data.expires_at;
-  } finally {
-    loading.value = false;
-  }
+// async function handleRefreshQR() {
+//   loading.value = true;
+
+//   try {
+//     const res = await refreshQRCode();
+
+//     qrToken.value = res.data.data.qr_content;
+//     qrExpire.value = res.data.data.expires_at;
+
+//     openPopup("QR berhasil diperbarui");
+//   } catch (err) {
+//     console.error("REFRESH QR ERROR:", err);
+
+//     openPopup(err.response?.data?.message || "Gagal refresh QR");
+//   } finally {
+//     loading.value = false;
+//   }
+// }
+function startQRCountdown() {
+  clearInterval(countdownInterval);
+
+  countdown.value = 180;
+
+  countdownInterval = setInterval(async () => {
+    countdown.value--;
+
+    if (countdown.value <= 0) {
+      await fetchQR();
+
+      countdown.value = 180;
+    }
+  }, 1000);
 }
 
 function formatTime(utc) {
@@ -140,7 +187,6 @@ function formatTime(utc) {
   return new Date(utc).toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: "Asia/Jakarta",
   });
 }
 
@@ -150,7 +196,6 @@ function formatDate(utc) {
     day: "numeric",
     month: "long",
     year: "numeric",
-    timeZone: "Asia/Jakarta",
   });
 }
 
@@ -160,8 +205,14 @@ function formatExpire(utc) {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-    timeZone: "Asia/Jakarta",
   });
+}
+
+function formatCountdown(seconds) {
+  const min = Math.floor(seconds / 60);
+  const sec = seconds % 60;
+
+  return `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 }
 
 function isExpired(utc) {
@@ -170,7 +221,7 @@ function isExpired(utc) {
 
 function exportExcel() {
   if (!employees.value.length) {
-    alert("Tidak ada data");
+    openPopup("Tidak ada data");
     return;
   }
 
@@ -193,7 +244,7 @@ function exportExcel() {
 
 function exportPDF() {
   if (!employees.value.length) {
-    alert("Tidak ada data");
+    openPopup("Tidak ada data");
     return;
   }
 
@@ -368,14 +419,10 @@ function exportPDF() {
                 {{ formatExpire(qrExpire) }}
               </span>
             </div>
-
-            <button
-              class="btn-refresh"
-              @click="handleRefreshQR"
-              :disabled="loading"
-            >
-              {{ loading ? "Refreshing..." : "Refresh QR" }}
-            </button>
+            <p class="qr-timer">
+              QR otomatis refresh dalam
+              <strong>{{ formatCountdown(countdown) }}</strong>
+            </p>
           </div>
         </div>
       </div>
@@ -851,5 +898,42 @@ td .badge {
 .qr-modal-expire {
   font-size: 14px;
   color: #666;
+}
+
+.popup {
+  position: fixed;
+
+  top: 20px;
+  left: 50%;
+
+  transform: translateX(-50%);
+
+  background: #fee2e2;
+  color: #b91c1c;
+
+  padding: 14px 22px;
+
+  border-radius: 14px;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  z-index: 9999;
+
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+.qr-timer {
+  margin-top: 14px;
+
+  font-size: 13px;
+  color: #6b7280;
+
+  text-align: center;
+}
+
+.qr-timer strong {
+  color: #4f46e5;
+  font-weight: 700;
 }
 </style>

@@ -23,7 +23,7 @@ onMounted(() => {
     const data = JSON.parse(remembered);
 
     username.value = data.username || "";
-    password.value = data.password || "";
+    password.value = "";
     remember.value = true;
   }
 });
@@ -62,17 +62,28 @@ function requestLocation() {
 
 async function login() {
   if (loading.value) return;
-
-  loading.value = true;
+  errorUsername.value = "";
+  errorPassword.value = "";
   errorGlobal.value = "";
 
-  try {
-    // const res = await loginAPI({
-    //   username: username.value.trim(),
-    //   password: password.value.trim(),
-    // });
+  if (!username.value.trim()) {
+    errorUsername.value = "Username wajib diisi";
+    return;
+  }
 
-    //mengubah error handle baru
+  if (!password.value.trim()) {
+    errorPassword.value = "Password wajib diisi";
+    return;
+  }
+
+  if (!locationGranted.value) {
+    locationError.value = "Izin lokasi diperlukan";
+    return;
+  }
+
+  loading.value = true;
+
+  try {
     const res = await loginAPI({
       username: username.value.trim(),
       password: password.value.trim(),
@@ -106,7 +117,6 @@ async function login() {
         "rememberedLogin",
         JSON.stringify({
           username: username.value,
-          password: password.value,
         }),
       );
     } else {
@@ -139,75 +149,17 @@ async function login() {
       return;
     }
 
+    if (err.response?.status === 401) {
+      errorGlobal.value = "Username atau password salah";
+
+      return;
+    }
+
     errorGlobal.value = err.response?.data?.message || "Login gagal";
   } finally {
     loading.value = false;
   }
 }
-// async function login() {
-//   if (loading.value) return;
-
-//   loading.value = true;
-//   errorGlobal.value = "";
-
-//   try {
-//     const res = await loginAPI({
-//       username: username.value.trim(),
-//       password: password.value.trim(),
-//     });
-
-//     const { token, refresh_token, user } = res.data.data;
-
-//     // simpan auth ke localStorage
-//     localStorage.setItem("token", token);
-
-//     localStorage.setItem("refresh_token", refresh_token);
-
-//     localStorage.setItem("user", JSON.stringify(user));
-
-//     // remember me
-//     if (remember.value) {
-//       localStorage.setItem(
-//         "rememberedLogin",
-//         JSON.stringify({
-//           username: username.value,
-//           password: password.value,
-//         }),
-//       );
-//     } else {
-//       localStorage.removeItem("rememberedLogin");
-//     }
-
-//     // redirect sesuai role
-//     switch (user.role) {
-//       // case "super_admin":
-//       //   router.push("/admin-pusat/dashboard");
-//       //   break;
-
-//       // case "admin_cabang":
-//       //   router.push("/admin-cabang/dashboard");
-//       //   break;
-
-//       case "admin":
-//         router.push("/admin-cabang/dashboard");
-//         break;
-
-//       case "karyawan":
-//         router.push("/employee/dashboard");
-//         break;
-
-//       default:
-//         errorGlobal.value = "Role tidak dikenali";
-//         break;
-//     }
-//   } catch (err) {
-//     console.error(err);
-
-//     errorGlobal.value = err.response?.data?.message || "Login gagal";
-//   } finally {
-//     loading.value = false;
-//   }
-// }
 </script>
 
 <template>
@@ -226,21 +178,29 @@ async function login() {
       </div>
       <p v-if="locationError" class="error">{{ locationError }}</p>
 
-      <label>Username</label>
+      <label for="username">Username</label>
+
       <input
+        id="username"
+        name="username"
+        autocomplete="username"
         v-model="username"
         type="text"
         placeholder="Masukkan username"
-        @keyup.enter="login"
       />
       <p v-if="errorUsername" class="error">{{ errorUsername }}</p>
 
+      <label for="password">Password</label>
+
       <div class="password-wrapper">
         <input
+          id="password"
+          name="password"
+          autocomplete="current-password"
           :type="showPassword ? 'text' : 'password'"
           v-model="password"
           placeholder="Masukkan password"
-          @keyup.enter="login"
+          @keydown.enter.prevent="login"
         />
 
         <img
@@ -255,7 +215,7 @@ async function login() {
         <span>Ingat saya</span>
       </label>
 
-      <button @click="login" :disabled="loading">
+      <button type="button" @click.prevent="login" :disabled="loading">
         {{ loading ? "Loading..." : "Sign In" }}
       </button>
 

@@ -30,17 +30,21 @@ API.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status
+    
+    if (
+  status === 401 &&
+  !error.config.url.includes('/login')
+) {
+  localStorage.removeItem('token')
+  localStorage.removeItem('refresh_token')
+  localStorage.removeItem('user')
 
-    if (status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('refresh_token')
-      localStorage.removeItem('user')
-      window.location.href = '/'
-    }
+  window.location.href = '/'
+}
 
-    if (status === 429) {
-      alert('Terlalu banyak mencoba login, coba lagi nanti')
-    }
+    // if (status === 429) {
+    //   alert('Terlalu banyak mencoba login, coba lagi nanti')
+    // }
 
     return Promise.reject(error)
   }

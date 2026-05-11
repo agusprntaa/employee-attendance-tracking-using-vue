@@ -65,7 +65,7 @@ async function submitModal() {
       </div>
 
       <div class="stats">
-        <div class="card">
+        <div class="card" @click="$router.push('/admin-pusat/employees')">
           <h2>1.247</h2>
           <p>Total Employees</p>
         </div>
@@ -385,5 +385,9 @@ tbody tr:last-child td {
   background: #4f46e5 !important;
   color: #fff !important;
   box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+}
+
+.card {
+  cursor: pointer;
 }
 </style>

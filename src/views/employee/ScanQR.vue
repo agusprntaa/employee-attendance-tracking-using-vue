@@ -4,12 +4,17 @@ import { useRouter } from "vue-router";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import { useLocation } from "@/composables/useLocation";
 import { checkInAPI } from "@/services/attendance";
+import { useAuth } from "@/composables/useAuth";
 
 const router = useRouter();
+const { user, loadUser } = useAuth();
 
 const loading = ref(false);
 const error = ref("");
 const scanned = ref(false);
+
+const popupMessage = ref("");
+const showPopup = ref(false);
 
 const { latitude, longitude, accuracy, getCurrentLocation } = useLocation();
 
@@ -18,7 +23,7 @@ let videoElement = null;
 
 onMounted(async () => {
   videoElement = document.getElementById("video");
-
+  await loadUser();
   const ok = await getCurrentLocation();
   if (!ok) {
     error.value = "Gagal mengambil lokasi";
@@ -67,6 +72,17 @@ function stopScanner() {
   }
 }
 
+function openPopup(message) {
+  popupMessage.value = message;
+
+  showPopup.value = true;
+
+  setTimeout(() => {
+    showPopup.value = false;
+    popupMessage.value = "";
+  }, 3000);
+}
+
 // HANDLE SCAN
 async function handleScan(decodedText) {
   if (scanned.value) return;
@@ -77,16 +93,10 @@ async function handleScan(decodedText) {
   stopScanner();
 
   try {
-    let qrData;
+    const qrToken = decodedText;
 
-    try {
-      qrData = JSON.parse(decodedText);
-    } catch {
+    if (!qrToken) {
       throw new Error("QR tidak valid");
-    }
-
-    if (!qrData.token || !qrData.branch_id) {
-      throw new Error("QR tidak sesuai format");
     }
 
     const payload = {
@@ -94,8 +104,8 @@ async function handleScan(decodedText) {
       lat: latitude.value,
       lon: longitude.value,
       accuracy: accuracy.value,
-      qr_token: qrData.token,
-      branch_id: qrData.branch_id,
+      qr_token: qrToken,
+      branch_id: user.value.branch_id,
     };
 
     const res = await checkInAPI(payload);
@@ -108,11 +118,14 @@ async function handleScan(decodedText) {
       },
     });
   } catch (err) {
-    console.error(err);
+    console.log("CHECKIN ERROR:", err.response?.data);
 
-    alert(err.response?.data?.message || err.message || "Check-in gagal");
+    openPopup(err.response?.data?.message || err.message || "Check-in gagal");
 
     scanned.value = false;
+
+    // restart scanner lagi
+    startScanner();
   } finally {
     loading.value = false;
   }
@@ -227,5 +240,28 @@ video {
   100% {
     transform: rotate(360deg);
   }
+}
+
+.popup {
+  position: fixed;
+
+  top: 20px;
+  left: 50%;
+
+  transform: translateX(-50%);
+
+  background: #fee2e2;
+  color: #b91c1c;
+
+  padding: 14px 22px;
+
+  border-radius: 14px;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  z-index: 9999;
+
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
 }
 </style>

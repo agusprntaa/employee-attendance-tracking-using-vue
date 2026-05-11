@@ -14,6 +14,9 @@ import LocationBanner from "@/components/LocationBanner.vue";
 const router = useRouter();
 const { user, loadUser } = useAuth();
 
+const popupMessage = ref("");
+const showPopup = ref(false);
+
 const loading = ref(false);
 const currentTime = ref("");
 const history = ref([]);
@@ -38,6 +41,17 @@ console.log("isInRadius:", isInRadius.value);
 console.log("alreadyCheckedIn:", alreadyCheckedIn.value);
 console.log("loading:", loading.value);
 
+function openPopup(message) {
+  popupMessage.value = message;
+
+  showPopup.value = true;
+
+  setTimeout(() => {
+    showPopup.value = false;
+    popupMessage.value = "";
+  }, 3000);
+}
+
 // INIT
 onMounted(async () => {
   try {
@@ -51,7 +65,7 @@ onMounted(async () => {
     await fetchHistory();
   } catch (err) {
     console.error(err);
-    alert("Gagal memuat data");
+    openPopup("Gagal memuat data");
   }
 });
 
@@ -509,5 +523,28 @@ async function handleLogout() {
 .confirm:hover {
   background: #e5e7eb;
   color: #374151;
+}
+
+.popup {
+  position: fixed;
+
+  top: 20px;
+  left: 50%;
+
+  transform: translateX(-50%);
+
+  background: #fee2e2;
+  color: #b91c1c;
+
+  padding: 14px 22px;
+
+  border-radius: 14px;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  z-index: 9999;
+
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
 }
 </style>
