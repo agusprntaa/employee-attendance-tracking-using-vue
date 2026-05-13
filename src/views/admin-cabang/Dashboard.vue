@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted, watch } from "vue";
 import { useAuth } from "@/composables/useAuth";
 import AdminProfile from "@/components/AdminProfile.vue";
 import QRCode from "qrcode.vue";
@@ -42,11 +42,18 @@ const countdown = ref(180);
 const popupMessage = ref("");
 const showPopup = ref(false);
 
+const showReasonModal = ref(false);
+const selectedReason = ref("");
+const selectedEmployee = ref("");
+
 let countdownInterval = null;
 
 onMounted(async () => {
   loadUser();
   await fetchAll();
+  watch([search, status], () => {
+    fetchDashboard();
+  });
   // refresh tiap 2 menit 30 detik
   startQRCountdown();
 });
@@ -71,6 +78,16 @@ async function fetchAll() {
 //   employees.value = res.data.data.attendance;
 // }
 
+function openReason(item) {
+  selectedEmployee.value = item.employee_username || "-";
+
+  selectedReason.value = item.wfa_reason || "Tidak ada alasan";
+
+  showReasonModal.value = true;
+
+  // console.log(item);
+}
+
 function openPopup(message) {
   popupMessage.value = message;
 
@@ -91,6 +108,13 @@ async function fetchDashboard() {
       status: status.value || undefined,
     });
 
+    console.log(res.data.data.attendance);
+
+    console.log(
+      "RAW CHECKIN:",
+      res.data.data.attendance.map((i) => i.check_in),
+    );
+
     console.log("DASHBOARD:", res.data);
 
     if (!res.data?.data) {
@@ -101,12 +125,15 @@ async function fetchDashboard() {
     summary.value = res.data.data.stats || {};
 
     employees.value = res.data.data.attendance || [];
+
+    console.log("TOTAL EMPLOYEE:", summary.value.total_employee);
+
+    console.log("TOTAL ROW TABLE:", employees.value.length);
   } catch (err) {
     console.error("DASHBOARD ERROR:", err);
 
     if (err.message === "Network Error") {
       openPopup("Tidak dapat terhubung ke server");
-
       return;
     }
 
@@ -182,29 +209,34 @@ function startQRCountdown() {
   }, 1000);
 }
 
-function formatTime(utc) {
-  if (!utc) return "-";
-  return new Date(utc).toLocaleTimeString("id-ID", {
+function formatTime(dateString) {
+  if (!dateString) return "-";
+
+  return new Date(dateString).toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
 }
 
-function formatDate(utc) {
-  if (!utc) return "-";
-  return new Date(utc).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
+function formatExpire(dateString) {
+  if (!dateString) return "-";
 
-function formatExpire(utc) {
-  if (!utc) return "-";
-  return new Date(utc).toLocaleTimeString("id-ID", {
+  return new Date(dateString).toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
+    hour12: false,
+  });
+}
+
+function formatDate(dateString) {
+  if (!dateString) return "-";
+
+  return new Date(dateString).toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
   });
 }
 
@@ -230,7 +262,8 @@ function exportExcel() {
     Nama: item.employee_username,
     Tanggal: formatDate(item.check_in),
     "Check In": formatTime(item.check_in),
-    Status: item.status,
+    "Check Out": item.check_out ? formatTime(item.check_out) : "-",
+    Status: formatStatus(item.status),
     Mode: item.work_type,
   }));
 
@@ -261,19 +294,49 @@ function exportPDF() {
     item.employee_username,
     formatDate(item.check_in),
     formatTime(item.check_in),
-    item.status,
-    item.work_type,
+    item.check_out ? formatTime(item.check_out) : "-",
+    formatStatus(item.status),
+    item.work_type || "-",
   ]);
 
   autoTable(doc, {
     startY: 28,
-    head: [["ID", "Nama", "Tanggal", "Check In", "Status", "Mode"]],
+    head: [
+      ["ID", "Nama", "Tanggal", "Check In", "Check Out", "Status", "Mode"],
+    ],
     body: rows,
     styles: { fontSize: 9 },
     headStyles: { fillColor: [79, 70, 229] },
   });
 
   doc.save("attendance.pdf");
+}
+
+function formatStatus(status) {
+  if (!status || status === "") return "Belum Absen";
+
+  switch (status) {
+    case "PRESENT":
+      return "Hadir";
+
+    case "LATE":
+      return "Terlambat";
+
+    case "WFA":
+      return "WFA";
+
+    case "EARLY_LEAVE":
+      return "Pulang Cepat";
+
+    case "ABSENT":
+      return "Tidak Hadir";
+
+    case "BELUM_ABSEN":
+      return "Belum Absen";
+
+    default:
+      return "Belum Absen";
+  }
 }
 </script>
 
@@ -343,6 +406,7 @@ function exportPDF() {
               <option value="WFA">WFA</option>
               <option value="EARLY_LEAVE">Pulang Cepat</option>
               <option value="ABSENT">Absen</option>
+              <option value="BELUM_ABSEN">Belum Absen</option>
             </select>
 
             <!-- <select v-model="period">
@@ -363,6 +427,7 @@ function exportPDF() {
                 <th>ID</th>
                 <th>Nama</th>
                 <th>Check In</th>
+                <th>Check Out</th>
                 <th>Status</th>
                 <th>Mode</th>
               </tr>
@@ -375,13 +440,55 @@ function exportPDF() {
                 <td>{{ item.employee_username }}</td>
                 <td>{{ formatTime(item.check_in) }}</td>
                 <td>
-                  <span
-                    :class="['badge', 'badge-' + item.status?.toLowerCase()]"
-                  >
-                    {{ item.status }}
+                  {{ item.check_out ? formatTime(item.check_out) : "-" }}
+                </td>
+                <td>
+                  <div class="badge-wrapper">
+                    <span
+                      :class="[
+                        'badge',
+                        'badge-' +
+                          (item.status
+                            ? item.status.toLowerCase()
+                            : 'belum_absen'),
+                        item.status === 'WFA' || item.status === 'EARLY_LEAVE'
+                          ? 'clickable'
+                          : '',
+                      ]"
+                      @click="
+                        item.status === 'WFA' || item.status === 'EARLY_LEAVE'
+                          ? openReason(item)
+                          : null
+                      "
+                    >
+                      {{ formatStatus(item.status) }}
+
+                      {{
+                        item.status === "WFA" || item.status === "EARLY_LEAVE"
+                          ? " ⓘ"
+                          : ""
+                      }}
+                    </span>
+
+                    <span
+                      v-if="
+                        item.status === 'WFA' || item.status === 'EARLY_LEAVE'
+                      "
+                      class="badge-tooltip"
+                    >
+                      {{
+                        item.status === "WFA"
+                          ? "Cek alasan WFA"
+                          : "Cek alasan pulang cepat"
+                      }}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <span :class="['mode-badge', item.work_type?.toLowerCase()]">
+                    {{ item.work_type || "-" }}
                   </span>
                 </td>
-                <td>{{ item.work_type }}</td>
               </tr>
             </tbody>
           </table>
@@ -444,6 +551,27 @@ function exportPDF() {
           <p class="qr-modal-expire">
             Berlaku sampai:
             {{ formatExpire(qrExpire) }}
+          </p>
+        </div>
+      </div>
+
+      <div
+        v-if="showReasonModal"
+        class="reason-overlay"
+        @click="showReasonModal = false"
+      >
+        <div class="reason-modal" @click.stop>
+          <button class="reason-close" @click="showReasonModal = false">
+            ✕
+          </button>
+
+          <h3>Detail Alasan</h3>
+          <div class="reason-user">
+            {{ selectedEmployee }}
+          </div>
+
+          <p class="reason-text">
+            {{ selectedReason }}
           </p>
         </div>
       </div>
@@ -716,19 +844,34 @@ td .badge {
   letter-spacing: 0.3px;
 }
 
-.badge-PRESENT {
+.badge-present {
   background: #dcfce7;
   color: #15803d;
 }
-.badge-LATE {
+.badge-late {
   background: #fef9c3;
   color: #b45309;
 }
-.badge-WFA {
-  background: #ede9fe;
-  color: #6d28d9;
+.badge-wfa {
+  background: #ddd6fe;
+  color: #5b21b6;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    background 0.16s ease;
 }
-.badge-ABSENT {
+
+.badge-wfa:hover {
+  background: #c4b5fd;
+
+  transform: translateY(-1px);
+
+  box-shadow: 0 4px 12px rgba(91, 33, 182, 0.18);
+}
+.badge-absent {
   background: #fee2e2;
   color: #b91c1c;
 }
@@ -991,5 +1134,173 @@ td .badge {
 .btn-export:hover .tooltip {
   opacity: 1;
   visibility: visible;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.reason-overlay {
+  position: fixed;
+  inset: 0;
+
+  background: rgba(0, 0, 0, 0.45);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 9999;
+}
+
+.reason-modal {
+  position: relative;
+
+  width: 100%;
+  max-width: 420px;
+
+  background: white;
+
+  border-radius: 20px;
+
+  padding: 28px;
+
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+}
+
+.reason-modal h3 {
+  font-size: 20px;
+  font-weight: 700;
+
+  color: #1e1b4b;
+
+  margin-bottom: 18px;
+}
+
+.reason-user {
+  font-size: 14px;
+  font-weight: 600;
+
+  color: #4f46e5;
+
+  margin-bottom: 14px;
+}
+
+.reason-text {
+  font-size: 14px;
+  line-height: 1.7;
+
+  color: #374151;
+
+  background: #f9fafb;
+
+  padding: 16px;
+
+  border-radius: 14px;
+}
+
+.reason-close {
+  position: absolute;
+
+  top: 14px;
+  right: 14px;
+
+  border: none;
+  background: transparent;
+
+  font-size: 20px;
+
+  cursor: pointer;
+}
+
+.badge-wrapper {
+  position: relative;
+
+  display: inline-flex;
+  align-items: center;
+}
+
+.badge-tooltip {
+  position: absolute;
+
+  top: -34px;
+  left: 50%;
+
+  transform: translateX(-50%);
+
+  background: #111827;
+  color: white;
+
+  font-size: 11px;
+
+  padding: 6px 10px;
+
+  border-radius: 8px;
+
+  white-space: nowrap;
+
+  opacity: 0;
+  visibility: hidden;
+
+  transition: 0.18s ease;
+
+  pointer-events: none;
+}
+
+.badge-wrapper:hover .badge-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+.mode-badge {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 4px 12px;
+
+  border-radius: 20px;
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.mode-badge.wfo {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.mode-badge.wfa {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.badge-early_leave {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.badge-early_leave {
+  background: #fee2e2;
+  color: #dc2626;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    background 0.16s ease;
+}
+
+.badge-early_leave:hover {
+  background: #fecaca;
+
+  transform: translateY(-1px);
+
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.18);
+}
+
+.badge-belum_absen {
+  background: #e5e7eb;
+  color: #4b5563;
 }
 </style>

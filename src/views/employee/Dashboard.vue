@@ -3,7 +3,10 @@ import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useLocation } from "@/composables/useLocation";
 import { useAuth } from "@/composables/useAuth";
-import { getAttendanceHistory } from "@/services/attendance";
+import {
+  getAttendanceHistory,
+  checkoutAttendance,
+} from "@/services/attendance";
 import { logoutAPI } from "@/services/auth";
 import API from "@/services/api";
 import { getProfileAPI } from "@/services/auth";
@@ -23,10 +26,17 @@ const history = ref([]);
 const todayData = ref(null);
 const showLogoutConfirm = ref(false);
 
+const showEarlyLeaveModal = ref(false);
+const earlyLeaveReason = ref("");
+
 const { isInRadius, getCurrentLocation, distance, nearestOffice } =
   useLocation();
 
 let interval = null;
+
+const alreadyCheckedOut = computed(() => {
+  return todayData.value?.has_checked_out || false;
+});
 
 const alreadyCheckedIn = computed(() => {
   return todayData.value?.has_checked_in || false;
@@ -36,10 +46,34 @@ const canCheckIn = computed(() => {
   return isInRadius.value && !alreadyCheckedIn.value && !loading.value;
 });
 
-//mengubah error handle baru
-console.log("isInRadius:", isInRadius.value);
-console.log("alreadyCheckedIn:", alreadyCheckedIn.value);
-console.log("loading:", loading.value);
+function parseLocalDate(dateString) {
+  if (!dateString) return null;
+
+  const [datePart, timePart] = dateString.split("T");
+
+  const [year, month, day] = datePart.split("-").map(Number);
+
+  const [hour, minute, second] = timePart.split(":").map(Number);
+
+  return new Date(year, month - 1, day, hour, minute, second || 0);
+}
+
+const checkoutInfo = computed(() => {
+  if (!todayData.value?.attendance?.check_in) return null;
+
+  const checkIn = new Date(todayData.value.attendance.check_in);
+
+  const workHours = todayData.value.work_hours || 9;
+
+  const checkoutTime = new Date(checkIn.getTime() + workHours * 60 * 60 * 1000);
+
+  const now = new Date();
+
+  return {
+    checkoutTime,
+    isFinished: now >= checkoutTime,
+  };
+});
 
 function openPopup(message) {
   popupMessage.value = message;
@@ -90,6 +124,7 @@ async function fetchToday() {
   try {
     const res = await API.get("/attendance/today");
     todayData.value = res.data.data;
+    console.log("TODAY DATA:", todayData.value);
   } catch (err) {
     console.error("TODAY ERROR:", err);
   }
@@ -116,14 +151,56 @@ function goToWFA() {
   router.push("/employee/wfa");
 }
 
+async function handleCheckout(reason = "") {
+  try {
+    loading.value = true;
+
+    const res = await checkoutAttendance({
+      early_leave_reason: reason,
+    });
+
+    console.log("CHECKOUT:", res.data);
+
+    openPopup("Check-out berhasil");
+
+    showEarlyLeaveModal.value = false;
+    earlyLeaveReason.value = "";
+
+    await fetchToday();
+    await fetchHistory();
+  } catch (err) {
+    console.error("CHECKOUT ERROR:", err.response?.data || err);
+
+    const errorCode = err.response?.data?.code;
+
+    if (errorCode === "EARLY_LEAVE_REASON_REQUIRED") {
+      showEarlyLeaveModal.value = true;
+      return;
+    }
+
+    openPopup(err.response?.data?.message || "Gagal check-out");
+  } finally {
+    loading.value = false;
+  }
+}
+
 // TIMEZONE
 function formatTime(utc) {
   if (!utc) return "-";
 
-  return new Date(utc).toLocaleTimeString("id-ID", {
+  return parseLocalDate(utc).toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: "Asia/Jakarta",
+    // timeZone: "Asia/Jakarta",
+  });
+}
+
+function formatCheckoutTime(date) {
+  if (!date) return "-";
+
+  return new Date(date).toLocaleTimeString("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -135,7 +212,7 @@ function formatDateIndo(date) {
     day: "numeric",
     month: "long",
     year: "numeric",
-    timeZone: "Asia/Jakarta",
+    // timeZone: "Asia/Jakarta",
   });
 }
 
@@ -206,6 +283,30 @@ async function handleLogout() {
         {{ alreadyCheckedIn ? "SUDAH ABSEN" : "WFA" }}
       </button>
 
+      <div
+        v-if="alreadyCheckedIn && !alreadyCheckedOut && checkoutInfo"
+        class="checkout-info"
+      >
+        <p class="checkout-time">
+          Anda dapat pulang pukul
+          <strong>
+            {{ formatCheckoutTime(checkoutInfo.checkoutTime) }}
+          </strong>
+        </p>
+
+        <button
+          class="checkout-link"
+          :class="{
+            danger: checkoutInfo.isFinished,
+          }"
+          @click="handleCheckout()"
+        >
+          {{
+            checkoutInfo.isFinished ? "Pulang sekarang" : "Ajukan pulang cepat?"
+          }}
+        </button>
+      </div>
+
       <div class="history">
         <h3>Riwayat Absensi</h3>
 
@@ -238,6 +339,27 @@ async function handleLogout() {
 
             <button class="confirm" @click="handleLogout">Keluar</button>
           </div>
+        </div>
+      </div>
+    </div>
+    <div v-if="showEarlyLeaveModal" class="modal">
+      <div class="modal-box">
+        <h3 class="modal-title">Alasan Pulang Cepat</h3>
+
+        <textarea
+          v-model="earlyLeaveReason"
+          class="reason-input"
+          placeholder="Masukkan alasan pulang cepat..."
+        ></textarea>
+
+        <div class="actions">
+          <button class="cancel" @click="showEarlyLeaveModal = false">
+            Batal
+          </button>
+
+          <button class="confirm" @click="handleCheckout(earlyLeaveReason)">
+            Kirim
+          </button>
         </div>
       </div>
     </div>
@@ -546,5 +668,67 @@ async function handleLogout() {
   z-index: 9999;
 
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 700;
+
+  color: #111827;
+
+  margin-bottom: 18px;
+}
+
+.reason-input {
+  width: 100%;
+  min-height: 120px;
+
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+
+  padding: 14px;
+
+  resize: none;
+
+  font-size: 14px;
+
+  outline: none;
+
+  margin-bottom: 18px;
+}
+
+.reason-input:focus {
+  border-color: #4f46e5;
+}
+
+.checkout-info {
+  margin-top: 18px;
+
+  text-align: center;
+}
+
+.checkout-time {
+  font-size: 13px;
+
+  color: #6b7280;
+
+  margin-bottom: 6px;
+}
+
+.checkout-link {
+  border: none;
+  background: transparent;
+  color: #7973e5;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.checkout-link:hover {
+  text-decoration: underline;
+}
+
+.checkout-link.danger {
+  color: #dc2626;
 }
 </style>

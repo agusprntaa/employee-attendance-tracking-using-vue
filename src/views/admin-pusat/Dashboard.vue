@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from "vue";
 import AdminProfile from "@/components/AdminProfile.vue";
-import { getAllBranches } from "@/services/adminPusat";
+import { getAllBranches, createBranchAdmin } from "@/services/adminPusat";
 import { useRouter } from "vue-router";
 import adminPusatSidebar from "@/components/AdminPusatSidebar.vue";
 import { useAuth } from "@/composables/useAuth";
@@ -17,6 +17,9 @@ const branches = ref([]);
 
 const loading = ref(false);
 const errorMessage = ref("");
+
+const formError = ref("");
+const successMessage = ref("");
 
 const stats = ref({
   total_employees: 0,
@@ -85,12 +88,64 @@ async function fetchDashboard() {
 }
 
 function openAdd() {
+  formError.value = "";
+  successMessage.value = "";
+
   showModal.value = true;
 }
 
 function closeModal() {
   showModal.value = false;
 }
+
+async function handleCreateAdmin() {
+  formError.value = "";
+
+  if (!form.value.username) {
+    formError.value = "Username wajib diisi";
+    return;
+  }
+
+  if (!form.value.password) {
+    formError.value = "Password wajib diisi";
+    return;
+  }
+
+  if (!form.value.branch_id) {
+    formError.value = "Pilih branch terlebih dahulu";
+    return;
+  }
+
+  try {
+    const payload = {
+      username: form.value.username,
+      password: form.value.password,
+      branch_id: form.value.branch_id,
+    };
+
+    console.log("CREATE ADMIN:", payload);
+
+    const res = await createBranchAdmin(payload);
+
+    console.log("CREATE ADMIN RESPONSE:", res.data);
+
+    successMessage.value = "Admin cabang berhasil dibuat";
+
+    closeModal();
+
+    form.value = {
+      username: "",
+      password: "",
+      branch_id: "",
+    };
+  } catch (err) {
+    console.error("CREATE ADMIN ERROR:", err);
+
+    formError.value =
+      err.response?.data?.message || "Admin tidak bisa dibuat, cek backend";
+  }
+}
+
 function renderBranchChart() {
   branchChart?.destroy();
 
@@ -193,6 +248,9 @@ onUnmounted(() => {
 
       <div v-if="errorMessage" class="error-box">
         {{ errorMessage }}
+      </div>
+      <div v-if="successMessage" class="success-box">
+        {{ successMessage }}
       </div>
       <div class="stats">
         <div class="card" @click="router.push('/admin-pusat/employees')">
@@ -314,6 +372,9 @@ onUnmounted(() => {
       </div>
 
       <div class="modal-content">
+        <p v-if="formError" class="form-error">
+          {{ formError }}
+        </p>
         <div class="form-grid">
           <div class="form-group">
             <label>Username</label>
@@ -356,7 +417,9 @@ onUnmounted(() => {
       <div class="modal-footer">
         <button class="btn-cancel" @click="closeModal">Cancel</button>
 
-        <button class="btn-submit">Create Admin</button>
+        <button class="btn-submit" @click="handleCreateAdmin">
+          Create Admin
+        </button>
       </div>
     </div>
   </div>
@@ -933,6 +996,36 @@ tbody tr:last-child td {
   color: #b91c1c;
 
   border: 1px solid #fecaca;
+
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.form-error {
+  margin-bottom: 18px;
+
+  padding: 12px 14px;
+
+  border-radius: 12px;
+
+  background: #fee2e2;
+  color: #dc2626;
+
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.success-box {
+  margin-bottom: 20px;
+
+  padding: 14px 18px;
+
+  border-radius: 14px;
+
+  background: #dcfce7;
+  color: #15803d;
+
+  border: 1px solid #bbf7d0;
 
   font-size: 14px;
   font-weight: 500;

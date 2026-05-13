@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useAuth } from "@/composables/useAuth";
 import AdminSidebar from "@/components/AdminSidebar.vue";
@@ -28,6 +28,10 @@ const meta = ref({
   total_pages: 1,
 });
 
+const totalPages = computed(() => {
+  return Math.ceil(meta.value.total / limit.value);
+});
+
 const showModal = ref(false);
 const modalMode = ref("add");
 const modalLoading = ref(false);
@@ -38,6 +42,7 @@ const selectedId = ref(null);
 
 const form = ref({
   id: null,
+  full_name: "",
   username: "",
   password: "",
   role: "karyawan",
@@ -62,7 +67,7 @@ async function fetchEmployees() {
     employees.value = res.data.data.data.map((emp) => ({
       ...emp,
 
-      status: emp.status?.toLowerCase(),
+      status: emp.status?.toLowerCase() === "active" ? "active" : "inactive",
     }));
     meta.value = res.data.data.pagination;
   } catch (err) {
@@ -73,7 +78,11 @@ async function fetchEmployees() {
 }
 
 onMounted(fetchEmployees);
-watch([page, search, status], () => {
+watch(page, () => {
+  fetchEmployees();
+});
+
+watch([search, status], () => {
   page.value = 1;
   fetchEmployees();
 });
@@ -102,6 +111,7 @@ function openAdd() {
 
   form.value = {
     id: null,
+    full_name: "",
     username: "",
     password: "",
     role: "karyawan",
@@ -119,12 +129,13 @@ function openEdit(emp) {
 
   form.value = {
     id: emp.id,
+    full_name: emp.full_name,
     username: emp.username,
     password: "",
     role: emp.role,
     tipe: emp.tipe,
     division_id: emp.division_id,
-    status: emp.status,
+    status: emp.status?.toLowerCase(),
   };
 
   showModal.value = true;
@@ -135,12 +146,21 @@ function closeModal() {
 }
 
 async function submitModal() {
+  if (!form.value.full_name.trim()) {
+    modalError.value = "Nama lengkap wajib diisi";
+    return;
+  }
+
   if (!form.value.username.trim()) {
     modalError.value = "Username wajib diisi";
     return;
   }
 
   if (modalMode.value === "add" && !form.value.password.trim()) {
+    if (modalMode.value === "add" && form.value.password.length < 6) {
+      modalError.value = "Password minimal 6 karakter";
+      return;
+    }
     modalError.value = "Password wajib diisi";
     return;
   }
@@ -152,11 +172,13 @@ async function submitModal() {
     // ADD EMPLOYEE
     if (modalMode.value === "add") {
       const payload = {
+        full_name: form.value.full_name,
         username: form.value.username,
         password: form.value.password,
         role: form.value.role,
         tipe: form.value.tipe,
         division_id: form.value.division_id,
+        status: form.value.status,
       };
 
       console.log("[FE] Add employee payload:", payload);
@@ -167,26 +189,27 @@ async function submitModal() {
     } else {
       // EDIT EMPLOYEE
       const payload = {
+        full_name: form.value.full_name,
+        username: form.value.username,
         role: form.value.role,
-        status: form.value.status,
+        tipe: form.value.tipe,
         division_id: form.value.division_id,
+        status: form.value.status,
       };
 
-      console.log("[FE] Update employee payload:", payload);
+      await updateEmployee(form.value.id, payload);
 
-      const res = await updateEmployee(form.value.id, payload);
-
-      console.log("[BE] Update employee success:", res.data);
-
-      console.log("STATUS SENT:", payload.status);
-      // UPDATE UI LANGSUNG
       employees.value = employees.value.map((emp) => {
         if (emp.id === form.value.id) {
           return {
             ...emp,
+
+            full_name: payload.full_name,
+            username: payload.username,
             role: payload.role,
-            status: payload.status,
+            tipe: payload.tipe,
             division_id: payload.division_id,
+            status: payload.status?.toLowerCase(),
           };
         }
 
@@ -274,6 +297,7 @@ async function handleDelete(id) {
             <tr>
               <th>ID</th>
               <th>Username</th>
+              <th>Full Name</th>
               <th>Divisi</th>
               <th>Status</th>
               <th>Created</th>
@@ -284,12 +308,13 @@ async function handleDelete(id) {
           <tbody>
             <tr v-for="emp in employees" :key="emp.id">
               <td>{{ empCode(emp.id) }}</td>
-              <td class="bold">{{ emp.username }}</td>
-              <td class="highlight">{{ emp.division_name }}</td>
+              <td class="bold">{{ emp.username || "-" }}</td>
+              <td class="bold">{{ emp.full_name || "-" }}</td>
+              <td class="highlight">{{ emp.division_name || "-" }}</td>
 
               <td>
                 <span :class="['badge', emp.status?.toLowerCase()]">
-                  {{ emp.status || "-" }}
+                  {{ emp.status === "active" ? "Active" : "Inactive" }}
                 </span>
               </td>
 
@@ -317,7 +342,7 @@ async function handleDelete(id) {
             <button :disabled="page <= 1" @click="page--">‹</button>
 
             <button
-              v-for="p in meta.total_pages"
+              v-for="p in totalPages"
               :key="p"
               :class="{ active: p === page }"
               @click="page = p"
@@ -325,9 +350,7 @@ async function handleDelete(id) {
               {{ p }}
             </button>
 
-            <button :disabled="page >= meta.total_pages" @click="page++">
-              ›
-            </button>
+            <button :disabled="page >= totalPages" @click="page++">›</button>
           </div>
         </div>
       </div>
@@ -364,6 +387,11 @@ async function handleDelete(id) {
 
         <div class="modal-body">
           <p v-if="modalError" class="modal-error">{{ modalError }}</p>
+
+          <div class="form-group">
+            <label>Full Name</label>
+            <input v-model="form.full_name" />
+          </div>
 
           <div class="form-group">
             <label>Username</label>
@@ -421,17 +449,15 @@ async function handleDelete(id) {
 
 .layout {
   display: flex;
-  height: 100vh;
+  min-height: 100vh;
   background: #f0f2ff;
   font-family: "Segoe UI", sans-serif;
-  overflow: hidden;
 }
 
 .main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
   padding: 28px 32px;
   gap: 24px;
 }
@@ -672,8 +698,15 @@ td.actions button:hover:nth-child(3) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 22px;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 18px 24px;
   border-top: 1px solid #f3f4f6;
+}
+
+.pagination-controls {
+  margin-left: auto;
+  padding-right: 8px;
 }
 
 .pagination-info {

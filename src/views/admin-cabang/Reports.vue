@@ -491,39 +491,27 @@ function exportExcel() {
           </table>
         </div>
 
-        <div v-if="totalPages > 1" class="pagination-wrapper">
-          <div class="pagination-info">
-            Showing
-            {{ (currentPage - 1) * itemsPerPage + 1 }}
-            -
-            {{ Math.min(currentPage * itemsPerPage, daily.length) }}
-            of {{ daily.length }} data
-          </div>
+        <div class="pagination">
+          <span class="pagination-info">
+            Showing {{ paginatedDaily.length }} of {{ daily.length }} data
+          </span>
 
-          <div class="pagination">
-            <button
-              class="nav-btn"
-              :disabled="currentPage === 1"
-              @click="currentPage--"
-            >
+          <div class="pagination-controls">
+            <button :disabled="currentPage <= 1" @click="currentPage--">
               ‹
             </button>
 
             <button
-              v-for="page in totalPages"
-              :key="page"
-              class="page-number"
-              :class="{
-                active: currentPage === page,
-              }"
-              @click="currentPage = page"
+              v-for="p in totalPages"
+              :key="p"
+              :class="{ active: p === currentPage }"
+              @click="currentPage = p"
             >
-              {{ page }}
+              {{ p }}
             </button>
 
             <button
-              class="nav-btn"
-              :disabled="currentPage === totalPages"
+              :disabled="currentPage >= totalPages"
               @click="currentPage++"
             >
               ›
@@ -917,60 +905,51 @@ td.bold {
   box-shadow: 0 4px 14px rgba(220, 38, 38, 0.3);
 }
 
-.pagination-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  padding: 18px 22px;
-
-  border-top: 1px solid #f3f4f6;
-
-  background: white;
-}
-
-.pagination-info {
-  font-size: 13px;
-  color: #9ca3af;
-  font-weight: 500;
-}
-
 .pagination {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  padding: 14px 22px;
+  border-top: 1px solid #f3f4f6;
 }
 
-.page-number,
-.nav-btn {
-  width: 38px;
-  height: 38px;
+.pagination-info {
+  font-size: 12px;
+  color: #9ca3af;
+}
 
-  border: none;
-  background: transparent;
+.pagination-controls {
+  display: flex;
+  gap: 6px;
+}
 
-  border-radius: 12px;
-
-  font-size: 15px;
-  font-weight: 600;
-
+.pagination-controls button {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-
-  transition: all 0.2s ease;
+  transition: all 0.15s;
 }
 
-.page-number:hover,
-.nav-btn:hover {
-  background: #f5f3ff;
+.pagination-controls button:hover {
+  border-color: #4f46e5;
   color: #4f46e5;
+  background: #eef2ff;
 }
 
-.page-number.active {
-  background: #0f172a;
-  color: white;
+.pagination-controls button.active {
+  background: #4f46e5;
+  color: #fff;
+  border-color: #4f46e5;
 }
 
-.nav-btn:disabled {
+.pagination-controls button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }

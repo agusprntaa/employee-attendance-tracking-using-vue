@@ -11,3 +11,6 @@ export function getAttendanceHistory(page = 1, limit = 10) {
 export function getTodayAttendanceEmployee() {
   return API.get('/attendance/today')
 }
+
+export const checkoutAttendance = (data) =>
+  API.patch("/attendance/checkout", data);

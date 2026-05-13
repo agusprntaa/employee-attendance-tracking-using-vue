@@ -40,3 +40,6 @@ export const getBranchDetail = (id) =>
 
 export const createBranch = (data) =>
   API.post("/api/global/branches", data);
+
+export const createBranchAdmin = (data) =>
+  API.post("/api/global/admin-cabang", data);
