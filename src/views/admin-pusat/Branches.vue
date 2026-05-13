@@ -9,7 +9,9 @@ const router = useRouter();
 
 const loading = ref(false);
 
-const errorMessage = ref("");
+const pageError = ref("");
+const formError = ref("");
+
 const successMessage = ref("");
 
 const branches = ref([]);
@@ -41,7 +43,7 @@ async function fetchBranches() {
 
     console.log("DETAIL ERROR:", err.response?.data);
 
-    errorMessage.value =
+    pageError.value =
       err.response?.data?.message || "Gagal mengambil data branch, cek backend";
   } finally {
     loading.value = false;
@@ -90,7 +92,6 @@ async function handleAddBranch() {
     });
 
     successMessage.value = "Branch berhasil ditambahkan";
-    errorMessage.value = "";
 
     showAddModal.value = false;
 
@@ -109,7 +110,7 @@ async function handleAddBranch() {
 
     console.log("DETAIL ERROR:", err.response?.data);
 
-    errorMessage.value =
+    formError.value =
       err.response?.data?.message || "Gagal menambahkan branch, cek backend";
   }
 }
@@ -139,7 +140,7 @@ onMounted(() => {
             class="add-btn"
             @click="
               showAddModal = true;
-              errorMessage = '';
+              formError = '';
               successMessage = '';
             "
           >
@@ -152,6 +153,10 @@ onMounted(() => {
 
       <div v-if="successMessage" class="success-box">
         {{ successMessage }}
+      </div>
+
+      <div v-if="pageError" class="error-global">
+        {{ pageError }}
       </div>
 
       <div class="summary-grid">
@@ -325,8 +330,8 @@ onMounted(() => {
               <option value="Inactive">Inactive</option>
             </select>
 
-            <div v-if="errorMessage" class="error-box">
-              {{ errorMessage }}
+            <div v-if="formError" class="error-box">
+              {{ formError }}
             </div>
           </div>
         </div>
@@ -772,6 +777,22 @@ td {
   color: #15803d;
 
   border: 1px solid #bbf7d0;
+
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.error-global {
+  margin-bottom: 20px;
+
+  padding: 14px 18px;
+
+  border-radius: 14px;
+
+  background: #fee2e2;
+  color: #b91c1c;
+
+  border: 1px solid #fecaca;
 
   font-size: 14px;
   font-weight: 500;
