@@ -1,9 +1,11 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useRouter } from "vue-router";
+import { getAllEmployees } from "@/services/adminPusat";
+import adminPusatSidebar from "@/components/AdminPusatSidebar.vue";
 
 const router = useRouter();
 
@@ -13,43 +15,12 @@ const status = ref("");
 const currentPage = ref(1);
 const itemsPerPage = 10;
 
-const employees = ref([
-  {
-    id: "EMP001",
-    name: "Widi",
-    position: "Frontend Developer",
-    branch: "Tegal",
-    status: "active",
-    created_at: "2026-05-01",
-  },
-  {
-    id: "EMP002",
-    name: "Agus",
-    position: "Backend Developer",
-    branch: "Tegal",
-    status: "inactive",
-    created_at: "2026-05-02",
-  },
+const employees = ref([]);
 
-  {
-    id: "EMP003",
-    name: "Wahyu",
-    position: "Backend Developer",
-    branch: "Canggu",
-    status: "active",
-    created_at: "2026-05-02",
-  },
+const loading = ref(false);
 
-  // dummy
-  ...Array.from({ length: 30 }, (_, i) => ({
-    id: `EMP${String(i + 4).padStart(4, "0")}`,
-    name: `Employee ${i + 4}`,
-    position: "Staff",
-    branch: "Cabang",
-    status: i % 2 === 0 ? "active" : "inactive",
-    created_at: "2026-05-03",
-  })),
-]);
+const errorMessage = ref("");
+const successMessage = ref("");
 
 const filteredEmployees = computed(() => {
   return employees.value.filter((emp) => {
@@ -81,148 +52,233 @@ function formatDate(date) {
   });
 }
 
+async function fetchEmployees() {
+  loading.value = true;
+
+  try {
+    const res = await getAllEmployees({
+      page: currentPage.value,
+      limit: itemsPerPage,
+    });
+
+    console.log("EMPLOYEES:", res.data);
+
+    employees.value = res.data.data.data.map((emp) => ({
+      id: emp.employee_id,
+
+      name: emp.full_name,
+
+      position: emp.position || "-",
+
+      branch: emp.branch || "-",
+
+      status: emp.status.toLowerCase(),
+
+      created_at: emp.created_date,
+    }));
+  } catch (err) {
+    console.error("EMPLOYEE ERROR:", err);
+
+    console.log("DETAIL ERROR:", err.response?.data);
+
+    errorMessage.value =
+      err.response?.data?.message ||
+      "Gagal mengambil data employee, cek backend";
+  } finally {
+    loading.value = false;
+  }
+}
+
 function exportExcel() {
-  const data = filteredEmployees.value.map((emp) => ({
-    ID: emp.id,
-    Name: emp.name,
-    Position: emp.position,
-    Branch: emp.branch,
-    Status: emp.status,
-    Created: formatDate(emp.created_at),
-  }));
+  try {
+    const data = filteredEmployees.value.map((emp) => ({
+      ID: emp.id,
+      Name: emp.name,
+      Position: emp.position,
+      Branch: emp.branch,
+      Status: emp.status,
+      Created: formatDate(emp.created_at),
+    }));
 
-  const ws = XLSX.utils.json_to_sheet(data);
-  const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
 
-  XLSX.utils.book_append_sheet(wb, ws, "Employees");
+    XLSX.utils.book_append_sheet(wb, ws, "Employees");
 
-  XLSX.writeFile(wb, "employees.xlsx");
+    XLSX.writeFile(wb, "employees.xlsx");
+
+    successMessage.value = "Excel berhasil di-export";
+    errorMessage.value = "";
+  } catch (err) {
+    console.error("EXPORT EXCEL ERROR:", err);
+
+    errorMessage.value = "Gagal export Excel, cek data atau library";
+  }
 }
-
 function exportPDF() {
-  const doc = new jsPDF();
+  try {
+    const doc = new jsPDF();
 
-  const rows = filteredEmployees.value.map((emp) => [
-    emp.id,
-    emp.name,
-    emp.position,
-    emp.branch,
-    emp.status,
-    formatDate(emp.created_at),
-  ]);
+    const rows = filteredEmployees.value.map((emp) => [
+      emp.id,
+      emp.name,
+      emp.position,
+      emp.branch,
+      emp.status,
+      formatDate(emp.created_at),
+    ]);
 
-  autoTable(doc, {
-    head: [["ID", "Name", "Position", "Branch", "Status", "Created"]],
-    body: rows,
-  });
+    autoTable(doc, {
+      head: [["ID", "Name", "Position", "Branch", "Status", "Created"]],
+      body: rows,
+    });
 
-  doc.save("employees.pdf");
+    doc.save("employees.pdf");
+
+    successMessage.value = "PDF berhasil di-export";
+    errorMessage.value = "";
+  } catch (err) {
+    console.error("EXPORT PDF ERROR:", err);
+
+    errorMessage.value = "Gagal export PDF, cek data atau library";
+  }
 }
+
+onMounted(() => {
+  fetchEmployees();
+});
 </script>
 
 <template>
   <div class="page">
-    <div class="header">
-      <div>
-        <h1>Employee List</h1>
-        <p>Manage and view all employees</p>
+    <adminPusatSidebar />
+    <div class="content">
+      <div class="header">
+        <div>
+          <h1>Employee List</h1>
+          <p>Manage and view all employees</p>
+        </div>
+
+        <button
+          class="close-btn"
+          @click="router.push('/admin-pusat/dashboard')"
+        >
+          ×
+        </button>
       </div>
 
-      <button class="close-btn" @click="router.push('/admin-pusat/dashboard')">
-        ×
-      </button>
-    </div>
+      <div v-if="errorMessage" class="error-box">
+        {{ errorMessage }}
+      </div>
 
-    <div class="table-card">
-      <div class="toolbar">
-        <input v-model="search" type="text" placeholder="Search employee..." />
+      <div v-if="successMessage" class="success-box">
+        {{ successMessage }}
+      </div>
 
-        <select v-model="status">
-          <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
-        <div class="export">
-          <div class="export-actions">
-            <button class="btn-export excel" @click="exportExcel">Excel</button>
-            <button class="btn-export pdf" @click="exportPDF">PDF</button>
+      <div class="table-card">
+        <div class="toolbar">
+          <input
+            v-model="search"
+            type="text"
+            placeholder="Search employee..."
+          />
+
+          <select v-model="status">
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+          <div class="export">
+            <div class="export-actions">
+              <button class="btn-export excel" @click="exportExcel">
+                Excel
+
+                <span class="tooltip"> Export to Excel </span>
+              </button>
+
+              <button class="btn-export pdf" @click="exportPDF">
+                PDF
+
+                <span class="tooltip"> Export to PDF </span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Employee ID</th>
-              <th>Full Name</th>
-              <th>Position</th>
-              <th>Branch</th>
-              <th>Status</th>
-              <th>Created Date</th>
-            </tr>
-          </thead>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Employee ID</th>
+                <th>Full Name</th>
+                <th>Position</th>
+                <th>Branch</th>
+                <th>Status</th>
+                <th>Created Date</th>
+              </tr>
+            </thead>
 
-          <tbody>
-            <tr v-for="emp in paginatedEmployees" :key="emp.id">
-              <td>{{ emp.id }}</td>
-              <td>{{ emp.name }}</td>
-              <td>{{ emp.position }}</td>
-              <td>{{ emp.branch }}</td>
+            <tbody>
+              <tr v-for="emp in paginatedEmployees" :key="emp.id">
+                <td>{{ emp.id }}</td>
+                <td>{{ emp.name }}</td>
+                <td>{{ emp.position }}</td>
+                <td>{{ emp.branch }}</td>
 
-              <td>
-                <span class="status" :class="emp.status">
-                  {{ emp.status }}
-                </span>
-              </td>
+                <td>
+                  <span class="status" :class="emp.status">
+                    {{ emp.status }}
+                  </span>
+                </td>
 
-              <td>
-                {{ formatDate(emp.created_at) }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+                <td>
+                  {{ formatDate(emp.created_at) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-      <div class="footer">
-        <p>
-          Showing
-          {{ (currentPage - 1) * itemsPerPage + 1 }}-{{
-            Math.min(currentPage * itemsPerPage, filteredEmployees.length)
-          }}
-          of
-          {{ filteredEmployees.length }}
-          data
-        </p>
+        <div class="footer">
+          <p>
+            Showing
+            {{ (currentPage - 1) * itemsPerPage + 1 }}-{{
+              Math.min(currentPage * itemsPerPage, filteredEmployees.length)
+            }}
+            of
+            {{ filteredEmployees.length }}
+            data
+          </p>
 
-        <div v-if="totalPages > 1" class="pagination">
-          <button
-            class="nav-btn"
-            :disabled="currentPage === 1"
-            @click="currentPage--"
-          >
-            ‹
-          </button>
+          <div v-if="totalPages > 1" class="pagination">
+            <button
+              class="nav-btn"
+              :disabled="currentPage === 1"
+              @click="currentPage--"
+            >
+              ‹
+            </button>
 
-          <button
-            v-for="page in totalPages"
-            :key="page"
-            class="page-number"
-            :class="{
-              active: currentPage === page,
-            }"
-            @click="currentPage = page"
-          >
-            {{ page }}
-          </button>
+            <button
+              v-for="page in totalPages"
+              :key="page"
+              class="page-number"
+              :class="{
+                active: currentPage === page,
+              }"
+              @click="currentPage = page"
+            >
+              {{ page }}
+            </button>
 
-          <button
-            class="nav-btn"
-            :disabled="currentPage === totalPages"
-            @click="currentPage++"
-          >
-            ›
-          </button>
+            <button
+              class="nav-btn"
+              :disabled="currentPage === totalPages"
+              @click="currentPage++"
+            >
+              ›
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -240,7 +296,8 @@ function exportPDF() {
   min-height: 100vh;
   background: #f0f2ff;
   font-family: "Segoe UI", sans-serif;
-  padding: 28px 32px;
+
+  display: flex;
 }
 
 .header {
@@ -291,7 +348,8 @@ function exportPDF() {
   background: #ffffff;
   border-radius: 16px;
   border: 1px solid #e8e8f0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow: visible;
 }
 
 .toolbar {
@@ -351,21 +409,17 @@ function exportPDF() {
   outline: none;
 }
 
-
 .export-actions {
   display: flex;
   gap: 8px;
 }
 
 .export {
-  padding: 18px 22px 14px;
   display: flex;
   align-items: center;
-  justify-content: right;
 }
 
 .btn-export {
-  margin-top: 40px;
   padding: 8px 14px;
   border-radius: 10px;
   border: 1.5px solid #4f46e5;
@@ -529,5 +583,93 @@ tbody tr:last-child td {
 .nav-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.export-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-export {
+  position: relative;
+
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #4f46e5;
+
+  background: transparent;
+  color: #4f46e5;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+  letter-spacing: 0.2px;
+}
+
+.tooltip {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  background: #111827;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: 0.18s ease;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.btn-export:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+.btn-export:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+.content {
+  flex: 1;
+  padding: 28px 32px;
+}
+
+.error-box {
+  margin-bottom: 18px;
+
+  padding: 14px 18px;
+
+  border-radius: 14px;
+
+  background: #fee2e2;
+  color: #b91c1c;
+
+  border: 1px solid #fecaca;
+
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.success-box {
+  margin-bottom: 18px;
+
+  padding: 14px 18px;
+
+  border-radius: 14px;
+
+  background: #dcfce7;
+  color: #15803d;
+
+  border: 1px solid #bbf7d0;
+
+  font-size: 14px;
+  font-weight: 500;
 }
 </style>

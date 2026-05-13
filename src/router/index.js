@@ -22,6 +22,18 @@ const routes = [
   component: () => import('../views/admin-pusat/EmployeeList.vue')
   },
 
+  {
+    path: '/admin-pusat/branches',
+    name: 'AdminPusatBranches',
+    component: () => import('../views/admin-pusat/Branches.vue')
+  },
+
+  {
+    path: '/admin-pusat/attendanceToday',
+    name: 'AdminPusatAttendanceToday',
+    component: () => import('../views/admin-pusat/AttendanceToday.vue')
+  },
+
   // ADMIN CABANG
   {
     path: '/admin-cabang/dashboard',

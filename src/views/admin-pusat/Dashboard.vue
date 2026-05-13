@@ -1,60 +1,187 @@
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted, nextTick } from "vue";
 import AdminProfile from "@/components/AdminProfile.vue";
+import { getAllBranches } from "@/services/adminPusat";
+import { useRouter } from "vue-router";
+import adminPusatSidebar from "@/components/AdminPusatSidebar.vue";
+import { useAuth } from "@/composables/useAuth";
 
-const modalMode = ref("add");
+import { getGlobalDashboard } from "@/services/adminPusat";
+import Chart from "chart.js/auto";
+
+const router = useRouter();
+
+const { user, loadUser } = useAuth();
+
+const branches = ref([]);
+
+const loading = ref(false);
+const errorMessage = ref("");
+
+const stats = ref({
+  total_employees: 0,
+  present_today: 0,
+  attendance_rate: 0,
+  total_branches: 0,
+  rate_change: 0,
+});
+
+const attendancePerBranch = ref([]);
+
+const workMode = ref({
+  wfo_count: 0,
+  wfa_count: 0,
+  wfo_percent: 0,
+  wfa_percent: 0,
+});
+
+const branchPerformance = ref([]);
+const branchChartRef = ref(null);
+const workModeChartRef = ref(null);
+
+let branchChart = null;
+let workModeChart = null;
+const showModal = ref(false);
+
+const form = ref({
+  username: "",
+  password: "",
+  branch_id: "",
+});
+
+async function fetchDashboard() {
+  loading.value = true;
+
+  try {
+    const res = await getGlobalDashboard();
+
+    console.log("DASHBOARD:", res.data);
+
+    const data = res.data.data;
+
+    stats.value = data.stats || {};
+
+    attendancePerBranch.value = data.attendance_per_branch || [];
+
+    branchPerformance.value = data.branch_performance || [];
+
+    workMode.value = data.work_mode || {};
+
+    await nextTick();
+
+    renderBranchChart();
+    renderWorkModeChart();
+  } catch (err) {
+    console.error("DASHBOARD ERROR:", err);
+
+    console.log("DETAIL ERROR:", err.response?.data);
+
+    errorMessage.value =
+      err.response?.data?.message ||
+      "Gagal mengambil data dashboard, cek backend";
+  } finally {
+    loading.value = false;
+  }
+}
 
 function openAdd() {
-  modalMode.value = "add";
-  modalError.value = "";
-
-  form.value = {
-    id: null,
-    username: "",
-    password: "",
-    role: "karyawan",
-    tipe: "cabang",
-    position: "",
-    division_id: null,
-    status: "active",
-  };
-
   showModal.value = true;
 }
 
-async function submitModal() {
-  if (!form.value.username.trim()) {
-    modalError.value = "Username wajib diisi";
-    return;
-  }
+function closeModal() {
+  showModal.value = false;
+}
+function renderBranchChart() {
+  branchChart?.destroy();
 
-  if (modalMode.value === "add" && !form.value.password.trim()) {
-    modalError.value = "Password wajib diisi";
-    return;
-  }
+  if (!branchChartRef.value) return;
 
-  modalLoading.value = true;
-  modalError.value = "";
+  branchChart = new Chart(branchChartRef.value, {
+    type: "bar",
 
+    data: {
+      labels: attendancePerBranch.value.map((b) => b.branch_name),
+
+      datasets: [
+        {
+          label: "Present",
+
+          data: attendancePerBranch.value.map((b) => b.present),
+
+          backgroundColor: "#4f46e5",
+
+          borderRadius: 8,
+        },
+      ],
+    },
+
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+    },
+  });
+}
+
+function renderWorkModeChart() {
+  workModeChart?.destroy();
+
+  if (!workModeChartRef.value) return;
+
+  workModeChart = new Chart(workModeChartRef.value, {
+    type: "doughnut",
+
+    data: {
+      labels: ["WFO", "WFA"],
+
+      datasets: [
+        {
+          data: [workMode.value.wfo_count, workMode.value.wfa_count],
+
+          backgroundColor: ["#4f46e5", "#a78bfa"],
+        },
+      ],
+    },
+
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+    },
+  });
+}
+
+async function fetchBranches() {
   try {
-    if (modalMode.value === "add") {
-      await addEmployee(form.value);
-    } else {
-      await updateEmployee(form.value.id, form.value);
-    }
+    const res = await getAllBranches();
 
-    closeModal();
-    fetchEmployees();
+    console.log("BRANCHES:", res.data);
+
+    branches.value = res.data.data;
   } catch (err) {
-    modalError.value = err.response?.data?.message || "Gagal";
-  } finally {
-    modalLoading.value = false;
+    console.error("BRANCH ERROR:", err);
+
+    console.log("DETAIL ERROR:", err.response?.data);
+
+    errorMessage.value =
+      err.response?.data?.message || "Gagal mengambil data branch, cek backend";
   }
 }
+
+onMounted(async () => {
+  await loadUser();
+
+  fetchDashboard();
+  fetchBranches();
+});
+
+onUnmounted(() => {
+  branchChart?.destroy();
+  workModeChart?.destroy();
+});
 </script>
 
 <template>
   <div class="layout">
+    <adminPusatSidebar />
     <div class="main">
       <div class="header">
         <div>
@@ -64,21 +191,35 @@ async function submitModal() {
         <AdminProfile :user="user" />
       </div>
 
+      <div v-if="errorMessage" class="error-box">
+        {{ errorMessage }}
+      </div>
       <div class="stats">
-        <div class="card" @click="$router.push('/admin-pusat/employees')">
-          <h2>1.247</h2>
+        <div class="card" @click="router.push('/admin-pusat/employees')">
+          <h2>
+            {{ stats.total_employees || 0 }}
+          </h2>
+
           <p>Total Employees</p>
+
+          <span class="card-meta"> Across all branches </span>
         </div>
-        <div class="card">
-          <h2>1.089</h2>
+
+        <div class="card" @click="router.push('/admin-pusat/attendanceToday')">
+          <h2>{{ stats.present_today || 0 }}</h2>
+
           <p>Present Today</p>
         </div>
-        <div class="card">
-          <h2>87.3%</h2>
+
+        <div class="card1">
+          <h2>{{ Number(stats.attendance_rate || 0).toFixed(1) }}%</h2>
+
           <p>Attendance Rate</p>
         </div>
-        <div class="card">
-          <h2>5</h2>
+
+        <div class="card" @click="router.push('/admin-pusat/branches')">
+          <h2>{{ stats.total_branches || 0 }}</h2>
+
           <p>Total Branches</p>
         </div>
       </div>
@@ -91,7 +232,10 @@ async function submitModal() {
           </div>
 
           <div class="panel-body">
-            <img src="/logo.png" />
+            <canvas ref="branchChartRef"></canvas>
+            <p v-if="!attendancePerBranch.length" class="empty">
+              No data available
+            </p>
           </div>
         </div>
 
@@ -102,45 +246,117 @@ async function submitModal() {
           </div>
 
           <div class="panel-body">
-            <img src="/logo.png" />
+            <canvas ref="workModeChartRef"></canvas>
+            <p v-if="!workMode.wfo_count" class="empty">No work mode data</p>
           </div>
         </div>
       </div>
 
-      <button class="btn-add" @click="openAdd">+ Add Admin Cabang</button>
-
+      <div class="filter-bar">
+        <button class="btn-add" @click="openAdd">+ Add Admin Cabang</button>
+      </div>
       <div class="panel">
         <div class="panel-header">
           <h3>Branch Performance</h3>
           <p>Detailed attendance metrics by location</p>
         </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Branch</th>
+                <th>Total Employees</th>
+                <th>Present</th>
+                <th>Absent</th>
+                <th>Rate</th>
+                <th>WFO</th>
+                <th>WFA</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="branch in branchPerformance" :key="branch.branch">
+                <td>{{ branch.branch }}</td>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Branch</th>
-              <th>Total Employees</th>
-              <th>Present</th>
-              <th>Absent</th>
-              <th>Rate</th>
-              <th>WFO</th>
-              <th>WFA</th>
-              <th>STATUS</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Jakarta HQ</td>
-              <td>320</td>
-              <td>285</td>
-              <td>35</td>
-              <td>89.1%</td>
-              <td>180</td>
-              <td>105</td>
-              <td>excelent</td>
-            </tr>
-          </tbody>
-        </table>
+                <td>{{ branch.total_employees }}</td>
+
+                <td>{{ branch.present }}</td>
+
+                <td>{{ branch.absent }}</td>
+
+                <td>{{ Number(branch.rate).toFixed(1) }}%</td>
+
+                <td>{{ branch.wfo }}</td>
+
+                <td>{{ branch.wfa }}</td>
+
+                <td>
+                  <span class="status" :class="branch.status.toLowerCase()">
+                    {{ branch.status }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div v-if="showModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div>
+          <h2>Add Branch Admin</h2>
+          <p>Create admin account for branch management</p>
+        </div>
+
+        <button class="modal-close" @click="closeModal">✕</button>
+      </div>
+
+      <div class="modal-content">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Username</label>
+
+            <input
+              v-model="form.username"
+              type="text"
+              placeholder="Enter username"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Password</label>
+
+            <input
+              v-model="form.password"
+              type="password"
+              placeholder="Enter password"
+            />
+          </div>
+
+          <div class="form-group full">
+            <label>Branch</label>
+
+            <select v-model="form.branch_id">
+              <option disabled value="">Select branch</option>
+
+              <option
+                v-for="branch in branches"
+                :key="branch.branch_id"
+                :value="branch.branch_id"
+              >
+                {{ branch.branch_name }}
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-cancel" @click="closeModal">Cancel</button>
+
+        <button class="btn-submit">Create Admin</button>
       </div>
     </div>
   </div>
@@ -154,16 +370,21 @@ async function submitModal() {
 }
 
 .layout {
-  min-height: 100vh;
-  background: #f3f4ff;
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: #f0f2ff;
   font-family: "Segoe UI", sans-serif;
 }
 
 .main {
+  flex: 1;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 24px;
   padding: 28px 32px;
+  max-width: 100%;
+  gap: 20px;
 }
 
 .header {
@@ -173,51 +394,92 @@ async function submitModal() {
 }
 
 .header h2 {
-  font-size: 30px;
+  font-size: 24px;
   font-weight: 700;
-  color: #111827;
-  letter-spacing: -0.5px;
+  color: #1e1b4b;
+  letter-spacing: -0.3px;
 }
 
 .subtitle {
-  margin-top: 4px;
-  font-size: 14px;
+  font-size: 13px;
   color: #6b7280;
+  margin-top: 3px;
 }
 
 .stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 18px;
+  gap: 14px;
+}
+
+.card1 {
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px;
+  border: 1px solid #e8e8f0;
+  cursor: pointer;
+}
+
+/* .card1:hover {
+  box-shadow: 0 4px 20px rgba(79, 70, 229, 0.1);
+  transform: translateY(-2px);
+} */
+
+.card1:active {
+  transform: scale(0.98);
+}
+
+.card1 h2 {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+}
+
+.card1 p {
+  font-size: 12px;
+  font-weight: 500;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .card {
-  background: #ffffff;
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px;
   border: 1px solid #e8e8f0;
-  border-radius: 18px;
-  padding: 22px;
+  cursor: pointer;
+
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+    box-shadow 0.2s,
+    transform 0.2s;
 }
 
 .card:hover {
+  box-shadow: 0 4px 20px rgba(79, 70, 229, 0.1);
   transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(79, 70, 229, 0.08);
+}
+
+.card:active {
+  transform: scale(0.98);
 }
 
 .card h2 {
-  font-size: 34px;
+  font-size: 28px;
   font-weight: 700;
   line-height: 1;
-  margin-bottom: 10px;
-  letter-spacing: -1px;
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
 }
 
 .card p {
-  font-size: 13px;
-  color: #6b7280;
+  font-size: 12px;
   font-weight: 500;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .card:nth-child(1) h2 {
@@ -244,36 +506,39 @@ async function submitModal() {
 }
 
 .panel {
-  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
   border-radius: 16px;
   border: 1px solid #e8e8f0;
   overflow: hidden;
 }
 
 .panel-header {
-  padding: 18px 22px;
+  padding: 16px 22px;
   border-bottom: 1px solid #f3f4f6;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .panel-header h3 {
-  font-size: 17px;
-  font-weight: 700;
-  color: #111827;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e1b4b;
 }
 
 .panel-header p {
-  margin-top: 4px;
-  font-size: 13px;
-  color: #6b7280;
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 2px;
 }
 
 .panel-body {
-  min-height: 320px;
-  padding: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #fcfcff;
+  padding: 16px 20px 20px;
+  height: 240px;
+  position: relative;
 }
 
 .panel-body img {
@@ -308,6 +573,10 @@ td {
   border-bottom: 1px solid #f9fafb;
 }
 
+tbody tr {
+  transition: background 0.15s ease;
+}
+
 tbody tr:hover {
   background: #fafafe;
 }
@@ -322,7 +591,7 @@ tbody tr:last-child td {
   padding: 5px 12px;
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .status.excellent {
@@ -389,5 +658,283 @@ tbody tr:last-child td {
 
 .card {
   cursor: pointer;
+}
+
+.status.warning {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.status.critical {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.action-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.filter-bar {
+  display: flex;
+  justify-content: flex-end;
+  background: #fff;
+  padding: 16px 20px;
+  border-radius: 14px;
+  border: 1px solid #e8e8f0;
+}
+
+.empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-style: italic;
+  color: #9ca3af;
+}
+
+.card-meta {
+  display: block;
+  margin-top: 10px;
+
+  font-size: 12px;
+  color: #9ca3af;
+
+  font-weight: 500;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 999;
+}
+
+.modal-box {
+  width: 100%;
+  max-width: 620px;
+
+  background: white;
+
+  border-radius: 24px;
+
+  overflow: hidden;
+
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.18);
+
+  animation: modalFade 0.2s ease;
+}
+
+.modal-header {
+  padding: 24px 28px;
+
+  border-bottom: 1px solid #f1f5f9;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.modal-header h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1e1b4b;
+}
+
+.modal-header p {
+  margin-top: 6px;
+
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.modal-close {
+  width: 38px;
+  height: 38px;
+
+  border: none;
+  border-radius: 12px;
+
+  background: #f8fafc;
+
+  cursor: pointer;
+
+  font-size: 16px;
+
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.modal-content {
+  padding: 28px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.form-group.full {
+  grid-column: span 2;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.form-group input {
+  height: 48px;
+
+  border: 1px solid #dbe2ea;
+  border-radius: 14px;
+
+  padding: 0 16px;
+
+  font-size: 14px;
+
+  outline: none;
+
+  transition: all 0.2s ease;
+}
+
+.form-group input:focus {
+  border-color: #4f46e5;
+
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+}
+
+.modal-footer {
+  padding: 22px 28px;
+
+  border-top: 1px solid #f1f5f9;
+
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.btn-cancel {
+  height: 44px;
+  padding: 0 20px;
+
+  border: 1px solid #dbe2ea;
+  border-radius: 12px;
+
+  background: white;
+
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.btn-submit {
+  height: 44px;
+  padding: 0 22px;
+
+  border: none;
+  border-radius: 12px;
+
+  background: #4f46e5;
+  color: white;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+.btn-submit:hover {
+  background: #4338ca;
+}
+
+@keyframes modalFade {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.form-group select {
+  width: 100%;
+  height: 52px;
+
+  padding: 0 16px;
+
+  border: 1px solid #dbe2ea;
+  border-radius: 14px;
+
+  background-color: #ffffff !important;
+  color: #111827 !important;
+
+  font-size: 14px;
+  font-weight: 500;
+
+  outline: none;
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+
+  -webkit-appearance: menulist;
+  -moz-appearance: menulist;
+  appearance: menulist;
+}
+
+.form-group select:focus {
+  border-color: #4f46e5;
+
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.08);
+}
+
+.form-group select option {
+  background: #ffffff !important;
+  color: #111827 !important;
+}
+
+.error-box {
+  margin-bottom: 20px;
+
+  padding: 14px 18px;
+
+  border-radius: 14px;
+
+  background: #fee2e2;
+  color: #b91c1c;
+
+  border: 1px solid #fecaca;
+
+  font-size: 14px;
+  font-weight: 500;
 }
 </style>

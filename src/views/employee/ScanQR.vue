@@ -16,9 +16,12 @@ const scanned = ref(false);
 const popupMessage = ref("");
 const showPopup = ref(false);
 
+const scannerActive = ref(false);
+
 const { latitude, longitude, accuracy, getCurrentLocation } = useLocation();
 
 let codeReader = null;
+let restartTimeout = null;
 let videoElement = null;
 
 onMounted(async () => {
@@ -39,6 +42,10 @@ onUnmounted(() => {
 
 // START SCAN
 async function startScanner() {
+  if (scannerActive.value) return;
+
+  scannerActive.value = true;
+
   codeReader = new BrowserMultiFormatReader();
 
   try {
@@ -46,7 +53,7 @@ async function startScanner() {
       undefined,
       videoElement,
       (result) => {
-        if (result) {
+        if (result && scannerActive.value && !loading.value && !scanned.value) {
           handleScan(result.getText());
         }
       },
@@ -59,10 +66,21 @@ async function startScanner() {
 
 // STOP SCAN
 function stopScanner() {
+  scannerActive.value = false;
+
+  if (restartTimeout) {
+    clearTimeout(restartTimeout);
+    restartTimeout = null;
+  }
+
   try {
-    if (videoElement && videoElement.srcObject) {
+    if (videoElement?.srcObject) {
       const tracks = videoElement.srcObject.getTracks();
-      tracks.forEach((track) => track.stop());
+
+      tracks.forEach((track) => {
+        track.stop();
+      });
+
       videoElement.srcObject = null;
     }
 
@@ -76,13 +94,15 @@ function openPopup(message) {
   popupMessage.value = message;
 
   showPopup.value = true;
-
-  setTimeout(() => {
-    showPopup.value = false;
-    popupMessage.value = "";
-  }, 3000);
 }
 
+function retryScanner() {
+  stopScanner();
+
+  scanned.value = false;
+
+  startScanner();
+}
 // HANDLE SCAN
 async function handleScan(decodedText) {
   if (scanned.value) return;
@@ -92,21 +112,28 @@ async function handleScan(decodedText) {
 
   stopScanner();
 
+  console.log("QR RESULT:", decodedText);
   try {
-    const qrToken = decodedText;
+    const parsedQR = JSON.parse(decodedText);
 
+    const qrToken = parsedQR.token;
     if (!qrToken) {
       throw new Error("QR tidak valid");
     }
 
+    console.log("SCANNED QR:", decodedText);
     const payload = {
       work_type: "WFO",
       lat: latitude.value,
       lon: longitude.value,
       accuracy: accuracy.value,
+
       qr_token: qrToken,
-      branch_id: user.value.branch_id,
+
+      branch_id: parsedQR.branch_id,
     };
+
+    console.log("PAYLOAD:", payload);
 
     const res = await checkInAPI(payload);
 
@@ -121,11 +148,7 @@ async function handleScan(decodedText) {
     console.log("CHECKIN ERROR:", err.response?.data);
 
     openPopup(err.response?.data?.message || err.message || "Check-in gagal");
-
     scanned.value = false;
-
-    // restart scanner lagi
-    startScanner();
   } finally {
     loading.value = false;
   }
@@ -157,6 +180,10 @@ function goBack() {
       <span class="spinner">⟳</span>
       <span>{{ loading ? "Memproses..." : "Scanning..." }}</span>
     </div>
+
+    <button v-if="!loading && scanned" class="retry-btn" @click="retryScanner">
+      Scan Again
+    </button>
   </div>
 </template>
 
@@ -263,5 +290,22 @@ video {
   z-index: 9999;
 
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+.retry-btn {
+  margin: 20px auto;
+
+  padding: 12px 20px;
+
+  border: none;
+  border-radius: 12px;
+
+  background: #4f46e5;
+  color: white;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
 }
 </style>

@@ -73,7 +73,10 @@ async function fetchEmployees() {
 }
 
 onMounted(fetchEmployees);
-watch(page, fetchEmployees);
+watch([page, search, status], () => {
+  page.value = 1;
+  fetchEmployees();
+});
 
 function handleFilter() {
   page.value = 1;
@@ -174,6 +177,8 @@ async function submitModal() {
       const res = await updateEmployee(form.value.id, payload);
 
       console.log("[BE] Update employee success:", res.data);
+
+      console.log("STATUS SENT:", payload.status);
       // UPDATE UI LANGSUNG
       employees.value = employees.value.map((emp) => {
         if (emp.id === form.value.id) {
@@ -252,11 +257,7 @@ async function handleDelete(id) {
       <div class="panel">
         <div class="toolbar">
           <div class="search-wrap">
-            <input
-              v-model="search"
-              placeholder="Search Employee..."
-              @keyup.enter="handleFilter"
-            />
+            <input v-model="search" placeholder="Search Employee..." />
           </div>
 
           <select v-model="status">
@@ -265,7 +266,6 @@ async function handleDelete(id) {
             <option value="inactive">Inactive</option>
           </select>
 
-          <button @click="handleFilter">Filter</button>
           <button class="btn-add" @click="openAdd">+ Add Employee</button>
         </div>
 

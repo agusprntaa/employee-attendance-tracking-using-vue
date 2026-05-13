@@ -296,14 +296,20 @@ function exportExcel() {
 
         <button class="btn-apply" @click="fetchReports" :disabled="loading">
           {{ loading ? "Loading..." : "Apply" }}
+          <span class="tooltip"> Apply Filters </span>
         </button>
 
         <!-- export -->
         <div class="export">
           <div class="export-actions">
-            <button class="btn-export pdf" @click="exportPDF">PDF</button>
-
-            <button class="btn-export excel" @click="exportExcel">Excel</button>
+            <button class="btn-export excel" @click="exportExcel">
+              Excel
+              <span class="tooltip"> Export to Excel </span>
+            </button>
+            <button class="btn-export pdf" @click="exportPDF">
+              PDF
+              <span class="tooltip"> Export to PDF </span>
+            </button>
           </div>
         </div>
       </div>
@@ -451,7 +457,7 @@ function exportExcel() {
         <div class="panel-header">
           <h3>Daily Breakdown</h3>
         </div>
-        <div class="table-scroll">
+        <div>
           <table>
             <thead>
               <tr>
@@ -485,32 +491,44 @@ function exportExcel() {
           </table>
         </div>
 
-        <div v-if="totalPages > 1" class="pagination">
-          <button
-            class="nav-btn"
-            :disabled="currentPage === 1"
-            @click="currentPage--"
-          >
-            ‹
-          </button>
+        <div v-if="totalPages > 1" class="pagination-wrapper">
+          <div class="pagination-info">
+            Showing
+            {{ (currentPage - 1) * itemsPerPage + 1 }}
+            -
+            {{ Math.min(currentPage * itemsPerPage, daily.length) }}
+            of {{ daily.length }} data
+          </div>
 
-          <button
-            v-for="page in totalPages"
-            :key="page"
-            class="page-number"
-            :class="{ active: currentPage === page }"
-            @click="currentPage = page"
-          >
-            {{ page }}
-          </button>
+          <div class="pagination">
+            <button
+              class="nav-btn"
+              :disabled="currentPage === 1"
+              @click="currentPage--"
+            >
+              ‹
+            </button>
 
-          <button
-            class="nav-btn"
-            :disabled="currentPage === totalPages"
-            @click="currentPage++"
-          >
-            ›
-          </button>
+            <button
+              v-for="page in totalPages"
+              :key="page"
+              class="page-number"
+              :class="{
+                active: currentPage === page,
+              }"
+              @click="currentPage = page"
+            >
+              {{ page }}
+            </button>
+
+            <button
+              class="nav-btn"
+              :disabled="currentPage === totalPages"
+              @click="currentPage++"
+            >
+              ›
+            </button>
+          </div>
         </div>
       </div>
     </main>
@@ -526,18 +544,20 @@ function exportExcel() {
 
 .layout {
   display: flex;
-  height: 100vh;
+  min-height: 100vh;
+
   background: #f0f2ff;
   font-family: "Segoe UI", sans-serif;
-  overflow: hidden;
 }
 
 .main {
   flex: 1;
+
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+
   padding: 28px 32px;
+
   gap: 20px;
 }
 
@@ -599,6 +619,7 @@ function exportExcel() {
 }
 
 .btn-apply {
+  position: relative;
   padding: 9px 20px;
   background: #4f46e5;
   color: #fff;
@@ -713,6 +734,8 @@ function exportExcel() {
 }
 
 .panel {
+  display: flex;
+  flex-direction: column;
   background: #fff;
   border-radius: 16px;
   border: 1px solid #e8e8f0;
@@ -736,6 +759,10 @@ function exportExcel() {
 table {
   width: 100%;
   border-collapse: collapse;
+}
+
+tbody {
+  vertical-align: top;
 }
 
 thead tr {
@@ -846,8 +873,6 @@ td.bold {
 }
 
 .btn-export {
-  margin-top: 40px;
-  margin-right: 10px;
   padding: 8px 18px;
   border-radius: 10px;
   border: 1.5px solid #4f46e5;
@@ -892,14 +917,28 @@ td.bold {
   box-shadow: 0 4px 14px rgba(220, 38, 38, 0.3);
 }
 
-.pagination {
+.pagination-wrapper {
   display: flex;
-  justify-content: flex-end;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
 
   padding: 18px 22px;
+
   border-top: 1px solid #f3f4f6;
+
+  background: white;
+}
+
+.pagination-info {
+  font-size: 13px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .page-number,
@@ -936,30 +975,51 @@ td.bold {
   cursor: not-allowed;
 }
 
-.table-scroll {
-  max-height: 520px;
-  overflow-y: auto;
+.export-actions {
+  display: flex;
+  gap: 10px;
 }
 
-/* scrollbar */
-.table-scroll::-webkit-scrollbar {
-  width: 8px;
+.btn-export {
+  position: relative;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #4f46e5;
+  background: transparent;
+  color: #4f46e5;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.2px;
 }
 
-.table-scroll::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 20px;
+.tooltip {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  background: #111827;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: 0.18s ease;
+  pointer-events: none;
+  z-index: 9999;
 }
 
-.table-scroll::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+.btn-export:hover .tooltip,
+.btn-apply:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
 }
 
-thead th {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-
-  background: #f8f8ff;
+.btn-export:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
 }
 </style>

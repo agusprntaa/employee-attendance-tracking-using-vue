@@ -284,7 +284,7 @@ function exportPDF() {
     <main class="main">
       <div class="header">
         <div>
-          <h2>Dashboard</h2>
+          <h2>Dashboard Cabang</h2>
           <p class="subtitle">
             {{
               settings.branch_information?.branch_name ||
@@ -390,8 +390,12 @@ function exportPDF() {
             <div class="export-actions">
               <button class="btn-export excel" @click="exportExcel">
                 Excel
+                <span class="tooltip"> Export to Excel </span>
               </button>
-              <button class="btn-export pdf" @click="exportPDF">PDF</button>
+              <button class="btn-export pdf" @click="exportPDF">
+                PDF
+                <span class="tooltip"> Export to PDF </span>
+              </button>
             </div>
           </div>
         </div>
@@ -935,5 +939,57 @@ td .badge {
 .qr-timer strong {
   color: #4f46e5;
   font-weight: 700;
+}
+
+.export-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-export {
+  position: relative;
+
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #4f46e5;
+
+  background: transparent;
+  color: #4f46e5;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+  letter-spacing: 0.2px;
+}
+
+.tooltip {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  background: #111827;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: 0.18s ease;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.btn-export:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+.btn-export:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
 }
 </style>

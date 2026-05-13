@@ -20,31 +20,31 @@ function handleLogout() {
 
     <div class="nav">
       <button
-        @click="router.push('/admin-cabang/dashboard')"
-        :class="{ active: route.path === '/admin-cabang/dashboard' }"
+        @click="router.push('/admin-pusat/dashboard')"
+        :class="{ active: route.path === '/admin-pusat/dashboard' }"
       >
-        Dashboard
+        Dashboard Admin Pusat
       </button>
 
       <button
-        @click="router.push('/admin-cabang/employees')"
-        :class="{ active: route.path === '/admin-cabang/employees' }"
+        @click="router.push('/admin-pusat/employees')"
+        :class="{ active: route.path === '/admin-pusat/employees' }"
       >
-        Employees
+        Employee List
       </button>
 
       <button
-        @click="router.push('/admin-cabang/reports')"
-        :class="{ active: route.path === '/admin-cabang/reports' }"
+        @click="router.push('/admin-pusat/attendanceToday')"
+        :class="{ active: route.path === '/admin-pusat/attendanceToday' }"
       >
-        Reports
+        Today Attendance
       </button>
 
       <button
-        @click="router.push('/admin-cabang/settings')"
-        :class="{ active: route.path === '/admin-cabang/settings' }"
+        @click="router.push('/admin-pusat/branches')"
+        :class="{ active: route.path === '/admin-pusat/branches' }"
       >
-        Settings
+        Branches
       </button>
 
       <!-- <button>Schedules</button> -->
