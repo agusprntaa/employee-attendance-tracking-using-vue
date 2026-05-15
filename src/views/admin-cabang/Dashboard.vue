@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useAuth } from "@/composables/useAuth";
 import AdminProfile from "@/components/AdminProfile.vue";
 import QRCode from "qrcode.vue";
@@ -48,10 +48,15 @@ const selectedEmployee = ref("");
 
 let countdownInterval = null;
 
+const page = ref(1);
+const limit = ref(10);
+
 onMounted(async () => {
   loadUser();
   await fetchAll();
   watch([search, status], () => {
+    page.value = 1;
+
     fetchDashboard();
   });
   // refresh tiap 2 menit 30 detik
@@ -338,6 +343,32 @@ function formatStatus(status) {
       return "Belum Absen";
   }
 }
+
+const sortedEmployees = computed(() => {
+  return [...employees.value].sort((a, b) => {
+    const aBelum = !a.status || a.status === "BELUM_ABSEN";
+
+    const bBelum = !b.status || b.status === "BELUM_ABSEN";
+
+    if (aBelum !== bBelum) {
+      return aBelum ? 1 : -1;
+    }
+
+    return a.employee_id - b.employee_id;
+  });
+});
+
+const totalPages = computed(() => {
+  return Math.ceil(sortedEmployees.value.length / limit.value);
+});
+
+const paginatedEmployees = computed(() => {
+  const start = (page.value - 1) * limit.value;
+
+  const end = start + limit.value;
+
+  return sortedEmployees.value.slice(start, end);
+});
 </script>
 
 <template>
@@ -394,6 +425,19 @@ function formatStatus(status) {
         <div class="panel">
           <div class="panel-header">
             <h3>Today's Attendance</h3>
+
+            <div class="export">
+              <div class="export-actions">
+                <button class="btn-export excel" @click="exportExcel">
+                  Excel
+                  <span class="tooltip"> Export to Excel </span>
+                </button>
+                <button class="btn-export pdf" @click="exportPDF">
+                  PDF
+                  <span class="tooltip"> Export to PDF </span>
+                </button>
+              </div>
+            </div>
           </div>
 
           <div class="toolbar">
@@ -434,7 +478,7 @@ function formatStatus(status) {
             </thead>
 
             <tbody>
-              <tr v-for="item in employees" :key="item.id">
+              <tr v-for="item in paginatedEmployees" :key="item.id">
                 <!-- <tr v-for="item in filteredEmployees" :key="item.id"> -->
                 <td>#{{ item.employee_id }}</td>
                 <td>{{ item.employee_username }}</td>
@@ -493,16 +537,28 @@ function formatStatus(status) {
             </tbody>
           </table>
 
-          <div class="export">
-            <div class="export-actions">
-              <button class="btn-export excel" @click="exportExcel">
-                Excel
-                <span class="tooltip"> Export to Excel </span>
+          <div class="pagination">
+            <span class="pagination-info">
+              Showing
+              {{ paginatedEmployees.length }}
+              of
+              {{ sortedEmployees.length }}
+              attendance
+            </span>
+
+            <div class="pagination-controls">
+              <button :disabled="page <= 1" @click="page--">‹</button>
+
+              <button
+                v-for="p in totalPages"
+                :key="p"
+                :class="{ active: p === page }"
+                @click="page = p"
+              >
+                {{ p }}
               </button>
-              <button class="btn-export pdf" @click="exportPDF">
-                PDF
-                <span class="tooltip"> Export to PDF </span>
-              </button>
+
+              <button :disabled="page >= totalPages" @click="page++">›</button>
             </div>
           </div>
         </div>
@@ -948,7 +1004,6 @@ td .badge {
 }
 
 .export {
-  padding: 18px 22px 14px;
   display: flex;
   align-items: center;
   justify-content: right;
@@ -1302,5 +1357,61 @@ td .badge {
 .badge-belum_absen {
   background: #e5e7eb;
   color: #4b5563;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 18px 24px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.pagination-controls {
+  margin-left: auto;
+  padding-right: 8px;
+}
+
+.pagination-info {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.pagination-controls button {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pagination-controls button:hover {
+  border-color: #4f46e5;
+  color: #4f46e5;
+  background: #eef2ff;
+}
+
+.pagination-controls button.active {
+  background: #4f46e5;
+  color: #fff;
+  border-color: #4f46e5;
+}
+
+.pagination-controls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 </style>
