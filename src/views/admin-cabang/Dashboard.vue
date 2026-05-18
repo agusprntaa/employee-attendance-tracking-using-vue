@@ -85,7 +85,7 @@ async function fetchAll() {
 function openReason(item) {
   selectedEmployee.value = item.employee_username || "-";
 
-  if (item.status === "WFA") {
+  if (item.work_type === "WFA") {
     selectedReason.value = item.wfa_reason || "Tidak ada alasan WFA";
   } else if (item.status === "EARLY_LEAVE") {
     selectedReason.value =
@@ -268,38 +268,26 @@ async function handleRefreshQR() {
   }
 }
 
-function parseLocalDate(dateString) {
-  if (!dateString) return null;
-
-  const [datePart, timePart] = dateString.split("T");
-
-  const [year, month, day] = datePart.split("-").map(Number);
-
-  const cleanTime = timePart.replace("Z", "");
-
-  const [hour, minute, second] = cleanTime.split(":").map(Number);
-
-  return new Date(year, month - 1, day, hour, minute, second || 0);
-}
-
 function formatTime(dateString) {
   if (!dateString) return "-";
 
-  return parseLocalDate(dateString).toLocaleTimeString("id-ID", {
+  return new Date(dateString).toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
+    timeZone: "Asia/Makassar",
   });
 }
 
 function formatExpire(dateString) {
   if (!dateString) return "-";
 
-  return new Date(dateString).toLocaleTimeString(undefined, {
+  return new Date(dateString).toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
     hour12: false,
+    timeZone: "Asia/Makassar",
   });
 }
 
@@ -310,7 +298,7 @@ function formatDate(dateString) {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-    // timeZone: "Asia/Makassar",
+    timeZone: "Asia/Makassar",
   });
 }
 
@@ -408,10 +396,21 @@ function formatStatus(status) {
 
 const sortedEmployees = computed(() => {
   return [...employees.value].sort((a, b) => {
-    const aBelum = !a.status || a.status === "BELUM_ABSEN";
+    const aBelum =
+      !a.status || a.status === "BELUM_ABSEN" || a.status === "ABSENT";
 
-    const bBelum = !b.status || b.status === "BELUM_ABSEN";
+    const bBelum =
+      !b.status || b.status === "BELUM_ABSEN" || b.status === "ABSENT";
 
+    const aCheckout = !!a.check_out;
+    const bCheckout = !!b.check_out;
+
+    // yang sudah checkout paling atas
+    if (aCheckout !== bCheckout) {
+      return aCheckout ? -1 : 1;
+    }
+
+    // belum absen paling bawah
     if (aBelum !== bBelum) {
       return aBelum ? 1 : -1;
     }
@@ -453,7 +452,7 @@ const paginatedEmployees = computed(() => {
                 day: "numeric",
                 month: "long",
                 year: "numeric",
-                // timeZone: "Asia/Makassar",
+                timeZone: "Asia/Makassar",
               })
             }}
           </p>
@@ -554,9 +553,7 @@ const paginatedEmployees = computed(() => {
                       :class="[
                         'badge',
                         getStatusClass(item.status),
-                        item.status === 'WFA' || item.status === 'EARLY_LEAVE'
-                          ? 'clickable'
-                          : '',
+                        item.status === 'EARLY_LEAVE' ? 'clickable' : '',
                       ]"
                       @click="
                         item.status === 'WFA' || item.status === 'EARLY_LEAVE'
@@ -566,11 +563,7 @@ const paginatedEmployees = computed(() => {
                     >
                       {{ getStatusLabel(item.status) }}
 
-                      {{
-                        item.status === "WFA" || item.status === "EARLY_LEAVE"
-                          ? " ⓘ"
-                          : ""
-                      }}
+                      {{ item.status === "EARLY_LEAVE" ? " ⓘ" : "" }}
                     </span>
 
                     <span
@@ -588,9 +581,26 @@ const paginatedEmployees = computed(() => {
                   </div>
                 </td>
                 <td>
-                  <span :class="['mode-badge', item.work_type?.toLowerCase()]">
-                    {{ item.work_type || "-" }}
-                  </span>
+                  <div class="badge-wrapper">
+                    <span
+                      :class="[
+                        'mode-badge',
+                        item.work_type?.toLowerCase(),
+                        item.work_type === 'WFA' ? 'clickable' : '',
+                      ]"
+                      @click="
+                        item.work_type === 'WFA' ? openReason(item) : null
+                      "
+                    >
+                      {{ item.work_type || "-" }}
+
+                      {{ item.work_type === "WFA" ? " ⓘ" : "" }}
+                    </span>
+
+                    <span v-if="item.work_type === 'WFA'" class="badge-tooltip">
+                      Cek alasan WFA
+                    </span>
+                  </div>
                 </td>
               </tr>
             </tbody>
