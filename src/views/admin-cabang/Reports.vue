@@ -197,7 +197,7 @@ function formatDate(str) {
     day: "numeric",
     month: "short",
     year: "numeric",
-    timeZone: "Asia/Makassar",
+    // timeZone: "Asia/Makassar",
   });
 }
 

@@ -35,8 +35,8 @@ async function submitWFA() {
     return;
   }
 
-  if (text.length < 10) {
-    error.value = "Minimal 10 karakter";
+  if (text.length < 20) {
+    error.value = "Minimal 20 karakter";
     return;
   }
 
@@ -64,20 +64,35 @@ async function submitWFA() {
       path: "/employee/success",
       query: {
         type: "wfa",
-        time: new Date().toISOString(),
+        time: res.data.data.check_in,
       },
     });
   } catch (err) {
     console.log("FULL ERROR:", err);
 
-    console.log("ERROR RESPONSE:", err.response);
+    const code = err.response?.data?.code;
 
-    console.log("ERROR DATA:", err.response?.data);
+    if (code === "NOT_WORK_DAY") {
+      error.value = "Hari ini bukan jadwal kerja";
+      return;
+    }
 
-    console.log("PAYLOAD:", {
-      work_type: "WFA",
-      wfa_reason: text,
-    });
+    if (code === "CUTOFF_EXCEEDED") {
+      error.value = "Jam check-in sudah lewat";
+      return;
+    }
+
+    if (code === "EMPLOYEE_DATA_INCOMPLETE") {
+      error.value = "Data employee belum lengkap";
+      return;
+    }
+
+    if (code === "WFA_REASON_TOO_SHORT") {
+      error.value = "Alasan minimal 20 karakter";
+      return;
+    }
+
+    error.value = err.response?.data?.message || "WFA gagal";
   } finally {
     loading.value = false;
   }

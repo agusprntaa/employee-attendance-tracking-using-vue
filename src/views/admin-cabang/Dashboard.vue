@@ -7,6 +7,7 @@ import AdminSidebar from "@/components/AdminSidebar.vue";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { getStatusLabel, getStatusClass } from "@/utils/attendanceStatus";
 
 import {
   getDashboardSummary,
@@ -309,7 +310,7 @@ function formatDate(dateString) {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-    timeZone: "Asia/Makassar",
+    // timeZone: "Asia/Makassar",
   });
 }
 
@@ -382,7 +383,7 @@ function formatStatus(status) {
   if (!status || status === "") return "Belum Absen";
 
   switch (status) {
-    case "PRESENT":
+    case "ON_TIME":
       return "Hadir";
 
     case "LATE":
@@ -452,7 +453,7 @@ const paginatedEmployees = computed(() => {
                 day: "numeric",
                 month: "long",
                 year: "numeric",
-                timeZone: "Asia/Makassar",
+                // timeZone: "Asia/Makassar",
               })
             }}
           </p>
@@ -507,10 +508,9 @@ const paginatedEmployees = computed(() => {
 
             <select v-model="status">
               <option value="">Semua</option>
-              <option value="PRESENT">Hadir</option>
+              <option value="ON_TIME">Hadir</option>
               <option value="LATE">Terlambat</option>
               <option value="WFA">WFA</option>
-              <option value="EARLY_LEAVE">Pulang Cepat</option>
               <option value="ABSENT">Absen</option>
               <option value="BELUM_ABSEN">Belum Absen</option>
             </select>
@@ -553,10 +553,7 @@ const paginatedEmployees = computed(() => {
                     <span
                       :class="[
                         'badge',
-                        'badge-' +
-                          (item.status
-                            ? item.status.toLowerCase()
-                            : 'belum_absen'),
+                        getStatusClass(item.status),
                         item.status === 'WFA' || item.status === 'EARLY_LEAVE'
                           ? 'clickable'
                           : '',
@@ -567,7 +564,7 @@ const paginatedEmployees = computed(() => {
                           : null
                       "
                     >
-                      {{ formatStatus(item.status) }}
+                      {{ getStatusLabel(item.status) }}
 
                       {{
                         item.status === "WFA" || item.status === "EARLY_LEAVE"
@@ -963,15 +960,15 @@ td .badge {
   letter-spacing: 0.3px;
 }
 
-.badge-present {
+.badge.hadir {
   background: #dcfce7;
   color: #15803d;
 }
-.badge-late {
+.badge.late {
   background: #fef9c3;
   color: #b45309;
 }
-.badge-wfa {
+.badge.wfa {
   background: #ddd6fe;
   color: #5b21b6;
 
@@ -983,16 +980,46 @@ td .badge {
     background 0.16s ease;
 }
 
-.badge-wfa:hover {
+.badge.wfa:hover {
   background: #c4b5fd;
 
   transform: translateY(-1px);
 
   box-shadow: 0 4px 12px rgba(91, 33, 182, 0.18);
 }
-.badge-absent {
+
+.badge.early {
+  background: #fee2e2;
+  color: #dc2626;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    background 0.16s ease;
+}
+
+.badge.early:hover {
+  background: #fecaca;
+
+  transform: translateY(-1px);
+
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.18);
+}
+
+.badge.absent {
   background: #fee2e2;
   color: #b91c1c;
+}
+.mode-badge.wfo {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.mode-badge.wfa {
+  background: #ede9fe;
+  color: #6d28d9;
 }
 
 .qr-body {
@@ -1382,42 +1409,27 @@ td .badge {
   font-weight: 600;
 }
 
-.mode-badge.wfo {
-  background: #dbeafe;
-  color: #1d4ed8;
+.badge.hadir {
+  background: #dcfce7;
+  color: #15803d;
 }
 
-.mode-badge.wfa {
-  background: #ede9fe;
-  color: #7c3aed;
+.badge.late {
+  background: #fef3c7;
+  color: #b45309;
 }
 
-.badge-early_leave {
+.badge.wfa {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.badge.absent {
   background: #fee2e2;
   color: #dc2626;
 }
 
-.badge-early_leave {
-  background: #fee2e2;
-  color: #dc2626;
-
-  cursor: pointer;
-
-  transition:
-    transform 0.16s ease,
-    box-shadow 0.16s ease,
-    background 0.16s ease;
-}
-
-.badge-early_leave:hover {
-  background: #fecaca;
-
-  transform: translateY(-1px);
-
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.18);
-}
-
-.badge-belum_absen {
+.badge.belum_absen {
   background: #e5e7eb;
   color: #4b5563;
 }

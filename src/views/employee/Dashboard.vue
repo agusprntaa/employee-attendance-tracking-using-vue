@@ -14,6 +14,8 @@ import { getProfileAPI } from "@/services/auth";
 import ProfileCard from "@/components/ProfileCard.vue";
 import LocationBanner from "@/components/LocationBanner.vue";
 
+import { getStatusLabel, getStatusClass } from "@/utils/attendanceStatus";
+
 const router = useRouter();
 const { user, loadUser } = useAuth();
 
@@ -52,7 +54,9 @@ const canCheckIn = computed(() => {
 function parseLocalDate(dateString) {
   if (!dateString) return null;
 
-  const [datePart, timePart] = dateString.split("T");
+  const clean = dateString.split(".")[0];
+
+  const [datePart, timePart] = clean.split("T");
 
   const [year, month, day] = datePart.split("-").map(Number);
 
@@ -64,9 +68,10 @@ function parseLocalDate(dateString) {
 const checkoutInfo = computed(() => {
   if (!todayData.value?.attendance?.check_in) return null;
 
-  const checkIn = new Date(todayData.value.attendance.check_in);
+  const checkIn = parseLocalDate(todayData.value.attendance.check_in);
 
-  const workHours = todayData.value.work_hours || 9;
+  // const workHours = todayData.value.work_hours || 9;
+  const workHours = todayData.value.required_hours || 9;
 
   const checkoutTime = new Date(checkIn.getTime() + workHours * 60 * 60 * 1000);
 
@@ -119,7 +124,7 @@ async function loadProfile() {
 function startClock() {
   interval = setInterval(() => {
     currentTime.value = new Date().toLocaleTimeString("id-ID", {
-      timeZone: "Asia/Makassar",
+      // timeZone: "Asia/Makassar",
     });
   }, 1000);
 }
@@ -254,10 +259,13 @@ async function handleCheckout(reason = "") {
 function formatTime(utc) {
   if (!utc) return "-";
 
-  return new Date(utc).toLocaleTimeString("id-ID", {
+  // console.log("RAW TIME:", utc);
+
+  const d = parseLocalDate(utc);
+
+  return d.toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: "Asia/Makassar",
   });
 }
 
@@ -267,7 +275,7 @@ function formatCheckoutTime(date) {
   return new Date(date).toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: "Asia/Makassar",
+    // timeZone: "Asia/Makassar",
   });
 }
 
@@ -279,37 +287,8 @@ function formatDateIndo(date) {
     day: "numeric",
     month: "long",
     year: "numeric",
-    timeZone: "Asia/Makassar",
+    // timeZone: "Asia/Makassar",
   });
-}
-
-// FORMAT STATUS
-function formatStatus(item) {
-  if (
-    !item.status ||
-    item.status === "BELUM_ABSEN" ||
-    item.status === "ABSENT"
-  ) {
-    return "TIDAK HADIR";
-  }
-
-  if (item.work_type === "WFA") {
-    return "WFA";
-  }
-
-  return "HADIR";
-}
-
-function statusClass(item) {
-  if (item.work_type === "WFA") return "wfa";
-
-  if (item.status === "PRESENT") return "hadir";
-
-  if (item.status === "LATE") return "late";
-
-  if (item.status === "EARLY_LEAVE") return "early";
-
-  return "";
 }
 
 function checkoutLabel(item) {
@@ -416,8 +395,8 @@ async function handleLogout() {
 
           <div class="status-wrapper">
             <div class="status-wrapper">
-              <span class="status" :class="statusClass(item)">
-                {{ formatStatus(item) }}
+              <span class="status" :class="getStatusClass(item.status)">
+                {{ getStatusLabel(item.status) }}
               </span>
 
               <small v-if="checkoutLabel(item)" class="status-note">
@@ -856,21 +835,19 @@ async function handleLogout() {
   color: #dc2626;
 }
 
-.status-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
+.status.hadir {
+  background: #dcfce7;
+  color: #15803d;
 }
 
-.status-note {
-  font-size: 10px;
-  color: #9ca3af;
+.status.late {
+  background: #fef3c7;
+  color: #b45309;
 }
 
-.status.early {
-  background: #fee2e2;
-  color: #dc2626;
+.status.wfa {
+  background: #e0e7ff;
+  color: #4338ca;
 }
 
 .history-pagination {

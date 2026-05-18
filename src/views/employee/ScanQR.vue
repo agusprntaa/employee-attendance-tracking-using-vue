@@ -94,6 +94,11 @@ function openPopup(message) {
   popupMessage.value = message;
 
   showPopup.value = true;
+
+  setTimeout(() => {
+    showPopup.value = false;
+    popupMessage.value = "";
+  }, 5000);
 }
 
 function retryScanner() {
@@ -148,9 +153,34 @@ async function handleScan(decodedText) {
       },
     });
   } catch (err) {
-    console.log("CHECKIN ERROR:", err.response?.data);
+    console.log("FULL ERROR:", err);
 
-    openPopup(err.response?.data?.message || err.message || "Check-in gagal");
+    console.log("ERROR RESPONSE:", err.response);
+
+    console.log("ERROR DATA:", err.response?.data);
+
+    console.log("ERROR CODE:", err.response?.data?.code);
+
+    console.log("ERROR MESSAGE:", err.response?.data?.message);
+
+    const code = err.response?.data?.code;
+
+    if (code === "NOT_WORK_DAY") {
+      openPopup("Hari ini bukan jadwal kerja");
+    } else if (code === "GPS_ACCURACY_LOW") {
+      openPopup("GPS tidak akurat");
+    } else if (code === "OUT_OF_RADIUS") {
+      openPopup("Di luar radius kantor");
+    } else if (code === "BRANCH_MISMATCH") {
+      openPopup("QR bukan milik cabang anda");
+    } else if (code === "CUTOFF_EXCEEDED") {
+      openPopup("Jam check-in sudah lewat");
+    } else if (code === "EMPLOYEE_DATA_INCOMPLETE") {
+      openPopup("Data employee belum lengkap");
+    } else {
+      openPopup(err.response?.data?.message || err.message || "Check-in gagal");
+    }
+
     scanned.value = false;
   } finally {
     loading.value = false;
@@ -187,6 +217,10 @@ function goBack() {
     <button v-if="!loading && scanned" class="retry-btn" @click="retryScanner">
       Scan Again
     </button>
+
+    <div v-if="showPopup" class="popup">
+      {{ popupMessage }}
+    </div>
   </div>
 </template>
 
@@ -277,22 +311,46 @@ video {
 
   top: 20px;
   left: 50%;
-
   transform: translateX(-50%);
+
+  width: calc(100% - 32px);
+  max-width: 420px;
+
+  padding: 14px 18px;
+
+  border-radius: 16px;
 
   background: #fee2e2;
   color: #b91c1c;
 
-  padding: 14px 22px;
-
-  border-radius: 14px;
-
   font-size: 14px;
   font-weight: 600;
+  text-align: center;
 
   z-index: 9999;
 
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+
+  animation: popupSlide 0.25s ease;
+}
+
+@keyframes popupSlide {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@media (min-width: 768px) {
+  .popup {
+    font-size: 15px;
+    padding: 16px 22px;
+  }
 }
 
 .retry-btn {
