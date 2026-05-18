@@ -330,43 +330,45 @@ onUnmounted(() => {
           <h3>Branch Performance</h3>
           <p>Detailed attendance metrics by location</p>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Branch</th>
-              <th>Total Employees</th>
-              <th>Present</th>
-              <th>Absent</th>
-              <th>Rate</th>
-              <th>WFO</th>
-              <th>WFA</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="branch in paginatedBranches" :key="branch.branch">
-              <td>{{ branch.branch }}</td>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Branch</th>
+                <th>Total Employees</th>
+                <th>Present</th>
+                <th>Absent</th>
+                <th>Rate</th>
+                <th>WFO</th>
+                <th>WFA</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="branch in paginatedBranches" :key="branch.branch">
+                <td>{{ branch.branch }}</td>
 
-              <td>{{ branch.total_employees }}</td>
+                <td>{{ branch.total_employees }}</td>
 
-              <td>{{ branch.present }}</td>
+                <td>{{ branch.present }}</td>
 
-              <td>{{ branch.absent }}</td>
+                <td>{{ branch.absent }}</td>
 
-              <td>{{ Number(branch.rate).toFixed(1) }}%</td>
+                <td>{{ Number(branch.rate).toFixed(1) }}%</td>
 
-              <td>{{ branch.wfo }}</td>
+                <td>{{ branch.wfo }}</td>
 
-              <td>{{ branch.wfa }}</td>
+                <td>{{ branch.wfa }}</td>
 
-              <td>
-                <span class="status" :class="branch.status.toLowerCase()">
-                  {{ branch.status }}
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                <td>
+                  <span class="status" :class="branch.status.toLowerCase()">
+                    {{ branch.status }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
         <div class="pagination">
           <span class="pagination-info">
@@ -476,8 +478,7 @@ onUnmounted(() => {
 
 .layout {
   display: flex;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
   background: #f0f2ff;
   font-family: "Segoe UI", sans-serif;
 }
@@ -616,7 +617,6 @@ onUnmounted(() => {
   background: #fff;
   border-radius: 16px;
   border: 1px solid #e8e8f0;
-  overflow: hidden;
 }
 
 .panel-header {
@@ -653,7 +653,13 @@ onUnmounted(() => {
 
 table {
   width: 100%;
+  min-width: 950px;
   border-collapse: collapse;
+}
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
 }
 
 thead tr {
