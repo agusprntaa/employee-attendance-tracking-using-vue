@@ -79,18 +79,18 @@ async function fetchSettings() {
       work_days: data.working_hours?.work_days || "1,2,3,4,5",
 
       // security
-      auto_refresh_qr: data.security?.auto_refresh_qr || false,
+      auto_refresh_qr: data.security?.auto_refresh_qr ?? false,
 
-      require_admin_approval: data.security?.require_admin_approval || false,
+      require_admin_approval: data.security?.require_admin_approval ?? false,
 
       // notifications
       admin_email: data.notifications?.admin_email || "",
 
-      email_notifications: data.notifications?.email_notifications || false,
+      email_notifications: data.notifications?.email_notifications ?? false,
 
-      late_arrival_alerts: data.notifications?.late_arrival_alerts || false,
+      late_arrival_alerts: data.notifications?.late_arrival_alerts ?? false,
 
-      weekly_reports: data.notifications?.weekly_reports || false,
+      weekly_reports: data.notifications?.weekly_reports ?? false,
     };
   } catch (err) {
     console.error("SETTINGS ERROR:", err);

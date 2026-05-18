@@ -212,7 +212,8 @@ async function fetchBranches() {
 
     console.log("BRANCHES:", res.data);
 
-    branches.value = res.data.data;
+    // branches.value = res.data.data;
+    branches.value = res.data.data.data || [];
   } catch (err) {
     console.error("BRANCH ERROR:", err);
 

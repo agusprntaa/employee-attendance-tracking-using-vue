@@ -271,15 +271,6 @@ onMounted(() => {
   color: #4f46e5;
 }
 
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-
-  gap: 20px;
-
-  margin-bottom: 28px;
-}
-
 .summary-card {
   padding: 24px;
 
