@@ -37,7 +37,8 @@ const date = ref("");
 
 const qrToken = ref("");
 const qrExpire = ref("");
-const countdown = ref(180);
+let qrInterval = null;
+const qrCountdown = ref("--:--");
 
 const popupMessage = ref("");
 const showPopup = ref(false);
@@ -45,8 +46,6 @@ const showPopup = ref(false);
 const showReasonModal = ref(false);
 const selectedReason = ref("");
 const selectedEmployee = ref("");
-
-let countdownInterval = null;
 
 const page = ref(1);
 const limit = ref(10);
@@ -60,11 +59,10 @@ onMounted(async () => {
     fetchDashboard();
   });
   // refresh tiap 2 menit 30 detik
-  startQRCountdown();
 });
 
 onUnmounted(() => {
-  clearInterval(countdownInterval);
+  clearInterval(qrInterval);
 });
 
 async function fetchAll() {
@@ -86,12 +84,22 @@ async function fetchAll() {
 function openReason(item) {
   selectedEmployee.value = item.employee_username || "-";
 
-  selectedReason.value = item.wfa_reason || "Tidak ada alasan";
+  if (item.status === "WFA") {
+    selectedReason.value = item.wfa_reason || "Tidak ada alasan WFA";
+  } else if (item.status === "EARLY_LEAVE") {
+    selectedReason.value =
+      item.early_leave_reason || "Tidak ada alasan pulang cepat";
+  } else {
+    selectedReason.value = "Tidak ada alasan";
+  }
+
+  console.log("ITEM:", item);
+  console.log("SELECTED REASON:", selectedReason.value);
 
   showReasonModal.value = true;
-
-  // console.log(item);
 }
+
+// console.log(item);
 
 function openPopup(message) {
   popupMessage.value = message;
@@ -151,19 +159,79 @@ async function fetchDashboard() {
   }
 }
 
+// async function fetchQR() {
+//   try {
+//     const res = await getQRCode();
+
+//     console.log("QR RESPONSE:", res.data);
+
+//     qrToken.value = res.data.data.token;
+//     qrExpire.value = res.data.data.expired_at;
+
+//     startQRCountdown(qrExpire.value);
+
+//     console.log("EXPIRE:", qrExpire.value);
+//   } catch (err) {
+//     console.error("QR ERROR:", err);
+
+//     openPopup(err.response?.data?.message || "Gagal memuat QR");
+//   }
+// }
 async function fetchQR() {
   try {
     const res = await getQRCode();
 
+    console.log("QR INNER DATA:", res.data.data);
+
     qrToken.value = res.data.data.qr_content;
+
     qrExpire.value = res.data.data.expires_at;
 
-    console.log("QR:", res.data);
+    console.log("EXPIRE:", qrExpire.value);
+
+    startQRCountdown(qrExpire.value);
   } catch (err) {
-    console.error("QR ERROR:", err);
+    console.error("QR ERROR:", err.response?.data || err);
 
     openPopup(err.response?.data?.message || "Gagal memuat QR");
   }
+}
+
+function startQRCountdown(expiredAt) {
+  clearInterval(qrInterval);
+
+  if (!expiredAt) {
+    qrCountdown.value = "--:--";
+    return;
+  }
+
+  qrInterval = setInterval(() => {
+    const now = Date.now();
+
+    const expire = Date.parse(expiredAt);
+    if (isNaN(expire)) {
+      qrCountdown.value = "--:--";
+      return;
+    }
+
+    const distance = expire - now;
+
+    if (distance <= 0) {
+      qrCountdown.value = "00:00";
+
+      clearInterval(qrInterval);
+
+      fetchQR();
+
+      return;
+    }
+
+    const minutes = Math.floor(distance / 1000 / 60);
+
+    const seconds = Math.floor((distance / 1000) % 60);
+
+    qrCountdown.value = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }, 1000);
 }
 
 async function fetchSettings() {
@@ -180,44 +248,43 @@ async function fetchSettings() {
   }
 }
 
-// async function handleRefreshQR() {
-//   loading.value = true;
+async function handleRefreshQR() {
+  loading.value = true;
 
-//   try {
-//     const res = await refreshQRCode();
+  try {
+    const res = await refreshQRCode();
 
-//     qrToken.value = res.data.data.qr_content;
-//     qrExpire.value = res.data.data.expires_at;
+    qrToken.value = res.data.data.qr_content;
+    qrExpire.value = res.data.data.expires_at;
 
-//     openPopup("QR berhasil diperbarui");
-//   } catch (err) {
-//     console.error("REFRESH QR ERROR:", err);
+    openPopup("QR berhasil diperbarui");
+  } catch (err) {
+    console.error("REFRESH QR ERROR:", err);
 
-//     openPopup(err.response?.data?.message || "Gagal refresh QR");
-//   } finally {
-//     loading.value = false;
-//   }
-// }
-function startQRCountdown() {
-  clearInterval(countdownInterval);
+    openPopup(err.response?.data?.message || "Gagal refresh QR");
+  } finally {
+    loading.value = false;
+  }
+}
 
-  countdown.value = 180;
+function parseLocalDate(dateString) {
+  if (!dateString) return null;
 
-  countdownInterval = setInterval(async () => {
-    countdown.value--;
+  const [datePart, timePart] = dateString.split("T");
 
-    if (countdown.value <= 0) {
-      await fetchQR();
+  const [year, month, day] = datePart.split("-").map(Number);
 
-      countdown.value = 180;
-    }
-  }, 1000);
+  const cleanTime = timePart.replace("Z", "");
+
+  const [hour, minute, second] = cleanTime.split(":").map(Number);
+
+  return new Date(year, month - 1, day, hour, minute, second || 0);
 }
 
 function formatTime(dateString) {
   if (!dateString) return "-";
 
-  return new Date(dateString).toLocaleTimeString(undefined, {
+  return parseLocalDate(dateString).toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
@@ -242,14 +309,8 @@ function formatDate(dateString) {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    timeZone: "Asia/Makassar",
   });
-}
-
-function formatCountdown(seconds) {
-  const min = Math.floor(seconds / 60);
-  const sec = seconds % 60;
-
-  return `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 }
 
 function isExpired(utc) {
@@ -391,6 +452,7 @@ const paginatedEmployees = computed(() => {
                 day: "numeric",
                 month: "long",
                 year: "numeric",
+                timeZone: "Asia/Makassar",
               })
             }}
           </p>
@@ -588,7 +650,8 @@ const paginatedEmployees = computed(() => {
             </div>
             <p class="qr-timer">
               QR otomatis refresh dalam
-              <strong>{{ formatCountdown(countdown) }}</strong>
+              <!-- <strong>{{ formatCountdown(countdown) }}</strong> -->
+              <strong>{{ qrCountdown }}</strong>
             </p>
           </div>
         </div>
@@ -1413,5 +1476,16 @@ td .badge {
 .pagination-controls button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.qr-expire {
+  margin-top: 10px;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  color: #ef4444;
+
+  text-align: center;
 }
 </style>

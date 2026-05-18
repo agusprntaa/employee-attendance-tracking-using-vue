@@ -116,26 +116,29 @@ async function handleScan(decodedText) {
   try {
     const parsedQR = JSON.parse(decodedText);
 
-    const qrToken = parsedQR.token;
-    if (!qrToken) {
-      throw new Error("QR tidak valid");
-    }
+    console.log("PARSED QR:", parsedQR);
 
-    console.log("SCANNED QR:", decodedText);
     const payload = {
       work_type: "WFO",
       lat: latitude.value,
       lon: longitude.value,
       accuracy: accuracy.value,
-
-      qr_token: qrToken,
-
+      qr_token: parsedQR.token,
       branch_id: parsedQR.branch_id,
     };
 
     console.log("PAYLOAD:", payload);
 
+    // const res = await checkInAPI(payload);
     const res = await checkInAPI(payload);
+
+    console.log("FULL RESPONSE:", res);
+
+    console.log("RESPONSE DATA:", res.data);
+
+    console.log("RESPONSE INNER DATA:", res.data?.data);
+
+    console.log("RESPONSE STATUS:", res.status);
 
     router.push({
       path: "/employee/success",

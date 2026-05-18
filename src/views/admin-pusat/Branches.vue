@@ -69,6 +69,7 @@ function formatDate(date) {
     day: "numeric",
     month: "short",
     year: "numeric",
+    timeZone: "Asia/Makassar",
   });
 }
 

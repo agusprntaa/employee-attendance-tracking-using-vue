@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from "vue";
+import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useLocation } from "@/composables/useLocation";
 import { useAuth } from "@/composables/useAuth";
@@ -23,6 +23,9 @@ const showPopup = ref(false);
 const loading = ref(false);
 const currentTime = ref("");
 const history = ref([]);
+const historyPage = ref(1);
+const historyLimit = 10;
+const totalHistoryPages = ref(1);
 const todayData = ref(null);
 const showLogoutConfirm = ref(false);
 
@@ -115,7 +118,9 @@ async function loadProfile() {
 // CLOCK
 function startClock() {
   interval = setInterval(() => {
-    currentTime.value = new Date().toLocaleTimeString("id-ID");
+    currentTime.value = new Date().toLocaleTimeString("id-ID", {
+      timeZone: "Asia/Makassar",
+    });
   }, 1000);
 }
 
@@ -133,12 +138,19 @@ async function fetchToday() {
 // HISTORY
 async function fetchHistory() {
   try {
-    const res = await getAttendanceHistory(1, 10);
+    const res = await getAttendanceHistory(historyPage.value, historyLimit);
+
     history.value = res.data.data.data || [];
+
+    totalHistoryPages.value = res.data.data.total_pages || 1;
   } catch (err) {
     console.error("HISTORY ERROR:", err);
   }
 }
+
+watch(historyPage, () => {
+  fetchHistory();
+});
 
 // NAVIGATION
 function goToScan() {
@@ -151,6 +163,50 @@ function goToWFA() {
   router.push("/employee/wfa");
 }
 
+async function onClickCheckout() {
+  try {
+    loading.value = true;
+
+    // await checkoutAttendance({
+    //   early_leave_reason: "",
+    // });
+    const res = await checkoutAttendance({
+      early_leave_reason: "",
+    });
+
+    console.log("CHECKOUT RESPONSE:", res);
+
+    console.log("CHECKOUT DATA:", res.data);
+
+    console.log("CHECKOUT INNER:", res.data.data);
+
+    openPopup("Check-out berhasil");
+
+    await fetchToday();
+    await fetchHistory();
+  } catch (err) {
+    console.error("CHECKOUT ERROR:", err.response?.data || err);
+    console.log("FULL ERROR:", err);
+
+    console.log("ERROR RESPONSE:", err.response);
+
+    console.log("ERROR DATA:", err.response?.data);
+
+    console.log("ERROR CODE:", err.response?.data?.code);
+
+    const errorCode = err.response?.data?.code;
+
+    if (errorCode === "EARLY_LEAVE_REASON_REQUIRED") {
+      showEarlyLeaveModal.value = true;
+      return;
+    }
+
+    openPopup(err.response?.data?.message || "Gagal check-out");
+  } finally {
+    loading.value = false;
+  }
+}
+
 async function handleCheckout(reason = "") {
   try {
     loading.value = true;
@@ -159,6 +215,12 @@ async function handleCheckout(reason = "") {
       early_leave_reason: reason,
     });
 
+    console.log("SUBMIT EARLY RESPONSE:", res);
+
+    console.log("SUBMIT EARLY DATA:", res.data);
+
+    console.log("EARLY REASON:", reason);
+
     console.log("CHECKOUT:", res.data);
 
     openPopup("Check-out berhasil");
@@ -166,7 +228,11 @@ async function handleCheckout(reason = "") {
     showEarlyLeaveModal.value = false;
     earlyLeaveReason.value = "";
 
+    console.log("SEBELUM FETCH TODAY:", todayData.value);
+
     await fetchToday();
+
+    console.log("SETELAH FETCH TODAY:", todayData.value);
     await fetchHistory();
   } catch (err) {
     console.error("CHECKOUT ERROR:", err.response?.data || err);
@@ -188,10 +254,10 @@ async function handleCheckout(reason = "") {
 function formatTime(utc) {
   if (!utc) return "-";
 
-  return parseLocalDate(utc).toLocaleTimeString("id-ID", {
+  return new Date(utc).toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
-    // timeZone: "Asia/Jakarta",
+    timeZone: "Asia/Makassar",
   });
 }
 
@@ -201,6 +267,7 @@ function formatCheckoutTime(date) {
   return new Date(date).toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Asia/Makassar",
   });
 }
 
@@ -212,22 +279,48 @@ function formatDateIndo(date) {
     day: "numeric",
     month: "long",
     year: "numeric",
-    // timeZone: "Asia/Jakarta",
+    timeZone: "Asia/Makassar",
   });
 }
 
 // FORMAT STATUS
 function formatStatus(item) {
-  if (item.work_type === "WFA") return "WFA";
-  if (item.status === "PRESENT") return "HADIR";
-  if (item.status === "LATE") return "TERLAMBAT";
-  return item.status || "-";
+  if (
+    !item.status ||
+    item.status === "BELUM_ABSEN" ||
+    item.status === "ABSENT"
+  ) {
+    return "TIDAK HADIR";
+  }
+
+  if (item.work_type === "WFA") {
+    return "WFA";
+  }
+
+  return "HADIR";
 }
 
 function statusClass(item) {
   if (item.work_type === "WFA") return "wfa";
+
   if (item.status === "PRESENT") return "hadir";
+
   if (item.status === "LATE") return "late";
+
+  if (item.status === "EARLY_LEAVE") return "early";
+
+  return "";
+}
+
+function checkoutLabel(item) {
+  if (item.status === "EARLY_LEAVE") {
+    return "Pulang Cepat";
+  }
+
+  if (item.is_auto_checkout) {
+    return "Checkout Otomatis";
+  }
+
   return "";
 }
 
@@ -299,7 +392,7 @@ async function handleLogout() {
           :class="{
             danger: checkoutInfo.isFinished,
           }"
-          @click="handleCheckout()"
+          @click="onClickCheckout"
         >
           {{
             checkoutInfo.isFinished ? "Pulang sekarang" : "Ajukan pulang cepat?"
@@ -312,13 +405,44 @@ async function handleLogout() {
 
         <div class="item" v-for="item in history" :key="item.id">
           <div>
-            <strong class="time">{{ formatTime(item.check_in) }}</strong>
-            <p class="date">{{ formatDateIndo(item.date) }}</p>
+            <strong class="time">
+              {{ formatTime(item.check_in) }}
+            </strong>
+
+            <p class="date">
+              {{ formatDateIndo(item.date) }}
+            </p>
           </div>
 
-          <span class="status" :class="statusClass(item)">
-            {{ formatStatus(item) }}
+          <div class="status-wrapper">
+            <div class="status-wrapper">
+              <span class="status" :class="statusClass(item)">
+                {{ formatStatus(item) }}
+              </span>
+
+              <small v-if="checkoutLabel(item)" class="status-note">
+                {{ checkoutLabel(item) }}
+              </small>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="totalHistoryPages > 1" class="history-pagination">
+          <button :disabled="historyPage === 1" @click="historyPage--">
+            ‹
+          </button>
+
+          <span>
+            {{ historyPage }} /
+            {{ totalHistoryPages }}
           </span>
+
+          <button
+            :disabled="historyPage === totalHistoryPages"
+            @click="historyPage++"
+          >
+            ›
+          </button>
         </div>
       </div>
 
@@ -730,5 +854,62 @@ async function handleLogout() {
 
 .checkout-link.danger {
   color: #dc2626;
+}
+
+.status-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.status-note {
+  font-size: 10px;
+  color: #9ca3af;
+}
+
+.status.early {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.history-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  gap: 12px;
+
+  margin-top: 18px;
+}
+
+.history-pagination button {
+  width: 34px;
+  height: 34px;
+
+  border: none;
+  border-radius: 10px;
+
+  background: #4f46e5;
+  color: white;
+
+  cursor: pointer;
+}
+
+.history-pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.status-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.status-note {
+  font-size: 10px;
+  color: #9ca3af;
 }
 </style>

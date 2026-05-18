@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, onMounted, onUnmounted, nextTick, computed } from "vue";
 import AdminProfile from "@/components/AdminProfile.vue";
 import { getAllBranches, createBranchAdmin } from "@/services/adminPusat";
 import { useRouter } from "vue-router";
@@ -39,6 +39,8 @@ const workMode = ref({
 });
 
 const branchPerformance = ref([]);
+const currentPage = ref(1);
+const itemsPerPage = 10;
 const branchChartRef = ref(null);
 const workModeChartRef = ref(null);
 
@@ -221,6 +223,18 @@ async function fetchBranches() {
   }
 }
 
+const totalPages = computed(() => {
+  return Math.ceil(branchPerformance.value.length / itemsPerPage);
+});
+
+const paginatedBranches = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+
+  const end = start + itemsPerPage;
+
+  return branchPerformance.value.slice(start, end);
+});
+
 onMounted(async () => {
   await loadUser();
 
@@ -259,8 +273,6 @@ onUnmounted(() => {
           </h2>
 
           <p>Total Employees</p>
-
-          <span class="card-meta"> Across all branches </span>
         </div>
 
         <div class="card" @click="router.push('/admin-pusat/attendanceToday')">
@@ -318,44 +330,74 @@ onUnmounted(() => {
           <h3>Branch Performance</h3>
           <p>Detailed attendance metrics by location</p>
         </div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Branch</th>
-                <th>Total Employees</th>
-                <th>Present</th>
-                <th>Absent</th>
-                <th>Rate</th>
-                <th>WFO</th>
-                <th>WFA</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="branch in branchPerformance" :key="branch.branch">
-                <td>{{ branch.branch }}</td>
+        <table>
+          <thead>
+            <tr>
+              <th>Branch</th>
+              <th>Total Employees</th>
+              <th>Present</th>
+              <th>Absent</th>
+              <th>Rate</th>
+              <th>WFO</th>
+              <th>WFA</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="branch in paginatedBranches" :key="branch.branch">
+              <td>{{ branch.branch }}</td>
 
-                <td>{{ branch.total_employees }}</td>
+              <td>{{ branch.total_employees }}</td>
 
-                <td>{{ branch.present }}</td>
+              <td>{{ branch.present }}</td>
 
-                <td>{{ branch.absent }}</td>
+              <td>{{ branch.absent }}</td>
 
-                <td>{{ Number(branch.rate).toFixed(1) }}%</td>
+              <td>{{ Number(branch.rate).toFixed(1) }}%</td>
 
-                <td>{{ branch.wfo }}</td>
+              <td>{{ branch.wfo }}</td>
 
-                <td>{{ branch.wfa }}</td>
+              <td>{{ branch.wfa }}</td>
 
-                <td>
-                  <span class="status" :class="branch.status.toLowerCase()">
-                    {{ branch.status }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+              <td>
+                <span class="status" :class="branch.status.toLowerCase()">
+                  {{ branch.status }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="pagination">
+          <span class="pagination-info">
+            Showing
+            {{ paginatedBranches.length }}
+            of
+            {{ branchPerformance.length }}
+            data
+          </span>
+
+          <div class="pagination-controls">
+            <button :disabled="currentPage <= 1" @click="currentPage--">
+              ‹
+            </button>
+
+            <button
+              v-for="p in totalPages"
+              :key="p"
+              :class="{ active: p === currentPage }"
+              @click="currentPage = p"
+            >
+              {{ p }}
+            </button>
+
+            <button
+              :disabled="currentPage >= totalPages"
+              @click="currentPage++"
+            >
+              ›
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -738,10 +780,6 @@ tbody tr:last-child td {
   justify-content: flex-end;
 }
 
-.table-wrapper {
-  overflow-x: auto;
-}
-
 .filter-bar {
   display: flex;
   justify-content: flex-end;
@@ -1029,5 +1067,68 @@ tbody tr:last-child td {
 
   font-size: 14px;
   font-weight: 500;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 14px 22px;
+
+  border-top: 1px solid #f3f4f6;
+}
+
+.pagination-info {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.pagination-controls button {
+  min-width: 32px;
+  height: 32px;
+
+  padding: 0 10px;
+
+  border-radius: 8px;
+
+  border: 1px solid #e5e7eb;
+
+  background: #f9fafb;
+  color: #374151;
+
+  font-size: 13px;
+  font-weight: 500;
+
+  cursor: pointer;
+
+  transition: all 0.15s;
+}
+
+.pagination-controls button:hover {
+  border-color: #4f46e5;
+
+  color: #4f46e5;
+
+  background: #eef2ff;
+}
+
+.pagination-controls button.active {
+  background: #4f46e5;
+
+  color: #fff;
+
+  border-color: #4f46e5;
+}
+
+.pagination-controls button:disabled {
+  opacity: 0.4;
+
+  cursor: not-allowed;
 }
 </style>

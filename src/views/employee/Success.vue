@@ -22,7 +22,7 @@ onMounted(() => {
   time.value = d.toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
-    // timeZone: "Asia/Jakarta",
+    timeZone: "Asia/Makassar",
   });
 
   date.value = d.toLocaleDateString("id-ID", {
@@ -30,7 +30,7 @@ onMounted(() => {
     day: "numeric",
     month: "long",
     year: "numeric",
-    // timeZone: "Asia/Jakarta",
+    timeZone: "Asia/Makassar",
   });
 });
 

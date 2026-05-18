@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -26,8 +26,7 @@ const filteredEmployees = computed(() => {
   return employees.value.filter((emp) => {
     const matchSearch =
       emp.name.toLowerCase().includes(search.value.toLowerCase()) ||
-      emp.id.toLowerCase().includes(search.value.toLowerCase());
-
+      String(emp.id).includes(search.value);
     const matchStatus = !status.value || emp.status === status.value;
 
     return matchSearch && matchStatus;
@@ -49,6 +48,7 @@ function formatDate(date) {
     day: "numeric",
     month: "short",
     year: "numeric",
+    timeZone: "Asia/Makassar",
   });
 }
 
@@ -57,8 +57,7 @@ async function fetchEmployees() {
 
   try {
     const res = await getAllEmployees({
-      page: currentPage.value,
-      limit: itemsPerPage,
+      limit: 999,
     });
 
     console.log("EMPLOYEES:", res.data);
@@ -72,10 +71,12 @@ async function fetchEmployees() {
 
       branch: emp.branch || "-",
 
-      status: emp.status.toLowerCase(),
+      status: emp.status?.toLowerCase() === "active" ? "active" : "inactive",
 
       created_at: emp.created_date,
     }));
+
+    console.log("ADMIN PUSAT EMP:", res.data.data.data);
   } catch (err) {
     console.error("EMPLOYEE ERROR:", err);
 
@@ -146,6 +147,10 @@ function exportPDF() {
 
 onMounted(() => {
   fetchEmployees();
+});
+
+watch([search, status], () => {
+  currentPage.value = 1;
 });
 </script>
 

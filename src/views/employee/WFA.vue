@@ -49,10 +49,16 @@ async function submitWFA() {
   loading.value = true;
 
   try {
-    await checkInAPI({
+    const res = await checkInAPI({
       work_type: "WFA",
       wfa_reason: text,
     });
+
+    console.log("FULL RESPONSE:", res);
+
+    console.log("DATA:", res.data);
+
+    console.log("INNER DATA:", res.data.data);
 
     router.push({
       path: "/employee/success",
@@ -62,7 +68,16 @@ async function submitWFA() {
       },
     });
   } catch (err) {
-    error.value = err.response?.data?.message || "Gagal submit WFA";
+    console.log("FULL ERROR:", err);
+
+    console.log("ERROR RESPONSE:", err.response);
+
+    console.log("ERROR DATA:", err.response?.data);
+
+    console.log("PAYLOAD:", {
+      work_type: "WFA",
+      wfa_reason: text,
+    });
   } finally {
     loading.value = false;
   }

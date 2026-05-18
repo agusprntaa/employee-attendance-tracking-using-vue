@@ -21,6 +21,7 @@ const todayDate = new Date().toLocaleDateString("id-ID", {
   day: "numeric",
   month: "long",
   year: "numeric",
+  timeZone: "Asia/Makassar",
 });
 
 function goToChangePassword() {
