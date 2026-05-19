@@ -261,8 +261,7 @@ function formatTime(utc) {
 
   // console.log("RAW TIME:", utc);
 
-  const d = parseLocalDate(utc);
-
+  const d = new Date(utc);
   return d.toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
@@ -614,7 +613,7 @@ async function handleLogout() {
   font-weight: 600;
 }
 
-.status.hadir {
+/* .status.hadir {
   background: #e0f2fe;
   color: #0369a1;
 }
@@ -622,7 +621,7 @@ async function handleLogout() {
 .status.wfa {
   background: #eef2ff;
   color: #4338ca;
-}
+} */
 
 .status.late {
   background: #fee2e2;

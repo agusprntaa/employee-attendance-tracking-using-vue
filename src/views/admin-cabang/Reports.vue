@@ -49,7 +49,7 @@ async function fetchReports() {
     if (endDate.value) params.end_date = endDate.value;
     if (year.value) params.year = year.value;
 
-    const res = await getReportsAttendance(params); // ✅ INI YANG KURANG
+    const res = await getReportsAttendance(params);
     const data = res.data.data;
 
     summary.value = data.summary || {};
@@ -197,7 +197,7 @@ function formatDate(str) {
     day: "numeric",
     month: "short",
     year: "numeric",
-    // timeZone: "Asia/Makassar",
+    timeZone: "Asia/Makassar",
   });
 }
 

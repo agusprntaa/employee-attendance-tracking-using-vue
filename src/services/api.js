@@ -1,12 +1,12 @@
 import axios from 'axios'
 
 const API = axios.create({
-  baseURL: 'https://broadways-preaching-false.ngrok-free.dev',
+  baseURL: import.meta.env.VITE_API_URL,
   timeout: 10000
 })
 
 // const API = axios.create({
-//   baseURL: 'https://aerobics-exemption-regime.ngrok-free.dev',
+//   baseURL: 'https://broadways-preaching-false.ngrok-free.dev',
 //   timeout: 10000
 // })
 

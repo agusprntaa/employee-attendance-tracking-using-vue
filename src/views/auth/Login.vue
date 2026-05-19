@@ -80,7 +80,6 @@ async function login() {
     locationError.value = "Izin lokasi diperlukan";
     return;
   }
-
   loading.value = true;
 
   try {
@@ -135,6 +134,23 @@ async function login() {
     }
   } catch (err) {
     console.error(err);
+
+    console.log("FULL ERROR:", err);
+
+    console.log("ERROR RESPONSE:", err.response);
+
+    console.log("ERROR DATA:", err.response?.data);
+
+    console.log("ERROR MESSAGE:", err.response?.data?.message);
+
+    console.log("ERROR CODE:", err.response?.data?.code);
+
+    console.log("STATUS:", err.response?.status);
+
+    console.log("REQUEST DATA:", {
+      username: username.value,
+      password: password.value,
+    });
 
     //mengubah error handle baru
     if (err.response?.status === 429) {

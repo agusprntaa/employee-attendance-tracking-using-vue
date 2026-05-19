@@ -556,9 +556,7 @@ const paginatedEmployees = computed(() => {
                         item.status === 'EARLY_LEAVE' ? 'clickable' : '',
                       ]"
                       @click="
-                        item.status === 'WFA' || item.status === 'EARLY_LEAVE'
-                          ? openReason(item)
-                          : null
+                        item.status === 'EARLY_LEAVE' ? openReason(item) : null
                       "
                     >
                       {{ getStatusLabel(item.status) }}
@@ -567,16 +565,10 @@ const paginatedEmployees = computed(() => {
                     </span>
 
                     <span
-                      v-if="
-                        item.status === 'WFA' || item.status === 'EARLY_LEAVE'
-                      "
+                      v-if="item.status === 'EARLY_LEAVE'"
                       class="badge-tooltip"
                     >
-                      {{
-                        item.status === "WFA"
-                          ? "Cek alasan WFA"
-                          : "Cek alasan pulang cepat"
-                      }}
+                      Cek alasan pulang cepat
                     </span>
                   </div>
                 </td>
