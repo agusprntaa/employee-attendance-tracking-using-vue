@@ -140,7 +140,7 @@ function renderMonthly() {
       labels: monthlyData.value.map((d) => d.month),
       datasets: [
         {
-          label: "Attendance Rate",
+          label: "Persentase Kehadiran",
           data: monthlyData.value.map((d) => d.attendance_rate),
           borderColor: "#4f46e5",
           backgroundColor: "rgba(79, 70, 229, 0.08)",
@@ -227,18 +227,18 @@ function exportPDF() {
   const doc = new jsPDF();
 
   doc.setFontSize(18);
-  doc.text("Attendance Reports", 14, 18);
+  doc.text("Laporan Absensi", 14, 18);
 
   doc.setFontSize(11);
   doc.text(
-    `Period: ${startDate.value || "-"} to ${endDate.value || "-"}`,
+    `Periode: ${startDate.value || "-"} sampai ${endDate.value || "-"}`,
     14,
     28,
   );
 
   autoTable(doc, {
     startY: 38,
-    head: [["Date", "Present", "Late", "WFA", "Absent"]],
+    head: [["Tanggal", "Hadir", "Terlambat", "WFA", "Tidak Hadir"]],
     body: daily.value.map((d) => [
       formatDate(d.date),
       d.total_present,
@@ -254,17 +254,16 @@ function exportPDF() {
 function exportExcel() {
   const worksheet = XLSX.utils.json_to_sheet(
     daily.value.map((d) => ({
-      Date: formatDate(d.date),
-      Present: d.total_present,
-      Late: d.total_late,
-      WFA: d.total_wfa,
-      Absent: d.total_absent,
+      Tanggal: formatDate(d.date),
+      Hadir: d.total_present,
+      Terlambat: d.total_late,
+      "Tidak Hadir": d.total_absent,
     })),
   );
 
   const workbook = XLSX.utils.book_new();
 
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Reports");
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Absensi");
 
   XLSX.writeFile(workbook, "attendance-report.xlsx");
 }
@@ -277,8 +276,8 @@ function exportExcel() {
     <main class="main">
       <div class="header">
         <div>
-          <h2>Reports</h2>
-          <p class="subtitle">Attendance analytics and insights</p>
+          <h2>Laporan Absensi</h2>
+          <p class="subtitle">Analisis dan ringkasan absensi</p>
         </div>
         <AdminProfile :user="user" />
       </div>
@@ -286,18 +285,18 @@ function exportExcel() {
       <!-- TOOLBAR -->
       <div class="filter-bar">
         <div class="filter-group">
-          <label>Start Date</label>
+          <label>Tanggal Awal</label>
           <input type="date" v-model="startDate" />
         </div>
 
         <div class="filter-group">
-          <label>End Date</label>
+          <label>Tanggal Akhir</label>
           <input type="date" v-model="endDate" />
         </div>
 
         <button class="btn-apply" @click="fetchReports" :disabled="loading">
-          {{ loading ? "Loading..." : "Apply" }}
-          <span class="tooltip"> Apply Filters </span>
+          {{ loading ? "Memuat..." : "Terapkan" }}
+          <span class="tooltip"> Terapkan Filter </span>
         </button>
 
         <!-- export -->
@@ -305,11 +304,11 @@ function exportExcel() {
           <div class="export-actions">
             <button class="btn-export excel" @click="exportExcel">
               Excel
-              <span class="tooltip"> Export to Excel </span>
+              <span class="tooltip"> Export ke Excel </span>
             </button>
             <button class="btn-export pdf" @click="exportPDF">
               PDF
-              <span class="tooltip"> Export to PDF </span>
+              <span class="tooltip"> Export ke PDF </span>
             </button>
           </div>
         </div>
@@ -318,7 +317,7 @@ function exportExcel() {
       <!-- SUMMARY CARDS -->
       <div class="cards">
         <div class="card">
-          <p class="card-label">Average Attendance Rate</p>
+          <p class="card-label">Rata-rata Kehadiran</p>
           <h3 class="card-value">
             {{ summary.average_attendance_rate ?? 0 }}%
           </h3>
@@ -330,12 +329,13 @@ function exportExcel() {
                 : 'negative'
             "
           >
-            {{ formatChange(summary.attendance_rate_change) }} vs last period
+            {{ formatChange(summary.attendance_rate_change) }} dibanding periode
+            sebelumnya
           </span>
         </div>
 
         <div class="card">
-          <p class="card-label">Total Present</p>
+          <p class="card-label">Total Hadir</p>
           <h3 class="card-value">{{ summary.total_present ?? 0 }}</h3>
           <span
             class="card-change"
@@ -343,12 +343,13 @@ function exportExcel() {
               isPositive(summary.total_present_change) ? 'positive' : 'negative'
             "
           >
-            {{ formatChange(summary.total_present_change) }} vs last period
+            {{ formatChange(summary.total_present_change) }} dibanding periode
+            sebelumnya
           </span>
         </div>
 
         <div class="card">
-          <p class="card-label">Late Arrivals</p>
+          <p class="card-label">Keterlambatan</p>
           <h3 class="card-value late">{{ summary.late_arrivals ?? 0 }}</h3>
           <span
             class="card-change"
@@ -356,7 +357,8 @@ function exportExcel() {
               isPositive(summary.late_arrivals_change) ? 'negative' : 'positive'
             "
           >
-            {{ formatChange(summary.late_arrivals_change) }} vs last period
+            {{ formatChange(summary.late_arrivals_change) }} dibanding periode
+            sebelumnya
           </span>
         </div>
       </div>
@@ -365,12 +367,12 @@ function exportExcel() {
       <div class="chart-row">
         <div class="panel">
           <div class="panel-header">
-            <h3>Weekly Attendance</h3>
+            <h3>Absensi Mingguan</h3>
             <div class="legend">
-              <span class="dot" style="background: #4f46e5"></span>Present
-              <span class="dot" style="background: #f59e0b"></span>Late
+              <span class="dot" style="background: #4f46e5"></span>Hadir
+              <span class="dot" style="background: #f59e0b"></span>Terlambat
               <span class="dot" style="background: #a78bfa"></span>WFA
-              <span class="dot" style="background: #fca5a5"></span>Absent
+              <span class="dot" style="background: #fca5a5"></span>Tidak Hadir
             </div>
           </div>
           <div class="chart-body">
@@ -380,14 +382,14 @@ function exportExcel() {
               aria-label="Bar chart showing weekly attendance by day"
             ></canvas>
             <p v-if="!weeklyData.length && !loading" class="empty">
-              No data available
+              Tidak ada Data
             </p>
           </div>
         </div>
 
         <div class="panel">
           <div class="panel-header">
-            <h3>Monthly Trend</h3>
+            <h3>Tren Bulanan</h3>
             <div class="legend">
               <span class="dot" style="background: #4f46e5"></span>Attendance
               Rate
@@ -409,21 +411,21 @@ function exportExcel() {
       <!-- DIVISION PERFORMANCE TABLE -->
       <div class="panel">
         <div class="panel-header">
-          <h3>Division Performance</h3>
+          <h3>Performa Divisi</h3>
         </div>
         <table>
           <thead>
             <tr>
-              <th>Division</th>
-              <th>Total Employees</th>
-              <th>Attendance Rate</th>
-              <th>Progress</th>
+              <th>Divisi</th>
+              <th>Total Karyawan</th>
+              <th>Persentase Kehadiran</th>
+              <th>Progres</th>
               <th>Status</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!divisions.length">
-              <td colspan="5" class="empty-cell">No division data</td>
+              <td colspan="5" class="empty-cell">Tidak ada data divisi</td>
             </tr>
             <tr v-for="d in divisions" :key="d.division_name">
               <td class="bold">{{ d.division_name }}</td>
@@ -441,9 +443,9 @@ function exportExcel() {
                 <span
                   class="badge"
                   :class="{
-                    'badge-excellent': d.status === 'Excellent',
-                    'badge-good': d.status === 'Good',
-                    'badge-poor': d.status === 'Poor',
+                    'badge-excellent': d.status === 'Sangat Baik',
+                    'badge-good': d.status === 'Baik',
+                    'badge-poor': d.status === 'Buruk',
                   }"
                   >{{ d.status }}</span
                 >
@@ -456,22 +458,22 @@ function exportExcel() {
       <!-- DAILY ATTENDANCE TABLE -->
       <div class="panel">
         <div class="panel-header">
-          <h3>Daily Breakdown</h3>
+          <h3>Rincian Harian</h3>
         </div>
         <div>
           <table>
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Present</th>
-                <th>Late</th>
+                <th>Tanggal</th>
+                <th>Hadir</th>
+                <th>Terlambat</th>
                 <th>WFA</th>
-                <th>Absent</th>
+                <th>Tidak Hadir</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="!daily.length">
-                <td colspan="5" class="empty-cell">No daily data</td>
+                <td colspan="5" class="empty-cell">Tidak ada data harian</td>
               </tr>
               <tr v-for="d in paginatedDaily" :key="d.date">
                 <td class="bold">{{ formatDate(d.date) }}</td>
@@ -494,7 +496,7 @@ function exportExcel() {
 
         <div class="pagination">
           <span class="pagination-info">
-            Showing {{ paginatedDaily.length }} of {{ daily.length }} data
+            Menampilkan {{ paginatedDaily.length }} dari {{ daily.length }} data
           </span>
 
           <div class="pagination-controls">

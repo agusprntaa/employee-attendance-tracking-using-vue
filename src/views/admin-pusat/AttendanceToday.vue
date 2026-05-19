@@ -49,19 +49,19 @@ const filteredBranches = computed(() => {
 });
 
 function getStatus(rate) {
-  if (rate >= 80) return "Excellent";
+  if (rate >= 80) return "Sangat Baik";
 
-  if (rate >= 60) return "Good";
+  if (rate >= 60) return "Baik";
 
-  return "Critical";
+  return "Kritis";
 }
 
 function getStatusClass(rate) {
-  if (rate >= 80) return "excellent";
+  if (rate >= 80) return "Sangat Baik";
 
-  if (rate >= 60) return "good";
+  if (rate >= 60) return "Baik";
 
-  return "critical";
+  return "Kritis";
 }
 
 function goBack() {
@@ -79,9 +79,9 @@ onMounted(() => {
     <div class="content">
       <div class="page-header">
         <div>
-          <h1>Today Attendance Overview</h1>
+          <h1>Absensi Hari Ini</h1>
 
-          <p>Real-time attendance monitoring across all branches</p>
+          <p>Monitoring kehadiran seluruh cabang secara realtime</p>
         </div>
 
         <button class="back-btn" @click="goBack">×</button>
@@ -93,7 +93,7 @@ onMounted(() => {
 
       <div class="summary-grid">
         <div class="summary-card blue">
-          <span>Total Present</span>
+          <span>Total Hadir</span>
 
           <h2>
             {{ attendanceToday.total_present || 0 }}
@@ -101,7 +101,7 @@ onMounted(() => {
         </div>
 
         <div class="summary-card red">
-          <span>Total Employees</span>
+          <span>Total Karyawan</span>
 
           <h2>
             {{ attendanceToday.total_employees || 0 }}
@@ -109,7 +109,7 @@ onMounted(() => {
         </div>
 
         <div class="summary-card purple">
-          <span>Attendance Rate</span>
+          <span>Persentase Kehadiran</span>
 
           <h2>
             {{
@@ -129,23 +129,23 @@ onMounted(() => {
         <input
           v-model="search"
           type="text"
-          placeholder="Search branch..."
+          placeholder="Cari cabang..."
           class="search-input"
         />
       </div>
 
-      <div v-if="loading" class="loading-state">Loading attendance...</div>
+      <div v-if="loading" class="loading-state">Memuat kehadiran...</div>
 
       <div v-else class="table-card">
         <table>
           <thead>
             <tr>
-              <th>Branch Name</th>
-              <th>Total Employees</th>
-              <th>Present</th>
-              <th>Absent</th>
-              <th>Rate</th>
-              <th>Progress</th>
+              <th>Nama Cabang</th>
+              <th>Total Karyawan</th>
+              <th>Hadir</th>
+              <th>Tidak Hadir</th>
+              <th>Persentase</th>
+              <th>Progres</th>
               <th>Status</th>
             </tr>
           </thead>

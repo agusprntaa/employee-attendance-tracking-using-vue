@@ -259,7 +259,7 @@ async function handleToggle(emp) {
 }
 
 async function handleDelete(id) {
-  if (!confirm("Hapus employee?")) return;
+  if (!confirm("Hapus karyawan?")) return;
   await deleteEmployee(id);
   fetchEmployees();
 }
@@ -272,8 +272,8 @@ async function handleDelete(id) {
     <main class="main">
       <div class="header">
         <div>
-          <h2>Employees</h2>
-          <p class="subtitle">Manage employees in your branch</p>
+          <h2>Karyawan</h2>
+          <p class="subtitle">Kelola karyawan di cabang Anda</p>
         </div>
         <AdminProfile :user="user" />
       </div>
@@ -281,16 +281,16 @@ async function handleDelete(id) {
       <div class="panel">
         <div class="toolbar">
           <div class="search-wrap">
-            <input v-model="search" placeholder="Search Employee..." />
+            <input v-model="search" placeholder="Cari Karyawan..." />
           </div>
 
           <select v-model="status">
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
+            <option value="">Semua Status</option>
+            <option value="active">Aktif</option>
+            <option value="inactive">Nonaktif</option>
           </select>
 
-          <button class="btn-add" @click="openAdd">+ Add Employee</button>
+          <button class="btn-add" @click="openAdd">+ Tambah Karyawan</button>
         </div>
 
         <table>
@@ -298,11 +298,11 @@ async function handleDelete(id) {
             <tr>
               <th>ID</th>
               <th>Username</th>
-              <th>Full Name</th>
+              <th>Nama Lengkap</th>
               <th>Divisi</th>
               <th>Status</th>
-              <th>Created</th>
-              <th>Action</th>
+              <th>Tanggal Dibuat</th>
+              <th>Aksi</th>
             </tr>
           </thead>
 
@@ -315,7 +315,7 @@ async function handleDelete(id) {
 
               <td>
                 <span :class="['badge', emp.status?.toLowerCase()]">
-                  {{ emp.status === "active" ? "Active" : "Inactive" }}
+                  {{ emp.status === "active" ? "Aktif" : "Nonaktif" }}
                 </span>
               </td>
 
@@ -336,7 +336,7 @@ async function handleDelete(id) {
 
         <div class="pagination">
           <span class="pagination-info">
-            Showing {{ employees.length }} of {{ meta.total }} employees
+            Menampilkan {{ employees.length }} of {{ meta.total }} Karyawan
           </span>
 
           <div class="pagination-controls">
@@ -369,7 +369,7 @@ async function handleDelete(id) {
         </div>
 
         <div class="modal-body">
-          <p>Yakin mau menghapus employee ini?</p>
+          <p>Yakin ingin menghapus karyawan ini?</p>
         </div>
 
         <div class="modal-footer">
@@ -382,7 +382,9 @@ async function handleDelete(id) {
     <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
       <div class="modal-box">
         <div class="modal-header">
-          <h3>{{ modalMode === "add" ? "Add Employee" : "Edit Employee" }}</h3>
+          <h3>
+            {{ modalMode === "add" ? "Tambah Karyawan" : "Edit Karyawan" }}
+          </h3>
           <button class="modal-close" @click="closeModal">✕</button>
         </div>
 
@@ -390,7 +392,7 @@ async function handleDelete(id) {
           <p v-if="modalError" class="modal-error">{{ modalError }}</p>
 
           <div class="form-group">
-            <label>Full Name</label>
+            <label>Nama Lengkap</label>
             <input v-model="form.full_name" />
           </div>
 
@@ -405,7 +407,7 @@ async function handleDelete(id) {
           </div>
 
           <div class="form-group">
-            <label>Division</label>
+            <label>Divisi</label>
 
             <select v-model.number="form.division_id">
               <option :value="null">Pilih Divisi</option>
@@ -419,8 +421,8 @@ async function handleDelete(id) {
             <label>Status</label>
 
             <select v-model="form.status">
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="active">Aktif</option>
+              <option value="inactive">Nonaktif</option>
             </select>
           </div>
 

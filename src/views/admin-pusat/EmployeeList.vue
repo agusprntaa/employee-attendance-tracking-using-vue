@@ -70,7 +70,7 @@ async function fetchEmployees() {
 
       branch: emp.branch || "-",
 
-      status: emp.status?.toLowerCase() === "active" ? "active" : "inactive",
+      status: emp.status?.toLowerCase() === "active" ? "aktif" : "nonaktif",
 
       created_at: emp.created_date,
     }));
@@ -93,11 +93,11 @@ function exportExcel() {
   try {
     const data = filteredEmployees.value.map((emp) => ({
       ID: emp.id,
-      Name: emp.name,
-      Position: emp.position,
-      Branch: emp.branch,
+      Nama: emp.name,
+      Jabatan: emp.position,
+      Cabang: emp.branch,
       Status: emp.status,
-      Created: formatDate(emp.created_at),
+      Dibuat: formatDate(emp.created_at),
     }));
 
     const ws = XLSX.utils.json_to_sheet(data);
@@ -129,7 +129,7 @@ function exportPDF() {
     ]);
 
     autoTable(doc, {
-      head: [["ID", "Name", "Position", "Branch", "Status", "Created"]],
+      head: [["ID", "Nama", "Jabatan", "Cabang", "Status", "Dibuat"]],
       body: rows,
     });
 
@@ -159,8 +159,8 @@ watch([search, status], () => {
     <div class="content">
       <div class="header">
         <div>
-          <h1>Employee List</h1>
-          <p>Manage and view all employees</p>
+          <h1>Daftar Karyawan</h1>
+          <p>Kelola dan lihat seluruh data karyawan</p>
         </div>
 
         <button
@@ -181,29 +181,25 @@ watch([search, status], () => {
 
       <div class="table-card">
         <div class="toolbar">
-          <input
-            v-model="search"
-            type="text"
-            placeholder="Search employee..."
-          />
+          <input v-model="search" type="text" placeholder="Cari karyawan..." />
 
           <select v-model="status">
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
+            <option value="">Semua Status</option>
+            <option value="Aktif">Active</option>
+            <option value="Nonaktif">Inactive</option>
           </select>
           <div class="export">
             <div class="export-actions">
               <button class="btn-export excel" @click="exportExcel">
                 Excel
 
-                <span class="tooltip"> Export to Excel </span>
+                <span class="tooltip"> Export ke Excel </span>
               </button>
 
               <button class="btn-export pdf" @click="exportPDF">
                 PDF
 
-                <span class="tooltip"> Export to PDF </span>
+                <span class="tooltip"> Export ke PDF </span>
               </button>
             </div>
           </div>
@@ -213,12 +209,12 @@ watch([search, status], () => {
           <table>
             <thead>
               <tr>
-                <th>Employee ID</th>
-                <th>Full Name</th>
-                <th>Position</th>
-                <th>Branch</th>
+                <th>ID Karyawan</th>
+                <th>Nama Lengkap</th>
+                <th>Posisi</th>
+                <th>Cabang</th>
                 <th>Status</th>
-                <th>Created Date</th>
+                <th>Tanggal Dibuat</th>
               </tr>
             </thead>
 
@@ -230,7 +226,7 @@ watch([search, status], () => {
                 <td>{{ emp.branch }}</td>
 
                 <td>
-                  <span class="status" :class="emp.status">
+                  <span class="status" :class="emp.status.toLowerCase()">
                     {{ emp.status }}
                   </span>
                 </td>
@@ -245,11 +241,11 @@ watch([search, status], () => {
 
         <div class="footer">
           <p>
-            Showing
+            Menampilkan
             {{ (currentPage - 1) * itemsPerPage + 1 }}-{{
               Math.min(currentPage * itemsPerPage, filteredEmployees.length)
             }}
-            of
+            dari
             {{ filteredEmployees.length }}
             data
           </p>
@@ -526,12 +522,12 @@ tbody tr:last-child td {
   font-weight: 600;
 }
 
-.status.active {
+.status.aktif {
   background: #dcfce7;
   color: #15803d;
 }
 
-.status.inactive {
+.status.nonaktif {
   background: #fee2e2;
   color: #b91c1c;
 }

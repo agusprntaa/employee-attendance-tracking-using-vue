@@ -57,11 +57,11 @@ const filteredBranches = computed(() => {
 });
 
 function getStatusClass(status) {
-  if (status === "Active") {
+  if (status === "Aktif") {
     return "active";
   }
 
-  return "inactive";
+  return "Nonaktif";
 }
 
 function formatDate(date) {
@@ -131,9 +131,9 @@ onMounted(() => {
     <div class="content">
       <div class="page-header">
         <div>
-          <h1>Branch Management</h1>
+          <h1>Manajemen Cabang</h1>
 
-          <p>Manage all branch locations and information</p>
+          <p>Kelola seluruh lokasi dan informasi cabang</p>
         </div>
 
         <div class="header-actions">
@@ -145,7 +145,7 @@ onMounted(() => {
               successMessage = '';
             "
           >
-            + Add Branch
+            + Tambah Cabang
           </button>
 
           <button class="back-btn" @click="goBack">×</button>
@@ -162,7 +162,7 @@ onMounted(() => {
 
       <div class="summary-grid">
         <div class="summary-card blue">
-          <span>Total Branches</span>
+          <span>Total Cabang</span>
 
           <h2>
             {{ branches.length }}
@@ -170,7 +170,7 @@ onMounted(() => {
         </div>
 
         <div class="summary-card green">
-          <span>Active Branches</span>
+          <span>Cabang Aktif</span>
 
           <h2>
             {{ branches.filter((b) => b.status === "Active").length }}
@@ -178,7 +178,7 @@ onMounted(() => {
         </div>
 
         <div class="summary-card purple">
-          <span>Total Employees</span>
+          <span>Total Karyawan</span>
 
           <h2>
             {{
@@ -192,25 +192,25 @@ onMounted(() => {
         <input
           v-model="search"
           type="text"
-          placeholder="Search branch..."
+          placeholder="Cari cabang..."
           class="search-input"
         />
       </div>
 
-      <div v-if="loading" class="loading-state">Loading branches...</div>
+      <div v-if="loading" class="loading-state">Memuat cabang...</div>
 
       <div v-else class="table-card">
         <table>
           <thead>
             <tr>
-              <th>Branch ID</th>
-              <th>Branch Name</th>
-              <th>Address</th>
-              <th>Employees</th>
-              <th>Attendance</th>
+              <th>ID Cabang</th>
+              <th>Nama Cabang</th>
+              <th>Alamat</th>
+              <th>Karyawan</th>
+              <th>Kehadiran</th>
               <th>Radius</th>
               <th>Status</th>
-              <th>Created</th>
+              <th>Dibuat</th>
             </tr>
           </thead>
 
@@ -257,7 +257,7 @@ onMounted(() => {
             </tr>
 
             <tr v-if="!filteredBranches.length">
-              <td colspan="8" class="empty-table">No branch data found</td>
+              <td colspan="8" class="empty-table">Tidak ada data cabang</td>
             </tr>
           </tbody>
         </table>
@@ -271,29 +271,29 @@ onMounted(() => {
     >
       <div class="modal-box">
         <div class="modal-header">
-          <h3>Add Branch</h3>
+          <h3>Tambah Cabang</h3>
 
           <button class="modal-close" @click="showAddModal = false">✕</button>
         </div>
 
         <div class="modal-body">
           <div class="form-group">
-            <label>Branch Name</label>
+            <label>Nama Cabang</label>
 
             <input
               v-model="form.branch_name"
               type="text"
-              placeholder="Input branch name"
+              placeholder="Masukkan nama cabang"
             />
           </div>
 
           <div class="form-group">
-            <label>Address</label>
+            <label>Alamat</label>
 
             <input
               v-model="form.address"
               type="text"
-              placeholder="Input branch address"
+              placeholder="Masukkan alamat cabang"
             />
           </div>
 
@@ -327,8 +327,8 @@ onMounted(() => {
             <label>Status</label>
 
             <select v-model="form.status">
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
+              <option value="Active">Aktif</option>
+              <option value="Inactive">Nonaktif</option>
             </select>
 
             <div v-if="formError" class="error-box">
@@ -339,11 +339,11 @@ onMounted(() => {
 
         <div class="modal-footer">
           <button class="btn-cancel" @click="showAddModal = false">
-            Cancel
+            Batal
           </button>
 
           <button class="btn-submit" @click="handleAddBranch">
-            Save Branch
+            Simpan Cabang
           </button>
         </div>
       </div>

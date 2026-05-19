@@ -255,8 +255,8 @@ onUnmounted(() => {
     <div class="main">
       <div class="header">
         <div>
-          <h2>Global Admin Dashboard</h2>
-          <p class="subtitle">Multi-branch attendance monitoring</p>
+          <h2>Dashboard Admin Pusat</h2>
+          <p class="subtitle">Monitoring absensi multi cabang</p>
         </div>
         <AdminProfile :user="user" />
       </div>
@@ -273,73 +273,75 @@ onUnmounted(() => {
             {{ stats.total_employees || 0 }}
           </h2>
 
-          <p>Total Employees</p>
+          <p>Total Karyawan</p>
         </div>
 
         <div class="card" @click="router.push('/admin-pusat/attendanceToday')">
           <h2>{{ stats.present_today || 0 }}</h2>
 
-          <p>Present Today</p>
+          <p>Kehadiran Hari Ini</p>
         </div>
 
         <div class="card1">
           <h2>{{ Number(stats.attendance_rate || 0).toFixed(1) }}%</h2>
 
-          <p>Attendance Rate</p>
+          <p>Persentase Kehadiran</p>
         </div>
 
         <div class="card" @click="router.push('/admin-pusat/branches')">
           <h2>{{ stats.total_branches || 0 }}</h2>
 
-          <p>Total Branches</p>
+          <p>Total Cabang</p>
         </div>
       </div>
 
       <div class="panels">
         <div class="panel">
           <div class="panel-header">
-            <h3>Attendance per Branch</h3>
-            <p>Current attendance vs capacity</p>
+            <h3>Kehadiran Setiap Cabang</h3>
+            <p>Kehadiran saat ini vs Kapasitas</p>
           </div>
 
           <div class="panel-body">
             <canvas ref="branchChartRef"></canvas>
             <p v-if="!attendancePerBranch.length" class="empty">
-              No data available
+              Tidak ada Data
             </p>
           </div>
         </div>
 
         <div class="panel">
           <div class="panel-header">
-            <h3>Work Mode Distribution</h3>
-            <p>WFO vs WFA breakdown</p>
+            <h3>Distribusi Mode Kerja</h3>
+            <p>Perbandingan WFO vs WFA</p>
           </div>
 
           <div class="panel-body">
             <canvas ref="workModeChartRef"></canvas>
-            <p v-if="!workMode.wfo_count" class="empty">No work mode data</p>
+            <p v-if="!workMode.wfo_count" class="empty">
+              Tidak ada Data Mode Kerja
+            </p>
           </div>
         </div>
       </div>
 
       <div class="filter-bar">
-        <button class="btn-add" @click="openAdd">+ Add Admin Cabang</button>
+        <button class="btn-add" @click="openAdd">+ Tambah Admin Cabang</button>
       </div>
       <div class="panel">
         <div class="panel-header">
-          <h3>Branch Performance</h3>
-          <p>Detailed attendance metrics by location</p>
+          <h3>Performa Cabang</h3>
+          <p>Detail metrik kehadiran tiap cabang</p>
         </div>
         <div class="table-wrapper">
           <table>
             <thead>
               <tr>
                 <th>Branch</th>
-                <th>Total Employees</th>
-                <th>Present</th>
-                <th>Absent</th>
-                <th>Rate</th>
+                <th>Total Karyawan</th>
+                <th>Hadir</th>
+                <th>Tidak Hadir</th>
+                <th>Persentase</th>
                 <th>WFO</th>
                 <th>WFA</th>
                 <th>Status</th>
@@ -373,7 +375,7 @@ onUnmounted(() => {
 
         <div class="pagination">
           <span class="pagination-info">
-            Showing
+            Menampilkan
             {{ paginatedBranches.length }}
             of
             {{ branchPerformance.length }}
@@ -409,8 +411,8 @@ onUnmounted(() => {
     <div class="modal-box">
       <div class="modal-header">
         <div>
-          <h2>Add Branch Admin</h2>
-          <p>Create admin account for branch management</p>
+          <h2>Tambah Admin Cabang</h2>
+          <p>Buat akun admin untuk manajemen cabang</p>
         </div>
 
         <button class="modal-close" @click="closeModal">✕</button>
@@ -427,7 +429,7 @@ onUnmounted(() => {
             <input
               v-model="form.username"
               type="text"
-              placeholder="Enter username"
+              placeholder="Masukkan username"
             />
           </div>
 
@@ -437,15 +439,15 @@ onUnmounted(() => {
             <input
               v-model="form.password"
               type="password"
-              placeholder="Enter password"
+              placeholder="Masukkan password"
             />
           </div>
 
           <div class="form-group full">
-            <label>Branch</label>
+            <label>Cabang</label>
 
             <select v-model="form.branch_id">
-              <option disabled value="">Select branch</option>
+              <option disabled value="">Pilih cabang</option>
 
               <option
                 v-for="branch in branches"
@@ -460,10 +462,10 @@ onUnmounted(() => {
       </div>
 
       <div class="modal-footer">
-        <button class="btn-cancel" @click="closeModal">Cancel</button>
+        <button class="btn-cancel" @click="closeModal">Batal</button>
 
         <button class="btn-submit" @click="handleCreateAdmin">
-          Create Admin
+          Buat Admin
         </button>
       </div>
     </div>

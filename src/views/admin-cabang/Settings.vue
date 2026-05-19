@@ -174,29 +174,29 @@ onMounted(() => {
     <main class="main">
       <div class="header">
         <div>
-          <h2>Settings</h2>
-          <p class="subtitle">Configure branch settings</p>
+          <h2>Pengaturan</h2>
+          <p class="subtitle">Atur konfigurasi cabang</p>
         </div>
 
         <AdminProfile :user="user" />
       </div>
 
-      <div v-if="loading" class="loading">Loading...</div>
+      <div v-if="loading" class="loading">Memuat...</div>
 
       <template v-else>
         <div class="section">
           <div class="section-header">
-            <h3>Branch Information</h3>
+            <h3>Informasi Cabang</h3>
           </div>
 
           <div class="section-body grid-2">
             <div class="field">
-              <label>Branch Name</label>
+              <label>Nama Cabang</label>
               <input v-model="form.branch_name" disabled />
             </div>
 
             <div class="field">
-              <label>Address</label>
+              <label>Alamat</label>
               <textarea v-model="form.address" disabled />
             </div>
 
@@ -213,7 +213,7 @@ onMounted(() => {
             </div>
 
             <div class="field">
-              <label> Attendance Radius (meter) </label>
+              <label> Radius Absensi (meter) </label>
 
               <input type="number" v-model="form.radius_meter" disabled />
             </div>
@@ -222,36 +222,36 @@ onMounted(() => {
 
         <div class="section">
           <div class="section-header">
-            <h3>Working Hours</h3>
+            <h3>Jam Kerja</h3>
           </div>
 
           <div class="section-body grid-3">
             <div class="field">
-              <label>Start Time</label>
+              <label>Jam Masuk</label>
 
               <input type="time" v-model="form.start_time" />
             </div>
 
             <div class="field">
-              <label>End Time</label>
+              <label>Jam Pulang</label>
 
               <input type="time" v-model="form.end_time" />
             </div>
 
             <div class="field">
-              <label> Late Threshold (minutes) </label>
+              <label> Batas Keterlambatan (menit) </label>
 
               <input type="number" v-model="form.late_threshold_min" />
             </div>
 
             <div class="field">
-              <label> Check-in Cutoff (minutes) </label>
+              <label> Batas Check-in (menit) </label>
 
               <input type="number" v-model="form.checkin_cutoff_min" />
             </div>
 
             <div class="field">
-              <label>Work Days</label>
+              <label>Hari Kerja</label>
 
               <input v-model="form.work_days" placeholder="1,2,3,4,5" />
             </div>
@@ -260,15 +260,14 @@ onMounted(() => {
 
         <div class="section">
           <div class="section-header">
-            <h3>Security & QR</h3>
+            <h3>Keamanan & QR</h3>
           </div>
 
           <div class="section-body">
             <div class="toggle-row">
               <div>
-                <p class="toggle-label">Auto-refresh QR</p>
-
-                <p class="toggle-desc">Automatically regenerate QR</p>
+                <p class="toggle-label">Refresh QR Otomatis</p>
+                <p class="toggle-desc">QR akan diperbarui otomatis</p>
               </div>
 
               <label class="switch">
@@ -279,9 +278,10 @@ onMounted(() => {
 
             <div class="toggle-row">
               <div>
-                <p class="toggle-label">Require Admin Approval</p>
-
-                <p class="toggle-desc">Require approval for changes</p>
+                <p class="toggle-label">Perlu Persetujuan Admin</p>
+                <p class="toggle-desc">
+                  Perubahan memerlukan persetujuan admin
+                </p>
               </div>
 
               <label class="switch">
@@ -294,19 +294,18 @@ onMounted(() => {
 
         <div class="section">
           <div class="section-header">
-            <h3>Notifications</h3>
+            <h3>Notifikasi</h3>
           </div>
 
           <div class="section-body">
             <div class="field">
-              <label>Admin Email</label>
+              <label>Email Admin</label>
 
               <input type="email" v-model="form.admin_email" />
             </div>
 
             <div class="toggle-row">
-              <span>Email Notifications</span>
-
+              <span>Notifikasi Email</span>
               <label class="switch">
                 <input type="checkbox" v-model="form.email_notifications" />
                 <span></span>
@@ -314,8 +313,7 @@ onMounted(() => {
             </div>
 
             <div class="toggle-row">
-              <span>Late Arrival Alerts</span>
-
+              <span>Peringatan Keterlambatan</span>
               <label class="switch">
                 <input type="checkbox" v-model="form.late_arrival_alerts" />
                 <span></span>
@@ -323,8 +321,7 @@ onMounted(() => {
             </div>
 
             <div class="toggle-row">
-              <span>Weekly Reports</span>
-
+              <span>Laporan Mingguan</span>
               <label class="switch">
                 <input type="checkbox" v-model="form.weekly_reports" />
                 <span></span>
@@ -344,7 +341,7 @@ onMounted(() => {
         </span>
 
         <button class="btn-save" @click="saveSettings" :disabled="saving">
-          {{ saving ? "Saving..." : "Save Settings" }}
+          {{ saving ? "Menyimpan..." : "Simpan Pengaturan" }}
         </button>
       </div>
     </main>

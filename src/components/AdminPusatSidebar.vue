@@ -39,7 +39,7 @@ async function handleLogout() {
     <!-- <div class="logo-btw">
       <img src="/logo.png" />
     </div> -->
-    <h2>ABSENT BTW</h2>
+    <h2>ABSENSI BTW</h2>
 
     <div class="nav">
       <button
@@ -53,21 +53,21 @@ async function handleLogout() {
         @click="router.push('/admin-pusat/employees')"
         :class="{ active: route.path === '/admin-pusat/employees' }"
       >
-        Employee List
+        Daftar Karyawan
       </button>
 
       <button
         @click="router.push('/admin-pusat/attendanceToday')"
         :class="{ active: route.path === '/admin-pusat/attendanceToday' }"
       >
-        Today Attendance
+        Absensi Hari Ini
       </button>
 
       <button
         @click="router.push('/admin-pusat/branches')"
         :class="{ active: route.path === '/admin-pusat/branches' }"
       >
-        Branches
+        Cabang
       </button>
 
       <!-- <button>Schedules</button> -->

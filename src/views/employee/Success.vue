@@ -40,7 +40,8 @@ function goBack() {
 <template>
   <div class="wrapper">
     <div class="content">
-      <img src="/success.png" class="image" />
+      <!-- <img src="/success.png" class="image" /> -->
+      <img src="/loading.gif" class="image" />
 
       <h2 class="title">
         {{ type === "wfa" ? "WFA Berhasil" : "Absen Sukses" }}
@@ -63,7 +64,7 @@ function goBack() {
 <style scoped>
 .wrapper {
   min-height: 100vh;
-  background: #f3f4f6;
+  background: #fdfcfc;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -89,7 +90,7 @@ function goBack() {
 
 .card {
   width: 100%;
-  background: white;
+  background: rgb(255, 255, 255);
   border-radius: 24px;
   padding: 24px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);

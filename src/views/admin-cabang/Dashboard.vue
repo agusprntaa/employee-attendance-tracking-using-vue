@@ -316,16 +316,16 @@ function exportExcel() {
     ID: item.employee_id,
     Nama: item.employee_username,
     Tanggal: formatDate(item.check_in),
-    "Check In": formatTime(item.check_in),
-    "Check Out": item.check_out ? formatTime(item.check_out) : "-",
+    Masuk: formatTime(item.check_in),
+    Pulang: item.check_out ? formatTime(item.check_out) : "-",
     Status: formatStatus(item.status),
-    Mode: item.work_type,
+    "Mode Kerja": item.work_type,
   }));
 
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
 
-  XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+  XLSX.utils.book_append_sheet(wb, ws, "Absensi");
 
   XLSX.writeFile(wb, "attendance.xlsx");
 }
@@ -356,9 +356,7 @@ function exportPDF() {
 
   autoTable(doc, {
     startY: 28,
-    head: [
-      ["ID", "Nama", "Tanggal", "Check In", "Check Out", "Status", "Mode"],
-    ],
+    head: [["ID", "Nama", "Tanggal", "Masuk", "Pulang", "Status", "Mode"]],
     body: rows,
     styles: { fontSize: 9 },
     headStyles: { fillColor: [79, 70, 229] },
@@ -463,7 +461,7 @@ const paginatedEmployees = computed(() => {
       <div class="stats">
         <div class="card">
           <h2>{{ summary.total_employee }}</h2>
-          <p>Total</p>
+          <p>Total Karyawan</p>
         </div>
         <div class="card">
           <h2>{{ summary.present }}</h2>
@@ -479,24 +477,24 @@ const paginatedEmployees = computed(() => {
         </div>
         <div class="card">
           <h2>{{ summary.absent }}</h2>
-          <p>Absen</p>
+          <p>Absen/Tidak Hadir</p>
         </div>
       </div>
 
       <div class="panels">
         <div class="panel">
           <div class="panel-header">
-            <h3>Today's Attendance</h3>
+            <h3>Absensi Hari Ini</h3>
 
             <div class="export">
               <div class="export-actions">
                 <button class="btn-export excel" @click="exportExcel">
                   Excel
-                  <span class="tooltip"> Export to Excel </span>
+                  <span class="tooltip"> Export ke Excel </span>
                 </button>
                 <button class="btn-export pdf" @click="exportPDF">
                   PDF
-                  <span class="tooltip"> Export to PDF </span>
+                  <span class="tooltip"> Export ke PDF </span>
                 </button>
               </div>
             </div>
@@ -510,7 +508,7 @@ const paginatedEmployees = computed(() => {
               <option value="ON_TIME">Hadir</option>
               <option value="LATE">Terlambat</option>
               <option value="WFA">WFA</option>
-              <option value="ABSENT">Absen</option>
+              <option value="ABSENT">Tidak Hadir</option>
               <option value="BELUM_ABSEN">Belum Absen</option>
             </select>
 
@@ -531,10 +529,10 @@ const paginatedEmployees = computed(() => {
               <tr>
                 <th>ID</th>
                 <th>Nama</th>
-                <th>Check In</th>
-                <th>Check Out</th>
+                <th>Masuk</th>
+                <th>Pulang</th>
                 <th>Status</th>
-                <th>Mode</th>
+                <th>Mode Kerja</th>
               </tr>
             </thead>
 
@@ -600,11 +598,11 @@ const paginatedEmployees = computed(() => {
 
           <div class="pagination">
             <span class="pagination-info">
-              Showing
+              Menampilkan
               {{ paginatedEmployees.length }}
-              of
+              dari
               {{ sortedEmployees.length }}
-              attendance
+              Data Absensi
             </span>
 
             <div class="pagination-controls">
@@ -643,7 +641,7 @@ const paginatedEmployees = computed(() => {
 
             <div class="qr-expire" v-if="qrExpire">
               <span :class="{ expired: isExpired(qrExpire) }">
-                {{ isExpired(qrExpire) ? "QR Expired" : "Berlaku sampai:" }}
+                {{ isExpired(qrExpire) ? "QR Kadaluwarsa" : "Berlaku sampai:" }}
                 {{ formatExpire(qrExpire) }}
               </span>
             </div>
