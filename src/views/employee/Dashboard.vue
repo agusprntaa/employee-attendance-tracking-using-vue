@@ -426,7 +426,7 @@ async function handleLogout() {
 
       <div class="logout-wrapper">
         <button class="btn-logout" @click="showLogoutConfirm = true">
-          Logout
+          Keluar
         </button>
       </div>
 

@@ -46,21 +46,21 @@ async function handleLogout() {
         @click="router.push('/admin-cabang/employees')"
         :class="{ active: route.path === '/admin-cabang/employees' }"
       >
-        Employees
+        Karyawan
       </button>
 
       <button
         @click="router.push('/admin-cabang/reports')"
         :class="{ active: route.path === '/admin-cabang/reports' }"
       >
-        Reports
+        Laporan
       </button>
 
       <button
         @click="router.push('/admin-cabang/settings')"
         :class="{ active: route.path === '/admin-cabang/settings' }"
       >
-        Settings
+        Pengaturan
       </button>
 
       <!-- <button>Schedules</button> -->
@@ -69,7 +69,7 @@ async function handleLogout() {
     <div class="logout-wrap">
       <slot name="logout"></slot>
       <button class="btn-logout" @click="showLogoutConfirm = true">
-        Logout
+        Keluar
       </button>
     </div>
   </aside>

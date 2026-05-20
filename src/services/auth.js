@@ -43,3 +43,18 @@ export const getHistoryAPI = (page = 1, limit = 10) => {
 export const changePasswordAPI = (data) => {
   return API.patch('/employee/change-password', data)
 }
+
+export const uploadProfilePhotoAPI = (
+  formData
+) => {
+  return API.post(
+    "/employee/profile/photo",
+    formData,
+    {
+      headers: {
+        "Content-Type":
+          "multipart/form-data",
+      },
+    }
+  );
+};

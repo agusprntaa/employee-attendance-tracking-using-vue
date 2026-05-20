@@ -70,13 +70,20 @@ async function handleLogout() {
         Cabang
       </button>
 
+      <button
+        @click="router.push('/admin-pusat/AdminCabang')"
+        :class="{ active: route.path === '/admin-pusat/AdminCabang' }"
+      >
+        Admin Cabang
+      </button>
+
       <!-- <button>Schedules</button> -->
     </div>
 
     <div class="logout-wrap">
       <slot name="logout"></slot>
       <button class="btn-logout" @click="showLogoutConfirm = true">
-        Logout
+        Keluar
       </button>
     </div>
   </aside>

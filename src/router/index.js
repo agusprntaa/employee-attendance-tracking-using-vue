@@ -34,6 +34,12 @@ const routes = [
     component: () => import('../views/admin-pusat/AttendanceToday.vue')
   },
 
+  {
+    path: '/admin-pusat/AdminCabang',
+    name: 'AdminPusatAdminCabang',
+    component: () => import('../views/admin-pusat/AdminCabang.vue')
+  },
+
   // ADMIN CABANG
   {
     path: '/admin-cabang/dashboard',
@@ -87,6 +93,18 @@ const routes = [
     path: '/employee/success',
     name: 'Success',
     component: () => import('../views/employee/Success.vue')
+  },
+
+  {
+    path: '/employee/biodata',
+    name: 'Biodata',
+    component: () => import('../views/employee/Biodata.vue')
+  },
+
+  {
+    path: '/employee/complete-profile',
+    name: 'CompleteProfile',
+    component: () => import('../views/employee/CompleteProfile.vue')
   },
 
   {

@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from "vue";
 import { useRouter } from "vue-router";
 
 defineProps({
@@ -6,6 +7,10 @@ defineProps({
 });
 
 const router = useRouter();
+
+const BASE_URL = import.meta.env.VITE_API_URL;
+
+const imageError = ref(false);
 
 function getInitials(name) {
   return name
@@ -21,8 +26,29 @@ const todayDate = new Date().toLocaleDateString("id-ID", {
   day: "numeric",
   month: "long",
   year: "numeric",
-  // timeZone: "Asia/Makassar",
 });
+
+function getPhotoUrl(path) {
+  if (!path) return "";
+
+  // reset error kalau url berubah
+  imageError.value = false;
+
+  // kalau backend sudah full url
+  if (path.startsWith("http")) {
+    return path;
+  }
+
+  // hapus slash depan
+  const cleanPath = path.replace(/^\/+/, "");
+
+  // ubah backslash windows jadi slash normal
+  return `${BASE_URL}/${cleanPath.replace(/\\/g, "/")}`;
+}
+
+function goToBiodata() {
+  router.push("/employee/biodata");
+}
 
 function goToChangePassword() {
   router.push("/employee/change-password");
@@ -30,22 +56,36 @@ function goToChangePassword() {
 </script>
 
 <template>
-  <div class="profile-card" v-if="user">
+  <div class="profile-card" v-if="user" @click="goToBiodata">
     <div class="top">
       <div class="avatar">
-        {{ getInitials(user.name) }}
+        <img
+          v-if="user.photo_url && !imageError"
+          :src="getPhotoUrl(user.photo_url)"
+          alt="profile"
+          @error="imageError = true"
+        />
+
+        <span v-else>
+          {{ getInitials(user.name) }}
+        </span>
       </div>
 
       <div class="info">
-        <span class="badge">DIVISI {{ user.division_name }}</span>
+        <span class="badge">
+          DIVISI
+          {{ user.division_name }}
+        </span>
+
         <h3>{{ user.name }}</h3>
+
         <p>{{ todayDate }}</p>
       </div>
     </div>
 
     <div class="divider"></div>
 
-    <button class="btn-change" @click="goToChangePassword">
+    <button class="btn-change" @click.stop="goToChangePassword()">
       UBAH PASSWORD
     </button>
   </div>
@@ -53,89 +93,148 @@ function goToChangePassword() {
 
 <style scoped>
 .profile-card {
+  cursor: pointer;
+
   background: #ffffff;
+
   padding: 20px;
-  border-radius: 20px;
+
+  border-radius: 24px;
+
   margin-bottom: 18px;
+
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+
   transition: all 0.25s ease;
 }
 
 .profile-card:hover {
   transform: translateY(-2px);
+
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.08);
 }
 
 .top {
   display: flex;
-  gap: 14px;
   align-items: center;
+
+  gap: 14px;
 }
 
 .avatar {
-  width: 58px;
-  height: 58px;
+  width: 60px;
+  height: 60px;
+
   border-radius: 50%;
+
+  overflow: hidden;
+
+  flex-shrink: 0;
+
   background: linear-gradient(135deg, #6366f1, #4f46e5);
-  color: white;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
+
+  color: white;
+
   font-size: 18px;
-  flex-shrink: 0;
+  font-weight: 700;
+
   box-shadow: 0 6px 16px rgba(79, 70, 229, 0.25);
 }
 
+.avatar img {
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+
+  display: block;
+}
+
+.avatar span {
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.info {
+  flex: 1;
+}
+
 .info h3 {
-  margin: 4px 0;
-  font-size: 15px;
-  font-weight: 600;
+  margin: 5px 0;
+
+  font-size: 16px;
+  font-weight: 700;
+
   color: #111827;
 }
 
 .info p {
   font-size: 12px;
+
   color: #6b7280;
 }
 
 .badge {
   display: inline-block;
+
   background: #eef2ff;
   color: #4338ca;
-  padding: 4px 10px;
+
+  padding: 5px 10px;
+
   border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  letter-spacing: 0.4px;
 }
 
 .divider {
   border-top: 1px dashed #e5e7eb;
+
   margin: 18px 0;
 }
 
 .btn-change {
   width: 100%;
-  padding: 13px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  color: white;
+
   border: none;
+
+  padding: 14px;
+
+  border-radius: 16px;
+
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+
+  color: white;
+
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
+
   cursor: pointer;
+
   transition: all 0.25s ease;
+
   box-shadow: 0 6px 18px rgba(79, 70, 229, 0.25);
 }
 
 .btn-change:hover {
   transform: translateY(-2px);
+
   box-shadow: 0 10px 26px rgba(79, 70, 229, 0.35);
 }
 
 .btn-change:active {
-  transform: scale(0.97);
+  transform: scale(0.98);
 }
 
 @media (min-width: 1024px) {
@@ -144,13 +243,14 @@ function goToChangePassword() {
   }
 
   .avatar {
-    width: 64px;
-    height: 64px;
+    width: 68px;
+    height: 68px;
+
     font-size: 20px;
   }
 
   .info h3 {
-    font-size: 16px;
+    font-size: 17px;
   }
 
   .btn-change {

@@ -1,23 +1,26 @@
 <script setup>
 import { ref, onMounted, watch, computed } from "vue";
-import { useRouter, useRoute } from "vue-router";
 import { useAuth } from "@/composables/useAuth";
-import AdminSidebar from "@/components/AdminSidebar.vue";
+
+import AdminPusatSidebar from "@/components/AdminPusatSidebar.vue";
 import AdminProfile from "@/components/AdminProfile.vue";
 
 import {
-  getEmployees,
-  addEmployee,
-  updateEmployee,
-  deleteEmployee,
-} from "@/services/adminCabang";
+  getBranchAdmins,
+  addBranchAdmin,
+  deleteBranchAdmin,
+  getBranches,
+} from "@/services/adminPusat";
 
 const { user } = useAuth();
 
-const employees = ref([]);
+const admins = ref([]);
+const branches = ref([]);
+
 const loading = ref(false);
 
 const search = ref("");
+const branchFilter = ref("");
 const status = ref("");
 
 const page = ref(1);
@@ -29,47 +32,63 @@ const meta = ref({
 });
 
 const totalPages = computed(() => {
-  return Math.ceil(meta.value.total / limit.value);
+  return Math.ceil(filteredAdmins.value.length / limit.value);
 });
 
 const showModal = ref(false);
-const modalMode = ref("add");
-const modalLoading = ref(false);
-const modalError = ref("");
 
-const showDeleteModal = ref(false);
-const selectedId = ref(null);
+const modalMode = ref("add");
+
+const modalLoading = ref(false);
+
+const modalError = ref("");
 
 const form = ref({
   id: null,
-  full_name: "",
   username: "",
   password: "",
-  role: "karyawan",
-  tipe: "cabang",
-  division_id: null,
+  branch_id: null,
   status: "active",
 });
 
-async function fetchEmployees() {
-  loading.value = true;
+const filteredAdmins = computed(() => {
+  return admins.value.filter((admin) => {
+    const matchSearch =
+      admin.username?.toLowerCase().includes(search.value.toLowerCase()) ||
+      admin.full_name?.toLowerCase().includes(search.value.toLowerCase()) ||
+      admin.branch_name?.toLowerCase().includes(search.value.toLowerCase());
+
+    const matchStatus =
+      !status.value || admin.status?.toLowerCase() === status.value;
+
+    const matchBranch =
+      !branchFilter.value || admin.branch_name === branchFilter.value;
+
+    return matchSearch && matchStatus && matchBranch;
+  });
+});
+
+const paginatedAdmins = computed(() => {
+  const start = (page.value - 1) * limit.value;
+  const end = start + limit.value;
+
+  return filteredAdmins.value.slice(start, end);
+});
+
+async function fetchAdmins() {
   try {
-    const res = await getEmployees({
-      search: search.value || undefined,
-      status: status.value || undefined,
-      page: page.value,
-      limit: limit.value,
-    });
+    loading.value = true;
 
-    console.log("FETCH EMPLOYEES:", res.data.data.data);
+    const res = await getBranchAdmins(1);
+    console.log("ADMINS:", res.data);
 
-    // employees.value = res.data.data.data;
-    employees.value = res.data.data.data.map((emp) => ({
-      ...emp,
+    admins.value = res.data.data.map((admin) => ({
+      ...admin,
 
-      status: emp.status?.toLowerCase() === "active" ? "active" : "inactive",
+      status: admin.status?.toLowerCase() === "active" ? "active" : "inactive",
     }));
-    meta.value = res.data.data.pagination;
+
+    meta.value.total = res.data.data.length;
   } catch (err) {
     console.error(err);
   } finally {
@@ -77,66 +96,77 @@ async function fetchEmployees() {
   }
 }
 
-onMounted(fetchEmployees);
-watch(page, () => {
-  fetchEmployees();
-});
+async function fetchBranches() {
+  try {
+    const res = await getBranches();
 
-watch([search, status], () => {
-  page.value = 1;
-  fetchEmployees();
-});
+    console.log("FULL RESPONSE:", res);
 
-function handleFilter() {
-  page.value = 1;
-  fetchEmployees();
+    console.log("BODY JSON:", res.data);
+
+    console.log("REAL DATA:", res.data.data);
+
+    branches.value = res.data.data || [];
+  } catch (err) {
+    console.error(err);
+  }
 }
 
-function formatDate(iso) {
-  if (!iso) return "-";
-  return new Date(iso).toLocaleDateString("id-ID", {
+onMounted(() => {
+  fetchAdmins();
+  fetchBranches();
+});
+
+// watch(page, () => {
+//   fetchAdmins();
+// });
+
+// watch([search, status], () => {
+//   page.value = 1;
+//   fetchAdmins();
+// });
+
+function formatDate(date) {
+  if (!date) return "-";
+
+  return new Date(date).toLocaleDateString("id-ID", {
     day: "numeric",
     month: "long",
     year: "numeric",
-    timeZone: "Asia/Makassar",
   });
 }
 
-function empCode(id) {
-  return "EMP" + String(id).padStart(3, "0");
+function adminCode(id) {
+  return "ADM" + String(id).padStart(3, "0");
 }
 
 function openAdd() {
   modalMode.value = "add";
+
   modalError.value = "";
 
   form.value = {
     id: null,
-    full_name: "",
     username: "",
     password: "",
-    role: "karyawan",
-    tipe: "cabang",
-    division_id: null,
+    branch_id: null,
     status: "active",
   };
 
   showModal.value = true;
 }
 
-function openEdit(emp) {
+function openEdit(admin) {
   modalMode.value = "edit";
+
   modalError.value = "";
 
   form.value = {
-    id: emp.id,
-    full_name: emp.full_name,
-    username: emp.username,
+    id: admin.id,
+    username: admin.username,
     password: "",
-    role: emp.role,
-    tipe: emp.tipe,
-    division_id: emp.division_id,
-    status: emp.status?.toLowerCase(),
+    branch_id: admin.branch_id,
+    status: admin.status?.toLowerCase(),
   };
 
   showModal.value = true;
@@ -147,141 +177,99 @@ function closeModal() {
 }
 
 async function submitModal() {
-  if (!form.value.full_name.trim()) {
-    modalError.value = "Nama lengkap wajib diisi";
-    return;
-  }
-
   if (!form.value.username.trim()) {
     modalError.value = "Username wajib diisi";
     return;
   }
 
-  if (modalMode.value === "add" && !form.value.password.trim()) {
-    if (modalMode.value === "add" && form.value.password.length < 6) {
+  if (modalMode.value === "add") {
+    if (!form.value.password.trim()) {
+      modalError.value = "Password wajib diisi";
+      return;
+    }
+
+    if (form.value.password.length < 6) {
       modalError.value = "Password minimal 6 karakter";
       return;
     }
-    modalError.value = "Password wajib diisi";
+  }
+
+  if (!form.value.branch_id) {
+    modalError.value = "Pilih cabang terlebih dahulu";
     return;
   }
 
-  modalLoading.value = true;
-  modalError.value = "";
-
   try {
-    // ADD EMPLOYEE
+    modalLoading.value = true;
+
+    modalError.value = "";
+
     if (modalMode.value === "add") {
-      const payload = {
-        full_name: form.value.full_name,
+      await addBranchAdmin({
         username: form.value.username,
         password: form.value.password,
-        role: form.value.role,
-        tipe: form.value.tipe,
-        division_id: form.value.division_id,
+
+        role: "admin_cabang",
+        // tipe: "cabang",
+
+        branch_id: form.value.branch_id,
+
         status: form.value.status,
-      };
-
-      console.log("[FE] Add employee payload:", payload);
-
-      const res = await addEmployee(payload);
-
-      console.log("[BE] Add employee success:", res.data);
-    } else {
-      // EDIT EMPLOYEE
-      const payload = {
-        full_name: form.value.full_name,
-        username: form.value.username,
-        role: form.value.role,
-        tipe: form.value.tipe,
-        division_id: form.value.division_id,
-        status: form.value.status,
-      };
-
-      await updateEmployee(form.value.id, payload);
-
-      employees.value = employees.value.map((emp) => {
-        if (emp.id === form.value.id) {
-          return {
-            ...emp,
-
-            full_name: payload.full_name,
-            username: payload.username,
-            role: payload.role,
-            tipe: payload.tipe,
-            division_id: payload.division_id,
-            status: payload.status?.toLowerCase(),
-          };
-        }
-
-        return emp;
       });
+      // } else {
+      //   await updateBranchAdmin(form.value.id, {
+      //     username: form.value.username,
+      //     branch_id: form.value.branch_id,
+      //     status: form.value.status,
+      //   });
     }
 
     closeModal();
-    fetchEmployees();
+
+    fetchAdmins();
   } catch (err) {
-    // BACKEND ERROR
-    if (err.response) {
-      console.error("[BE ERROR]", {
-        status: err.response.status,
-        code: err.response.data?.code,
-        message: err.response.data?.message,
-      });
+    console.log("ERROR FETCH:", err);
+    console.log("RESPONSE:", err.response);
 
-      modalError.value = err.response.data?.message || "Backend error";
-
-      // NETWORK / CORS
-    } else if (err.request) {
-      console.error(
-        "[NETWORK ERROR] Backend tidak dapat diakses / CORS / ngrok",
-      );
-
-      modalError.value = "Backend tidak dapat diakses";
-
-      // FRONTEND ERROR
-    } else {
-      console.error("[FE ERROR]", err.message);
-
-      modalError.value = "Terjadi kesalahan pada frontend";
-    }
+    modalError.value =
+      err.response?.data?.message || "Terjadi kesalahan pada server";
   } finally {
     modalLoading.value = false;
   }
 }
 
-async function handleToggle(emp) {
-  await updateEmployee(emp.id, {
-    ...emp,
-    status: emp.status === "active" ? "inactive" : "active",
-  });
-  fetchEmployees();
-}
-
 async function handleDelete(id) {
-  if (!confirm("Hapus karyawan?")) return;
-  await deleteEmployee(id);
-  fetchEmployees();
+  if (!confirm("Hapus admin cabang?")) return;
+
+  try {
+    await deleteBranchAdmin(id);
+
+    fetchAdmins();
+  } catch (err) {
+    console.error(err);
+  }
 }
 </script>
 
 <template>
   <div class="layout">
-    <AdminSidebar />
+    <AdminPusatSidebar />
 
     <main class="main">
       <div class="header">
         <div>
-          <h2>Karyawan</h2>
-          <p class="subtitle">Kelola karyawan di cabang Anda</p>
+          <h2>Admin Cabang</h2>
+
+          <p class="subtitle">Kelola admin cabang seluruh perusahaan</p>
         </div>
+
         <AdminProfile :user="user" />
       </div>
 
       <div class="panel">
         <div class="toolbar">
           <div class="search-wrap">
-            <input v-model="search" placeholder="Cari Karyawan..." />
+            <input v-model="search" placeholder="Cari admin cabang..." />
           </div>
 
           <select v-model="status">
@@ -290,7 +278,19 @@ async function handleDelete(id) {
             <option value="inactive">Nonaktif</option>
           </select>
 
-          <button class="btn-add" @click="openAdd">+ Tambah Karyawan</button>
+          <select v-model="branchFilter">
+            <option value="">Semua Cabang</option>
+
+            <option
+              v-for="branch in branches"
+              :key="branch.id"
+              :value="branch.branch_name"
+            >
+              {{ branch.branch_name }}
+            </option>
+          </select>
+
+          <button class="btn-add" @click="openAdd">+ Tambah Admin</button>
         </div>
 
         <table>
@@ -299,7 +299,7 @@ async function handleDelete(id) {
               <th>ID</th>
               <th>Username</th>
               <th>Nama Lengkap</th>
-              <th>Divisi</th>
+              <th>Cabang</th>
               <th>Status</th>
               <th>Tanggal Dibuat</th>
               <th>Aksi</th>
@@ -307,26 +307,37 @@ async function handleDelete(id) {
           </thead>
 
           <tbody>
-            <tr v-for="emp in employees" :key="emp.id">
-              <td>{{ empCode(emp.id) }}</td>
-              <td class="bold">{{ emp.username || "-" }}</td>
-              <td class="bold">{{ emp.full_name || "-" }}</td>
-              <td class="highlight">{{ emp.division_name || "-" }}</td>
+            <tr v-for="admin in paginatedAdmins" :key="admin.id">
+              <td>{{ adminCode(admin.id) }}</td>
+
+              <td class="bold">
+                {{ admin.username }}
+              </td>
 
               <td>
-                <span :class="['badge', emp.status?.toLowerCase()]">
-                  {{ emp.status === "active" ? "Aktif" : "Nonaktif" }}
+                {{ admin.full_name || "-" }}
+              </td>
+
+              <td class="highlight">
+                {{ admin.branch_name || "-" }}
+              </td>
+
+              <td>
+                <span :class="['badge', admin.status?.toLowerCase()]">
+                  {{ admin.status === "active" ? "Aktif" : "Nonaktif" }}
                 </span>
               </td>
 
-              <td>{{ formatDate(emp.created_at) }}</td>
+              <td>
+                {{ formatDate(admin.created_at) }}
+              </td>
 
               <td class="actions">
-                <button @click="openEdit(emp)">
+                <button @click="openEdit(admin)">
                   <img src="/edit.png" class="action-icon" />
                 </button>
 
-                <button @click="handleDelete(emp.id)">
+                <button @click="handleDelete(admin.id)">
                   <img src="/delete.png" class="action-icon" />
                 </button>
               </td>
@@ -336,20 +347,24 @@ async function handleDelete(id) {
 
         <div class="pagination">
           <span class="pagination-info">
-            Menampilkan {{ employees.length }} of {{ meta.total }} Karyawan
+            Menampilkan
+            {{ filteredAdmins.length }}
+            dari
+            {{ meta.total }}
+            admin
           </span>
 
           <div class="pagination-controls">
             <button :disabled="page <= 1" @click="page--">‹</button>
 
-            <button
+            <!-- <button
               v-for="p in totalPages"
               :key="p"
               :class="{ active: p === page }"
               @click="page = p"
             >
               {{ p }}
-            </button>
+            </button> -->
 
             <button :disabled="page >= totalPages" @click="page++">›</button>
           </div>
@@ -357,63 +372,47 @@ async function handleDelete(id) {
       </div>
     </main>
 
-    <div
-      v-if="showDeleteModal"
-      class="modal-overlay"
-      @click.self="cancelDelete"
-    >
-      <div class="modal-box">
-        <div class="modal-header">
-          <h3>Konfirmasi Hapus</h3>
-          <button class="modal-close" @click="cancelDelete">✕</button>
-        </div>
-
-        <div class="modal-body">
-          <p>Yakin ingin menghapus karyawan ini?</p>
-        </div>
-
-        <div class="modal-footer">
-          <button class="btn-cancel" @click="cancelDelete">Batal</button>
-          <button class="btn-delete" @click="confirmDelete">Hapus</button>
-        </div>
-      </div>
-    </div>
-
+    <!-- MODAL -->
     <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
       <div class="modal-box">
         <div class="modal-header">
           <h3>
-            {{ modalMode === "add" ? "Tambah Karyawan" : "Edit Karyawan" }}
+            {{ modalMode === "add" ? "Tambah Admin" : "Edit Admin" }}
           </h3>
+
           <button class="modal-close" @click="closeModal">✕</button>
         </div>
 
         <div class="modal-body">
-          <p v-if="modalError" class="modal-error">{{ modalError }}</p>
-
-          <div class="form-group">
-            <label>Nama Lengkap</label>
-            <input v-model="form.name" />
-          </div>
+          <p v-if="modalError" class="modal-error">
+            {{ modalError }}
+          </p>
 
           <div class="form-group">
             <label>Username</label>
+
             <input v-model="form.username" />
           </div>
 
-          <div class="form-group">
+          <div v-if="modalMode === 'add'" class="form-group">
             <label>Password</label>
-            <input v-model="form.password" type="password" />
+
+            <input type="password" v-model="form.password" />
           </div>
 
           <div class="form-group">
-            <label>Divisi</label>
+            <label>Cabang</label>
 
-            <select v-model.number="form.division_id">
-              <option :value="null">Pilih Divisi</option>
-              <option :value="1">IT</option>
-              <option :value="2">HR</option>
-              <option :value="3">Marketing</option>
+            <select v-model.number="form.branch_id">
+              <option :value="null">Pilih Cabang</option>
+
+              <option
+                v-for="branch in branches"
+                :key="branch.id"
+                :value="branch.id"
+              >
+                {{ branch.branch_name }}
+              </option>
             </select>
           </div>
 
@@ -422,20 +421,27 @@ async function handleDelete(id) {
 
             <select v-model="form.status">
               <option value="active">Aktif</option>
+
               <option value="inactive">Nonaktif</option>
             </select>
           </div>
-
-          <!-- <div class="form-group">
-            <label>Position</label>
-            <input v-model="form.position" />
-          </div> -->
         </div>
 
         <div class="modal-footer">
           <button class="btn-cancel" @click="closeModal">Batal</button>
-          <button class="btn-submit" @click="submitModal">
-            {{ modalMode === "add" ? "Tambah" : "Simpan" }}
+
+          <button
+            class="btn-submit"
+            @click="submitModal"
+            :disabled="modalLoading"
+          >
+            {{
+              modalLoading
+                ? "Menyimpan..."
+                : modalMode === "add"
+                  ? "Tambah"
+                  : "Simpan"
+            }}
           </button>
         </div>
       </div>
@@ -877,14 +883,6 @@ td.actions button:hover:nth-child(3) {
   background: #fee2e2;
   padding: 8px 12px;
   border-radius: 8px;
-}
-
-.modal-footer {
-  padding: 16px 24px 20px;
-  border-top: 1px solid #f3f4f6;
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
 }
 
 .btn-cancel {

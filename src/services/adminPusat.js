@@ -41,5 +41,22 @@ export const getBranchDetail = (id) =>
 export const createBranch = (data) =>
   API.post("/api/global/branches", data);
 
-export const createBranchAdmin = (data) =>
-  API.post("/api/global/admin-cabang", data);
+// export const createBranchAdmin = (data) =>
+//   API.post("/api/global/admin-cabang", data);
+
+// GET ADMIN CABANG
+export function getBranchAdmins(branchId) {
+  return API.get(`/api/global/branch-admin/${branchId}`);
+}
+
+export function addBranchAdmin(payload) {
+  return API.post("/api/global/branch-admin", payload);
+}
+
+export function deleteBranchAdmin(id) {
+  return API.delete(`/api/global/branch-admin/${id}`);
+}
+
+export function getBranches() {
+  return API.get("/api/global/branches");
+}
