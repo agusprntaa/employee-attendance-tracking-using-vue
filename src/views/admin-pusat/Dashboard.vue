@@ -1,7 +1,8 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, computed } from "vue";
 import AdminProfile from "@/components/AdminProfile.vue";
-import { getAllBranches, createBranchAdmin } from "@/services/adminPusat";
+// import { getAllBranches, createBranchAdmin } from "@/services/adminPusat";
+import { getAllBranches, addBranchAdmin } from "@/services/adminPusat";
 import { useRouter } from "vue-router";
 import adminPusatSidebar from "@/components/AdminPusatSidebar.vue";
 import { useAuth } from "@/composables/useAuth";
@@ -127,7 +128,8 @@ async function handleCreateAdmin() {
 
     console.log("CREATE ADMIN:", payload);
 
-    const res = await createBranchAdmin(payload);
+    // const res = await createBranchAdmin(payload);
+    const res = await addBranchAdmin(payload);
 
     console.log("CREATE ADMIN RESPONSE:", res.data);
 
@@ -325,9 +327,9 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <div class="filter-bar">
+      <!-- <div class="filter-bar">
         <button class="btn-add" @click="openAdd">+ Tambah Admin Cabang</button>
-      </div>
+      </div> -->
       <div class="panel">
         <div class="panel-header">
           <h3>Performa Cabang</h3>

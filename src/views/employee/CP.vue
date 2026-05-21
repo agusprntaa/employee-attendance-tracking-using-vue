@@ -1,10 +1,9 @@
-<script setup>
+<!-- <script setup>
 import { ref } from "vue";
-import { useRouter, useRoute } from "vue-router";
+import { useRouter } from "vue-router";
 import API from "@/services/api";
 
 const router = useRouter();
-const route = useRoute();
 
 const oldPassword = ref("");
 const newPassword = ref("");
@@ -21,7 +20,6 @@ const showConfirm = ref(false);
 // toast
 const successMessage = ref("");
 const showToast = ref(false);
-const isForced = route.query.forced === "true";
 
 async function handleSubmit() {
   if (loading.value) return;
@@ -59,28 +57,7 @@ async function handleSubmit() {
 
     setTimeout(() => {
       showToast.value = false;
-
-      // clear force change password
-      localStorage.setItem("must_change_password", "false");
-
-      const user = JSON.parse(localStorage.getItem("user"));
-
-      // redirect sesuai role
-      if (user.role === "admin" && user.tipe === "pusat") {
-        router.push("/admin-pusat/dashboard");
-
-        return;
-      }
-
-      if (user.role === "admin" && user.tipe === "cabang") {
-        router.push("/admin-cabang/dashboard");
-
-        return;
-      }
-
-      if (user.role === "karyawan") {
-        router.push("/employee/dashboard");
-      }
+      router.back();
     }, 1500);
   } catch (err) {
     error.value = err.response?.data?.message || "Gagal mengubah password";
@@ -97,15 +74,12 @@ function goBack() {
 <template>
   <div class="wrapper">
     <div class="header">
-      <img v-if="!isForced" src="/goBack.png" class="back" @click="goBack" />
+      <img src="/goBack.png" class="back" @click="goBack" />
     </div>
 
     <div class="content">
       <div class="card">
-        <p v-if="isForced" class="forced-info">
-          Demi keamanan akun, Anda wajib mengganti password sebelum menggunakan
-          sistem.
-        </p>
+        <h2>UBAH PASSWORD</h2>
 
         <div class="field">
           <label>Password lama</label>
@@ -204,18 +178,6 @@ h2 {
   text-align: center;
   margin-bottom: 24px;
   font-weight: 700;
-}
-
-.forced-info {
-  margin-top: -10px;
-  margin-bottom: 20px;
-
-  text-align: center;
-
-  font-size: 13px;
-  line-height: 1.6;
-
-  color: #dc2626;
 }
 
 .field {
@@ -317,4 +279,4 @@ label {
     opacity: 1;
   }
 }
-</style>
+</style> -->

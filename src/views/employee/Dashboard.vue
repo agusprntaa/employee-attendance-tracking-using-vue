@@ -7,7 +7,7 @@ import {
   getAttendanceHistory,
   checkoutAttendance,
 } from "@/services/attendance";
-import { logoutAPI } from "@/services/auth";
+import { logout } from "@/utils/logout";
 import API from "@/services/api";
 import { getProfileAPI } from "@/services/auth";
 
@@ -318,20 +318,26 @@ function checkoutLabel(item) {
 }
 
 //logout
+// async function handleLogout() {
+//   try {
+//     const refresh = localStorage.getItem("refresh_token");
+
+//     if (refresh) {
+//       await logoutAPI(refresh);
+//     }
+//   } catch (err) {
+//     console.error("LOGOUT ERROR:", err);
+//   } finally {
+//     localStorage.clear();
+
+//     window.location.href = "/";
+//   }
+// }
+
 async function handleLogout() {
-  try {
-    const refresh = localStorage.getItem("refresh_token");
+  showLogoutConfirm.value = false;
 
-    if (refresh) {
-      await logoutAPI(refresh);
-    }
-  } catch (err) {
-    console.error("LOGOUT ERROR:", err);
-  } finally {
-    localStorage.clear();
-
-    window.location.href = "/";
-  }
+  await logout();
 }
 </script>
 

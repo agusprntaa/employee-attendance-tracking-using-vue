@@ -88,14 +88,23 @@ async function login() {
       password: password.value.trim(),
     });
 
-    console.log("LOGIN RESPONSE:", res.data);
-
     if (!res.data?.data) {
       errorGlobal.value = "Response server tidak valid. Cek backend.";
       return;
     }
 
-    const { token, refresh_token, user } = res.data.data;
+    console.log("LOGIN RESPONSE:", res.data);
+
+    const { token, refresh_token, user, must_change_password, expires_in } =
+      res.data.data;
+
+    console.log("ROLE:", user?.role);
+
+    console.log("TIPE:", user?.tipe);
+
+    console.log("MUST CHANGE PASSWORD:", must_change_password);
+
+    console.log("ACCESS TOKEN EXPIRES:", expires_in, "seconds");
 
     //mengubah error handle baru
     if (!token || !refresh_token) {
@@ -110,6 +119,8 @@ async function login() {
 
     localStorage.setItem("user", JSON.stringify(user));
 
+    localStorage.setItem("must_change_password", must_change_password);
+
     // remember me
     if (remember.value) {
       localStorage.setItem(
@@ -122,9 +133,17 @@ async function login() {
       localStorage.removeItem("rememberedLogin");
     }
 
+    //direct token
+    if (must_change_password) {
+      router.push("/employee/change-password");
+      return;
+    }
+
     // redirect sesuai role & tipe
     if (user.role === "admin" && user.tipe === "pusat") {
       router.push("/admin-pusat/dashboard");
+      // } else if (user.role === "admin_cabang") {
+      //   router.push("/admin-cabang/dashboard");
     } else if (user.role === "admin" && user.tipe === "cabang") {
       router.push("/admin-cabang/dashboard");
     } else if (user.role === "karyawan") {

@@ -1,8 +1,7 @@
 <script setup>
 import { ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import { logoutAPI } from "@/services/auth";
-
+import { logout } from "@/utils/logout";
 const router = useRouter();
 const route = useRoute();
 
@@ -15,22 +14,27 @@ const showLogoutConfirm = ref(false);
 // }
 
 //logout
+// async function handleLogout() {
+//   try {
+//     const refresh = localStorage.getItem("refresh_token");
+
+//     if (refresh) {
+//       await logoutAPI(refresh);
+//     }
+//   } catch (err) {
+//     console.error("LOGOUT ERROR:", err);
+//   } finally {
+//     showLogoutConfirm.value = false;
+
+//     localStorage.clear();
+
+//     window.location.href = "/";
+//   }
+// }
 async function handleLogout() {
-  try {
-    const refresh = localStorage.getItem("refresh_token");
+  showLogoutConfirm.value = false;
 
-    if (refresh) {
-      await logoutAPI(refresh);
-    }
-  } catch (err) {
-    console.error("LOGOUT ERROR:", err);
-  } finally {
-    showLogoutConfirm.value = false;
-
-    localStorage.clear();
-
-    window.location.href = "/";
-  }
+  await logout();
 }
 </script>
 

@@ -187,6 +187,10 @@ async function submitModal() {
       const res = await addEmployee(payload);
 
       console.log("[BE] Add employee success:", res.data);
+
+      alert(
+        "Karyawan berhasil dibuat.\n\nKaryawan wajib mengganti password saat login pertama.",
+      );
     } else {
       // EDIT EMPLOYEE
       const payload = {
@@ -393,17 +397,25 @@ async function handleDelete(id) {
 
           <div class="form-group">
             <label>Nama Lengkap</label>
-            <input v-model="form.name" />
+            <input
+              v-model="form.full_name"
+              placeholder="Masukkan nama lengkap"
+            />
           </div>
 
           <div class="form-group">
             <label>Username</label>
-            <input v-model="form.username" />
+            <input v-model="form.username" placeholder="Masukkan username" />
           </div>
 
           <div class="form-group">
             <label>Password</label>
             <input v-model="form.password" type="password" />
+          </div>
+
+          <div v-if="modalMode === 'add'" class="password-note">
+            Password default akan digunakan saat login pertama. Karyawan wajib
+            mengganti password setelah berhasil login.
           </div>
 
           <div class="form-group">
@@ -973,5 +985,21 @@ td.actions button:hover:nth-child(3) {
     transform: scale(1);
     opacity: 1;
   }
+}
+
+.password-note {
+  padding: 12px 14px;
+
+  border-radius: 12px;
+
+  background: #eef2ff;
+
+  color: #4338ca;
+
+  font-size: 12px;
+
+  line-height: 1.6;
+
+  border: 1px solid #c7d2fe;
 }
 </style>

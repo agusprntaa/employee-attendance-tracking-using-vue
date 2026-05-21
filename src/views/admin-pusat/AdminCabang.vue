@@ -8,6 +8,7 @@ import AdminProfile from "@/components/AdminProfile.vue";
 import {
   getBranchAdmins,
   addBranchAdmin,
+  updateBranchAdmin,
   deleteBranchAdmin,
   getBranches,
 } from "@/services/adminPusat";
@@ -32,7 +33,7 @@ const meta = ref({
 });
 
 const totalPages = computed(() => {
-  return Math.ceil(filteredAdmins.value.length / limit.value);
+  return meta.value.total_pages || 1;
 });
 
 const showModal = ref(false);
@@ -45,9 +46,14 @@ const modalError = ref("");
 
 const form = ref({
   id: null,
+
   username: "",
   password: "",
-  branch_id: null,
+
+  full_name: "",
+
+  branch_name: "",
+
   status: "active",
 });
 
@@ -78,21 +84,69 @@ const paginatedAdmins = computed(() => {
 async function fetchAdmins() {
   try {
     loading.value = true;
-    const res = await getBranchAdmins(1);
 
-    console.log("ADMINS:", res.data);
+    const res = await getBranchAdmins(page.value, limit.value);
+    console.log("%cFULL ADMIN RESPONSE", "color:cyan;font-weight:bold");
 
-    admins.value = res.data.data.data.map((admin) => ({
+    console.log(res);
+
+    console.log("%cRESPONSE DATA", "color:orange;font-weight:bold");
+
+    console.log(res.data);
+
+    console.log("%cINNER DATA", "color:green;font-weight:bold");
+
+    console.log(res.data?.data);
+
+    console.log("%cADMIN ARRAY", "color:purple;font-weight:bold");
+
+    console.log(res.data?.data?.admins?.data);
+    // VALIDASI RESPONSE
+    if (!res.data) {
+      throw new Error("Response kosong dari backend");
+    }
+
+    if (!res.data.data) {
+      throw new Error("data tidak ditemukan dari backend");
+    }
+
+    if (!Array.isArray(res.data.data.admins?.data)) {
+      throw new Error("Format admin array backend tidak valid");
+    }
+
+    admins.value = res.data.data.admins.data.map((admin) => ({
       ...admin,
 
       status: admin.status?.toLowerCase() === "active" ? "active" : "inactive",
     }));
 
-    meta.value.total = res.data.data.total_data;
+    meta.value.total = res.data.data.admins.total_data || 0;
 
-    meta.value.total_pages = res.data.data.total_pages;
+    meta.value.total_pages = res.data.data.admins.total_pages || 1;
+
+    console.log("%cFINAL ADMINS VALUE", "color:lime;font-weight:bold");
+
+    console.log(admins.value);
   } catch (err) {
-    console.error(err);
+    console.log("%cFETCH ADMIN ERROR", "color:red;font-weight:bold");
+
+    console.log(err);
+
+    console.log("%cERROR RESPONSE", "color:red;font-weight:bold");
+
+    console.log(err.response);
+
+    console.log("%cERROR DATA", "color:red;font-weight:bold");
+
+    console.log(err.response?.data);
+
+    console.log("%cKEMUNGKINAN:", "color:yellow;font-weight:bold");
+
+    if (!err.response) {
+      console.log("FE tidak bisa connect ke backend");
+    } else {
+      console.log("Backend kirim response error");
+    }
   } finally {
     loading.value = false;
   }
@@ -102,13 +156,29 @@ async function fetchBranches() {
   try {
     const res = await getBranches();
 
-    console.log("FULL RESPONSE:", res);
+    console.log("%cBRANCH RESPONSE", "color:cyan;font-weight:bold");
 
-    console.log("BODY JSON:", res.data);
+    console.log(res);
 
-    console.log("REAL DATA:", res.data.data);
+    console.log("%cBRANCH BODY", "color:orange;font-weight:bold");
 
-    branches.value = res.data.data || [];
+    console.log(res.data);
+
+    console.log("%cBRANCH REAL DATA", "color:lime;font-weight:bold");
+
+    console.log(res.data?.data?.data);
+
+    // endpoint branches pakai data.data
+    branches.value = (res.data?.data?.data || []).map((branch, index) => ({
+      ...branch,
+
+      // temporary FE id
+      id: index + 1,
+    }));
+
+    console.log("%cFINAL BRANCHES", "color:green;font-weight:bold");
+
+    console.log(branches.value);
   } catch (err) {
     console.error(err);
   }
@@ -119,9 +189,9 @@ onMounted(() => {
   fetchBranches();
 });
 
-// watch(page, () => {
-//   fetchAdmins();
-// });
+watch(page, () => {
+  fetchAdmins();
+});
 
 // watch([search, status], () => {
 //   page.value = 1;
@@ -150,8 +220,9 @@ function openAdd() {
   form.value = {
     id: null,
     username: "",
+    full_name: "",
     password: "",
-    branch_id: null,
+    branch_name: "",
     status: "active",
   };
 
@@ -166,8 +237,9 @@ function openEdit(admin) {
   form.value = {
     id: admin.id,
     username: admin.username,
+    full_name: admin.full_name || "",
     password: "",
-    branch_id: admin.branch_id,
+    branch_name: admin.branch_name,
     status: admin.status?.toLowerCase(),
   };
 
@@ -184,6 +256,7 @@ async function submitModal() {
     return;
   }
 
+  // ADD
   if (modalMode.value === "add") {
     if (!form.value.password.trim()) {
       modalError.value = "Password wajib diisi";
@@ -196,7 +269,18 @@ async function submitModal() {
     }
   }
 
-  if (!form.value.branch_id) {
+  // EDIT
+  if (
+    modalMode.value === "edit" &&
+    form.value.password &&
+    form.value.password.length < 6
+  ) {
+    modalError.value = "Password minimal 6 karakter";
+
+    return;
+  }
+
+  if (!form.value.branch_name) {
     modalError.value = "Pilih cabang terlebih dahulu";
     return;
   }
@@ -207,23 +291,57 @@ async function submitModal() {
     modalError.value = "";
 
     if (modalMode.value === "add") {
+      console.log("SUBMIT ADMIN:", {
+        username: form.value.username,
+        password: form.value.password,
+        role: "admin_cabang",
+        // branch_id: form.value.branch_id,
+        //branch name
+        branch_name: form.value.branch_name,
+        status: form.value.status,
+      });
       await addBranchAdmin({
         username: form.value.username,
+
+        full_name: form.value.full_name,
+
         password: form.value.password,
 
         role: "admin_cabang",
-        // tipe: "cabang",
 
-        branch_id: form.value.branch_id,
+        branch_name: form.value.branch_name,
 
         status: form.value.status,
       });
-      // } else {
-      //   await updateBranchAdmin(form.value.id, {
-      //     username: form.value.username,
-      //     branch_id: form.value.branch_id,
-      //     status: form.value.status,
-      //   });
+      //branch name
+      // await addBranchAdmin({
+      //   username: form.value.username,
+
+      //   full_name: form.value.full_name,
+
+      //   password: form.value.password,
+
+      //   role: "admin_cabang",
+
+      //   branch_name: branches.value.find((b) => b.id === form.value.branch_id)
+      //     ?.branch_name,
+
+      //   status: form.value.status,
+      // });
+    } else {
+      await updateBranchAdmin(form.value.id, {
+        username: form.value.username,
+
+        full_name: form.value.full_name,
+
+        password: form.value.password || undefined,
+
+        // branch_id: form.value.branch_id,
+        //branch name
+        branch_name: form.value.branch_name,
+
+        status: form.value.status,
+      });
     }
 
     closeModal();
@@ -285,8 +403,8 @@ async function handleDelete(id) {
 
             <option
               v-for="branch in branches"
-              :key="branch.id"
-              :value="branch.branch_name"
+              :key="branch.branch_id"
+              :value="branch.id"
             >
               {{ branch.branch_name }}
             </option>
@@ -294,6 +412,16 @@ async function handleDelete(id) {
 
           <button class="btn-add" @click="openAdd">+ Tambah Admin</button>
         </div>
+
+        <!-- <div style="padding: 12px; font-size: 12px">
+          <p>TOTAL ADMINS: {{ admins.length }}</p>
+
+          <p>FILTERED ADMINS: {{ filteredAdmins.length }}</p>
+
+          <p>PAGINATED ADMINS: {{ paginatedAdmins.length }}</p>
+
+          <pre>{{ admins }}</pre>
+        </div> -->
 
         <table>
           <thead>
@@ -396,22 +524,41 @@ async function handleDelete(id) {
             <input v-model="form.username" />
           </div>
 
-          <div v-if="modalMode === 'add'" class="form-group">
-            <label>Password</label>
+          <div class="form-group">
+            <label>Nama Lengkap</label>
 
-            <input type="password" v-model="form.password" />
+            <input
+              v-model="form.full_name"
+              placeholder="Masukkan nama lengkap"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>
+              {{ modalMode === "add" ? "Password" : "Password Baru" }}
+            </label>
+
+            <input
+              type="password"
+              v-model="form.password"
+              :placeholder="
+                modalMode === 'add'
+                  ? 'Masukkan password'
+                  : 'Kosongkan jika tidak ingin mengubah password'
+              "
+            />
           </div>
 
           <div class="form-group">
             <label>Cabang</label>
 
-            <select v-model.number="form.branch_id">
+            <select v-model="form.branch_name">
               <option :value="null">Pilih Cabang</option>
 
               <option
                 v-for="branch in branches"
                 :key="branch.id"
-                :value="branch.id"
+                :value="branch.branch_name"
               >
                 {{ branch.branch_name }}
               </option>
