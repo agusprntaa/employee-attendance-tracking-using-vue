@@ -58,3 +58,7 @@ export const uploadProfilePhotoAPI = (
     }
   );
 };
+
+export const updateProfileAPI = (data) => {
+  return API.patch("/employee/profile", data);
+};

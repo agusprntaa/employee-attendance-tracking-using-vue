@@ -2,7 +2,13 @@
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 
-import { getProfileAPI, uploadProfilePhotoAPI } from "@/services/auth";
+import API from "@/services/api";
+
+import {
+  getProfileAPI,
+  uploadProfilePhotoAPI,
+  updateProfileAPI,
+} from "@/services/auth";
 
 const router = useRouter();
 
@@ -17,7 +23,6 @@ const error = ref("");
 const imageError = ref(false);
 
 const photoPreview = ref("");
-const photoFile = ref(null);
 
 const user = ref({
   name: "",
@@ -26,6 +31,7 @@ const user = ref({
   email: "",
   address: "",
   phone: "",
+  birth_date: "",
   status: "",
   photo_url: "",
 });
@@ -34,66 +40,64 @@ onMounted(async () => {
   try {
     const res = await getProfileAPI();
 
+    console.log("RAW ERROR:", res.data.data);
+
     user.value = res.data.data;
 
     if (user.value.photo_url) {
-      photoPreview.value = getPhotoUrl(user.value.photo_url);
+      await loadPhoto(user.value.photo_url);
     }
   } catch (err) {
-    console.log(err);
-
+    console.log("PROFILE ERROR:", err);
     error.value = "Gagal mengambil profile";
   }
 });
 
-function getPhotoUrl(path) {
-  if (!path) return "";
+async function loadPhoto(path) {
+  try {
+    imageError.value = false;
 
-  // reset error kalau url berubah
-  imageError.value = false;
+    if (!path) {
+      photoPreview.value = "";
+      return;
+    }
 
-  // kalau backend sudah full url
-  if (path.startsWith("http")) {
-    return path;
-  }
+    let finalPath = path;
 
-  // hapus slash depan
-  const cleanPath = path.replace(/^\/+/, "");
+    // kalau backend masih kirim old path:
+    // /uploads/photos/xxx.png
+    if (path.includes("/uploads/photos/")) {
+      const fileName = path.split("/").pop();
 
-  // ubah backslash windows jadi slash normal
-  return `${BASE_URL}/${cleanPath.replace(/\\/g, "/")}`;
-}
+      finalPath = `/employee/profile/photo/view/${fileName}`;
+    }
 
-function handleImageLoaded() {
-  console.log("%cIMAGE SUCCESS", "color: green; font-weight: bold");
+    // kalau backend sudah kirim full url
+    if (finalPath.startsWith("http")) {
+      finalPath = finalPath.replace(BASE_URL, "");
+    }
 
-  console.log("IMAGE URL:", photoPreview.value);
-}
+    console.log("RAW PHOTO PATH:", path);
 
-function handleImageError(event) {
-  imageError.value = true;
+    console.log("FINAL API PATH:", finalPath);
 
-  console.log("%cIMAGE FAILED", "color: red; font-weight: bold");
+    console.log("FETCH URL:", `${BASE_URL}${finalPath}`);
 
-  console.log("FAILED URL:", event.target.currentSrc);
+    const res = await API.get(finalPath, {
+      responseType: "blob",
+    });
 
-  // cek apakah kemungkinan ngrok
-  if (event.target.currentSrc.includes("ngrok")) {
-    console.log(
-      "%cCHECK BACKEND / NGROK STATIC FILE",
-      "color: orange; font-weight: bold",
-    );
+    console.log("%cIMAGE FETCH SUCCESS", "color: green; font-weight: bold");
 
-    console.log(
-      "Kemungkinan static image belum bisa diakses publik atau terkena ngrok warning page.",
-    );
-  } else {
-    console.log(
-      "%cCHECK FRONTEND URL BUILDER",
-      "color: orange; font-weight: bold",
-    );
+    photoPreview.value = URL.createObjectURL(res.data);
+  } catch (err) {
+    imageError.value = true;
 
-    console.log("Kemungkinan URL image dari frontend salah.");
+    console.log("%cIMAGE FETCH FAILED", "color:red;font-weight:bold");
+
+    console.log(err);
+
+    console.log("CHECK BACKEND RESPONSE photo_url");
   }
 }
 
@@ -125,6 +129,7 @@ async function handlePhoto(event) {
 
   error.value = "";
 
+  // preview local instant
   photoPreview.value = URL.createObjectURL(file);
 
   try {
@@ -134,20 +139,26 @@ async function handlePhoto(event) {
 
     formData.append("photo", file);
 
-    // INI PENTING
     const res = await uploadProfilePhotoAPI(formData);
 
     console.log("UPLOAD RESPONSE:", res.data);
 
-    console.log("FINAL URL:", getPhotoUrl(res.data.data.photo_url));
+    const latestUser = JSON.parse(localStorage.getItem("user"));
+
+    latestUser.photo_url = res.data.data.photo_url;
+
+    localStorage.setItem("user", JSON.stringify(latestUser));
 
     user.value.photo_url = res.data.data.photo_url;
 
-    photoPreview.value = getPhotoUrl(res.data.data.photo_url);
+    // reload image dari backend
+    await loadPhoto(user.value.photo_url);
 
     success.value = "Foto profile berhasil diperbarui";
   } catch (err) {
-    console.log("UPLOAD ERROR:", err);
+    console.log("%cUPLOAD ERROR", "color:red;font-weight:bold");
+
+    console.log(err);
 
     error.value = err.response?.data?.message || "Upload foto gagal";
   } finally {
@@ -162,22 +173,43 @@ async function saveProfile() {
     success.value = "";
     error.value = "";
 
-    console.log("DATA UPDATE:", {
+    const payload = {
       name: user.value.name,
       email: user.value.email,
-      address: user.value.address,
       phone: user.value.phone,
-    });
+      address: user.value.address,
+      birth_date: user.value.birth_date,
+    };
 
-    // CONNECT API UPDATE PROFILE DISINI
+    console.log("UPDATE PAYLOAD:", payload);
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const res = await updateProfileAPI(payload);
+
+    console.log("UPDATE RESPONSE:", res.data);
+
+    user.value = {
+      ...user.value,
+      ...res.data.data,
+    };
+
+    // update localstorage
+    const oldUser = JSON.parse(localStorage.getItem("user"));
+
+    localStorage.setItem(
+      "user",
+      JSON.stringify({
+        ...oldUser,
+        ...res.data.data,
+      }),
+    );
 
     success.value = "Biodata berhasil diperbarui";
   } catch (err) {
+    console.log("%cUPDATE PROFILE ERROR", "color:red;font-weight:bold");
+
     console.log(err);
 
-    error.value = "Gagal menyimpan perubahan";
+    error.value = err.response?.data?.message || "Gagal menyimpan perubahan";
   } finally {
     loading.value = false;
   }
@@ -187,7 +219,6 @@ function goBack() {
   router.back();
 }
 </script>
-
 <template>
   <div class="wrapper">
     <div class="header">
@@ -203,7 +234,7 @@ function goBack() {
               v-if="photoPreview && !imageError"
               :src="photoPreview"
               alt="profile"
-              @load="handleImageLoaded"
+              @load="console.log('IMAGE SUCCESS')"
               @error="handleImageError"
             />
 
@@ -227,7 +258,7 @@ function goBack() {
 
           <p>{{ user.division_name }}</p>
 
-          <span class="status active"> Aktif </span>
+          <span class="status active"> {{ user.status }}</span>
         </div>
 
         <!-- RIGHT -->
@@ -260,6 +291,12 @@ function goBack() {
               v-model="user.phone"
               placeholder="Masukkan nomor telepon"
             />
+          </div>
+
+          <div class="field">
+            <label>Tanggal Lahir</label>
+
+            <input type="date" v-model="user.birth_date" />
           </div>
 
           <div class="field">

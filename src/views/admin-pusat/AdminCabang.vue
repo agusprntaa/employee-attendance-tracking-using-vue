@@ -78,17 +78,19 @@ const paginatedAdmins = computed(() => {
 async function fetchAdmins() {
   try {
     loading.value = true;
-
     const res = await getBranchAdmins(1);
+
     console.log("ADMINS:", res.data);
 
-    admins.value = res.data.data.map((admin) => ({
+    admins.value = res.data.data.data.map((admin) => ({
       ...admin,
 
       status: admin.status?.toLowerCase() === "active" ? "active" : "inactive",
     }));
 
-    meta.value.total = res.data.data.length;
+    meta.value.total = res.data.data.total_data;
+
+    meta.value.total_pages = res.data.data.total_pages;
   } catch (err) {
     console.error(err);
   } finally {

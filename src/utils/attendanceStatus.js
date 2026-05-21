@@ -9,7 +9,7 @@ export function getStatusLabel(status) {
   if (status === "WFA") return "WFA";
 
   // pulang cepat tetap hadir
-  if (status === "EARLY_LEAVE") return "Pulang Cepat";
+  if (status === "EARLY_LEAVE") return "HADIR";
 
   if (status === "ABSENT") return "ABSEN";
 

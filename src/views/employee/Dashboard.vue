@@ -98,7 +98,14 @@ function openPopup(message) {
 onMounted(async () => {
   try {
     await loadProfile();
-    await loadUser();
+
+    const latestUser = JSON.parse(localStorage.getItem("user"));
+
+    user.value = latestUser;
+
+    console.log("DASHBOARD USER:", user.value);
+
+    console.log("PHOTO URL:", user.value.photo_url);
 
     startClock();
 
@@ -117,7 +124,15 @@ onUnmounted(() => {
 //get profile
 async function loadProfile() {
   const res = await getProfileAPI();
-  localStorage.setItem("user", JSON.stringify(res.data.data));
+
+  const oldUser = JSON.parse(localStorage.getItem("user"));
+
+  const latestUser = {
+    ...oldUser,
+    ...res.data.data,
+  };
+
+  localStorage.setItem("user", JSON.stringify(latestUser));
 }
 
 // CLOCK

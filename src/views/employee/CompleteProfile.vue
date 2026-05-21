@@ -19,7 +19,7 @@ const imageError = ref(false);
 const photoPreview = ref("");
 const photoFile = ref(null);
 
-const form = ref({
+const user = ref({
   name: "",
   email: "",
   phone: "",
@@ -40,8 +40,8 @@ onMounted(async () => {
 
     const data = res.data.data;
 
-    form.value = {
-      ...form.value,
+    user.value = {
+      ...user.value,
       ...data,
     };
 
@@ -55,10 +55,28 @@ onMounted(async () => {
   }
 });
 
+//bukan function endpoint ngrok dri be
+// function getPhotoUrl(path) {
+//   if (!path) return "";
+
+//   // reset error kalau url berubah
+//   imageError.value = false;
+
+//   // kalau backend sudah full url
+//   if (path.startsWith("http")) {
+//     return path;
+//   }
+
+//   // hapus slash depan
+//   const cleanPath = path.replace(/^\/+/, "");
+
+//   // ubah backslash windows jadi slash normal
+//   return `${BASE_URL}/${cleanPath.replace(/\\/g, "/")}`;
+// }
+
 function getPhotoUrl(path) {
   if (!path) return "";
 
-  // reset error kalau url berubah
   imageError.value = false;
 
   // kalau backend sudah full url
@@ -66,11 +84,41 @@ function getPhotoUrl(path) {
     return path;
   }
 
-  // hapus slash depan
-  const cleanPath = path.replace(/^\/+/, "");
+  // ambil nama file saja
+  const filename = path
+    .replace(/\\/g, "/")
+    .split("/")
+    .pop();
 
-  // ubah backslash windows jadi slash normal
-  return `${BASE_URL}/${cleanPath.replace(/\\/g, "/")}`;
+  return `${BASE_URL}/employee/profile/photo/view/${filename}`;
+}
+
+function handleImageLoaded() {
+  console.log("%cIMAGE SUCCESS", "color: green; font-weight: bold");
+
+  console.log("IMAGE URL:", photoPreview.value);
+}
+
+function handleImageError(event) {
+  imageError.value = true;
+
+  console.log("%cIMAGE FAILED", "color: red; font-weight: bold");
+
+  console.log("FAILED URL:", event.target.currentSrc);
+
+  if (event.target.currentSrc.includes("ngrok")) {
+    console.log(
+      "%cCHECK BACKEND / NGROK STATIC FILE",
+      "color: orange; font-weight: bold",
+    );
+
+    console.log("Kemungkinan static image backend belum public.");
+  } else {
+    console.log(
+      "%cCHECK FRONTEND URL BUILDER",
+      "color: orange; font-weight: bold",
+    );
+  }
 }
 
 function getInitials(name) {
@@ -118,7 +166,7 @@ async function handlePhoto(event) {
 
     console.log("UPLOAD:", res.data);
 
-    form.value.photo_url = res.data.data.photo_url;
+    user.value.photo_url = res.data.data.photo_url;
 
     photoPreview.value = getPhotoUrl(res.data.data.photo_url);
 
@@ -141,10 +189,10 @@ async function submitProfile() {
   if (loading.value) return;
 
   if (
-    !form.value.name.trim() ||
-    !form.value.email.trim() ||
-    !form.value.phone.trim() ||
-    !form.value.address.trim()
+    !user.value.name.trim() ||
+    !user.value.email.trim() ||
+    !user.value.phone.trim() ||
+    !user.value.address.trim()
   ) {
     error.value = "Semua field wajib diisi";
 
@@ -158,10 +206,10 @@ async function submitProfile() {
 
   try {
     console.log("PROFILE UPDATE:", {
-      name: form.value.name,
-      email: form.value.email,
-      phone: form.value.phone,
-      address: form.value.address,
+      name: user.value.name,
+      email: user.value.email,
+      phone: user.value.phone,
+      address: user.value.address,
     });
 
     // CONNECT API UPDATE PROFILE DISINI
@@ -202,12 +250,11 @@ async function submitProfile() {
               v-if="photoPreview && !imageError"
               :src="photoPreview"
               alt="profile"
-              @error="imageError = true"
+              @load="handleImageLoaded"
+              @error="handleImageError"
             />
 
-            <span v-else>
-              {{ getInitials(form.name) || "?" }}
-            </span>
+            <span v-else> {{ getInitials(user.name) || "?" }} </span>
           </div>
 
           <div class="photo-actions">
@@ -234,7 +281,7 @@ async function submitProfile() {
             <label>Nama Lengkap</label>
 
             <input
-              v-model="form.name"
+              v-model="user.name"
               type="text"
               placeholder="Masukkan nama lengkap"
             />
@@ -244,7 +291,7 @@ async function submitProfile() {
             <label>Email</label>
 
             <input
-              v-model="form.email"
+              v-model="user.email"
               type="email"
               placeholder="Masukkan email"
             />
@@ -254,7 +301,7 @@ async function submitProfile() {
             <label>Nomor Telepon</label>
 
             <input
-              v-model="form.phone"
+              v-model="user.phone"
               type="text"
               placeholder="Masukkan nomor telepon"
             />
@@ -264,7 +311,7 @@ async function submitProfile() {
             <label>Alamat</label>
 
             <textarea
-              v-model="form.address"
+              v-model="user.address"
               placeholder="Masukkan alamat lengkap"
             ></textarea>
           </div>
@@ -277,20 +324,20 @@ async function submitProfile() {
           <div class="readonly-grid">
             <div class="readonly-item">
               <span>Username</span>
-              <p>{{ form.username }}</p>
+              <p>{{ user.username }}</p>
             </div>
 
             <div class="readonly-item">
               <span>Divisi</span>
               <p>
-                {{ form.division_name }}
+                {{ user.division_name }}
               </p>
             </div>
 
             <div class="readonly-item">
               <span>Cabang</span>
               <p>
-                {{ form.branch_name }}
+                {{ user.branch_name }}
               </p>
             </div>
           </div>
@@ -393,33 +440,6 @@ async function submitProfile() {
   font-weight: 700;
 }
 
-/* .avatar {
-  width: 120px;
-  height: 120px;
-
-  border-radius: 50%;
-
-  overflow: hidden;
-
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  color: white;
-
-  font-size: 36px;
-  font-weight: 700;
-}
-
-.avatar img {
-  width: 100%;
-  height: 100%;
-
-  object-fit: cover;
-} */
-
 .photo-actions {
   display: flex;
   flex-direction: column;
@@ -428,7 +448,8 @@ async function submitProfile() {
 }
 
 .upload-btn {
-  background: #4f46e5;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+
   color: white;
 
   padding: 12px 18px;
@@ -437,10 +458,20 @@ async function submitProfile() {
 
   cursor: pointer;
 
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
 
   width: fit-content;
+
+  transition: all 0.25s ease;
+
+  box-shadow: 0 6px 18px rgba(79, 70, 229, 0.25);
+}
+
+.upload-btn:hover {
+  transform: translateY(-2px);
+
+  box-shadow: 0 10px 26px rgba(79, 70, 229, 0.35);
 }
 
 .remove-btn {

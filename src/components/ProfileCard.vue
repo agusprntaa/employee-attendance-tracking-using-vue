@@ -1,8 +1,9 @@
 <script setup>
-import { ref } from "vue";
+import { ref, watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import API from "@/services/api";
 
-defineProps({
+const props = defineProps({
   user: Object,
 });
 
@@ -11,6 +12,7 @@ const router = useRouter();
 const BASE_URL = import.meta.env.VITE_API_URL;
 
 const imageError = ref(false);
+const photoPreview = ref("");
 
 function getInitials(name) {
   return name
@@ -28,23 +30,68 @@ const todayDate = new Date().toLocaleDateString("id-ID", {
   year: "numeric",
 });
 
-function getPhotoUrl(path) {
-  if (!path) return "";
+// bukan function endpoint dari be
+// function getPhotoUrl(path) {
+//   if (!path) return "";
 
-  // reset error kalau url berubah
-  imageError.value = false;
+//   // reset error kalau url berubah
+//   imageError.value = false;
 
-  // kalau backend sudah full url
-  if (path.startsWith("http")) {
-    return path;
+//   // kalau backend sudah full url
+//   if (path.startsWith("http")) {
+//     return path;
+//   }
+
+//   // hapus slash depan
+//   const cleanPath = path.replace(/^\/+/, "");
+
+//   // ubah backslash windows jadi slash normal
+//   return `${BASE_URL}/${cleanPath.replace(/\\/g, "/")}`;
+// }
+
+async function loadPhoto(path) {
+  try {
+    if (!path) {
+      photoPreview.value = "";
+      return;
+    }
+
+    imageError.value = false;
+
+    // kalau backend kirim old path
+    const filename = path.replace(/\\/g, "/").split("/").pop();
+
+    const endpoint = `/employee/profile/photo/view/${filename}`;
+
+    console.log("PROFILE CARD FETCH:", `${BASE_URL}${endpoint}`);
+
+    const res = await API.get(endpoint, {
+      responseType: "blob",
+    });
+
+    photoPreview.value = URL.createObjectURL(res.data);
+
+    console.log("%cPROFILE CARD IMAGE SUCCESS", "color:green;font-weight:bold");
+  } catch (err) {
+    imageError.value = true;
+
+    console.log("%cPROFILE CARD IMAGE FAILED", "color:red;font-weight:bold");
+
+    console.log(err);
   }
-
-  // hapus slash depan
-  const cleanPath = path.replace(/^\/+/, "");
-
-  // ubah backslash windows jadi slash normal
-  return `${BASE_URL}/${cleanPath.replace(/\\/g, "/")}`;
 }
+
+watch(
+  () => props.user?.photo_url,
+  async (newPhoto) => {
+    if (newPhoto) {
+      await loadPhoto(newPhoto);
+    }
+  },
+  {
+    immediate: true,
+  },
+);
 
 function goToBiodata() {
   router.push("/employee/biodata");
@@ -60,8 +107,8 @@ function goToChangePassword() {
     <div class="top">
       <div class="avatar">
         <img
-          v-if="user.photo_url && !imageError"
-          :src="getPhotoUrl(user.photo_url)"
+          v-if="photoPreview && !imageError"
+          :src="photoPreview"
           alt="profile"
           @error="imageError = true"
         />
