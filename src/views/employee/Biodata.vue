@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
-
+import { useRouter, useRoute } from "vue-router";
 import API from "@/services/api";
 
 import {
@@ -11,6 +10,9 @@ import {
 } from "@/services/auth";
 
 const router = useRouter();
+const route = useRoute();
+
+const isSetup = route.query.setup === "true";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -204,6 +206,11 @@ async function saveProfile() {
     );
 
     success.value = "Biodata berhasil diperbarui";
+    if (isSetup) {
+      setTimeout(() => {
+        router.push("/employee/dashboard");
+      }, 1200);
+    }
   } catch (err) {
     console.log("%cUPDATE PROFILE ERROR", "color:red;font-weight:bold");
 
@@ -222,10 +229,14 @@ function goBack() {
 <template>
   <div class="wrapper">
     <div class="header">
-      <img src="/goBack.png" class="back" @click="goBack" />
+      <img v-if="!isSetup" src="/goBack.png" class="back" @click="goBack" />
+      class="back" @click="goBack" />
     </div>
 
     <div class="content">
+      <div v-if="isSetup" class="setup-info">
+        Lengkapi biodata Anda sebelum menggunakan sistem.
+      </div>
       <div class="profile-card">
         <!-- LEFT -->
         <div class="avatar-section">
@@ -356,6 +367,24 @@ function goBack() {
 .back {
   width: 22px;
   cursor: pointer;
+}
+
+.setup-info {
+  max-width: 1100px;
+
+  margin: 20px auto 0;
+
+  padding: 14px 18px;
+
+  border-radius: 16px;
+
+  background: #eef2ff;
+
+  color: #4338ca;
+
+  font-size: 14px;
+
+  font-weight: 500;
 }
 
 .content {

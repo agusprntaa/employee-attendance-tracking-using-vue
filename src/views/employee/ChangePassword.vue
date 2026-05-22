@@ -78,8 +78,11 @@ async function handleSubmit() {
         return;
       }
 
+      //direct ke update biodata
       if (user.role === "karyawan") {
-        router.push("/employee/dashboard");
+        router.push("/employee/biodata?setup=true");
+
+        return;
       }
     }, 1500);
   } catch (err) {
