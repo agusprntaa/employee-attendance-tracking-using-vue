@@ -94,9 +94,18 @@ async function login() {
     }
 
     console.log("LOGIN RESPONSE:", res.data);
+    console.log("MUST CHANGE PASSWORD:", res.data.data.must_change_password);
 
-    const { token, refresh_token, user, must_change_password, expires_in } =
-      res.data.data;
+    console.log("TEMP PASSWORD:", res.data.data.temp_password);
+
+    const {
+      token,
+      refresh_token,
+      user,
+      must_change_password,
+      temp_password,
+      expires_in,
+    } = res.data.data;
 
     console.log("ROLE:", user?.role);
 
@@ -134,7 +143,7 @@ async function login() {
     }
 
     //direct token
-    if (must_change_password) {
+    if (must_change_password || temp_password) {
       router.push("/employee/change-password");
       return;
     }

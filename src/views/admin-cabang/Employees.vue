@@ -10,9 +10,11 @@ import {
   addEmployee,
   updateEmployee,
   deleteEmployee,
+  getEmployeeDetail,
 } from "@/services/adminCabang";
 
 const { user } = useAuth();
+const BASE_URL = import.meta.env.VITE_API_URL;
 
 const employees = ref([]);
 const loading = ref(false);
@@ -38,6 +40,17 @@ const modalLoading = ref(false);
 const modalError = ref("");
 
 const showDeleteModal = ref(false);
+const showCredentialModal = ref(false);
+
+const showDetailModal = ref(false);
+const detailLoading = ref(false);
+
+const selectedEmployee = ref(null);
+
+const generatedCredential = ref({
+  username: "",
+  temp_password: "",
+});
 const selectedId = ref(null);
 
 const form = ref({
@@ -124,6 +137,24 @@ function openAdd() {
   showModal.value = true;
 }
 
+async function openDetail(empId) {
+  try {
+    detailLoading.value = true;
+
+    showDetailModal.value = true;
+
+    const res = await getEmployeeDetail(empId);
+
+    console.log("EMPLOYEE DETAIL:", res.data);
+
+    selectedEmployee.value = res.data.data;
+  } catch (err) {
+    console.log(err);
+  } finally {
+    detailLoading.value = false;
+  }
+}
+
 function openEdit(emp) {
   modalMode.value = "edit";
   modalError.value = "";
@@ -146,6 +177,17 @@ function closeModal() {
   showModal.value = false;
 }
 
+function closeCredentialModal() {
+  showCredentialModal.value = false;
+
+  generatedCredential.value = {
+    username: "",
+    temp_password: "",
+  };
+
+  closeModal();
+}
+
 async function submitModal() {
   if (!form.value.full_name.trim()) {
     modalError.value = "Nama lengkap wajib diisi";
@@ -157,14 +199,14 @@ async function submitModal() {
     return;
   }
 
-  if (modalMode.value === "add" && !form.value.password.trim()) {
-    if (modalMode.value === "add" && form.value.password.length < 6) {
-      modalError.value = "Password minimal 6 karakter";
-      return;
-    }
-    modalError.value = "Password wajib diisi";
-    return;
-  }
+  // if (modalMode.value === "add" && !form.value.password.trim()) {
+  //   if (modalMode.value === "add" && form.value.password.length < 6) {
+  //     modalError.value = "Password minimal 6 karakter";
+  //     return;
+  //   }
+  //   modalError.value = "Password wajib diisi";
+  //   return;
+  // }
 
   modalLoading.value = true;
   modalError.value = "";
@@ -188,9 +230,12 @@ async function submitModal() {
 
       console.log("[BE] Add employee success:", res.data);
 
-      alert(
-        "Karyawan berhasil dibuat.\n\nKaryawan wajib mengganti password saat login pertama.",
-      );
+      generatedCredential.value = {
+        username: res.data.data.username,
+        temp_password: res.data.data.temp_password,
+      };
+
+      showCredentialModal.value = true;
     } else {
       // EDIT EMPLOYEE
       const payload = {
@@ -222,8 +267,11 @@ async function submitModal() {
       });
     }
 
-    closeModal();
     fetchEmployees();
+
+    if (modalMode.value !== "add") {
+      closeModal();
+    }
   } catch (err) {
     // BACKEND ERROR
     if (err.response) {
@@ -263,9 +311,29 @@ async function handleToggle(emp) {
 }
 
 async function handleDelete(id) {
-  if (!confirm("Hapus karyawan?")) return;
-  await deleteEmployee(id);
-  fetchEmployees();
+  selectedId.value = id;
+
+  showDeleteModal.value = true;
+}
+
+function cancelDelete() {
+  showDeleteModal.value = false;
+
+  selectedId.value = null;
+}
+
+async function confirmDelete() {
+  try {
+    await deleteEmployee(selectedId.value);
+
+    fetchEmployees();
+
+    showDeleteModal.value = false;
+
+    selectedId.value = null;
+  } catch (err) {
+    console.log(err);
+  }
 }
 </script>
 
@@ -311,10 +379,26 @@ async function handleDelete(id) {
           </thead>
 
           <tbody>
-            <tr v-for="emp in employees" :key="emp.id">
+            <!-- <tr v-for="emp in employees" :key="emp.id"> -->
+            <tr
+              v-for="emp in employees"
+              :key="emp.id"
+              class="employee-row"
+              @click="openDetail(emp.id)"
+            >
               <td>{{ empCode(emp.id) }}</td>
               <td class="bold">{{ emp.username || "-" }}</td>
-              <td class="bold">{{ emp.full_name || "-" }}</td>
+              <!-- <td>
+                <span class="employee-name" @click="openDetail(emp.id)">
+              </td> -->
+
+              <td>{{ emp.full_name || "-" }}</td>
+
+              <!-- <span class="employee-tooltip">
+                    Klik untuk melihat detail karyawan
+                  </span> -->
+              <!-- </span> -->
+              <!-- </td> -->
               <td class="highlight">{{ emp.division_name || "-" }}</td>
 
               <td>
@@ -326,11 +410,11 @@ async function handleDelete(id) {
               <td>{{ formatDate(emp.created_at) }}</td>
 
               <td class="actions">
-                <button @click="openEdit(emp)">
+                <button @click.stop="openEdit(emp)">
                   <img src="/edit.png" class="action-icon" />
                 </button>
 
-                <button @click="handleDelete(emp.id)">
+                <button @click.stop="handleDelete(emp.id)">
                   <img src="/delete.png" class="action-icon" />
                 </button>
               </td>
@@ -340,7 +424,7 @@ async function handleDelete(id) {
 
         <div class="pagination">
           <span class="pagination-info">
-            Menampilkan {{ employees.length }} of {{ meta.total }} Karyawan
+            Menampilkan {{ employees.length }} dari {{ meta.total }} Karyawan
           </span>
 
           <div class="pagination-controls">
@@ -408,10 +492,10 @@ async function handleDelete(id) {
             <input v-model="form.username" placeholder="Masukkan username" />
           </div>
 
-          <div class="form-group">
+          <!-- <div class="form-group">
             <label>Password</label>
             <input v-model="form.password" type="password" />
-          </div>
+          </div> -->
 
           <div v-if="modalMode === 'add'" class="password-note">
             Password default akan digunakan saat login pertama. Karyawan wajib
@@ -449,6 +533,139 @@ async function handleDelete(id) {
           <button class="btn-submit" @click="submitModal">
             {{ modalMode === "add" ? "Tambah" : "Simpan" }}
           </button>
+        </div>
+      </div>
+    </div>
+    <div v-if="showCredentialModal" class="modal-overlay">
+      <div class="credential-modal">
+        <h2>KARYAWAN</h2>
+
+        <div class="credential-group">
+          <label>Username</label>
+
+          <div class="credential-box">
+            {{ generatedCredential.username }}
+          </div>
+        </div>
+
+        <div class="credential-group">
+          <label>Password Sementara</label>
+
+          <div class="credential-box">
+            {{ generatedCredential.temp_password }}
+          </div>
+        </div>
+
+        <p class="password-note">
+          Pop up ini hanya muncul satu kali. Simpan username dan password
+          sebelum ditutup.
+        </p>
+
+        <button class="credential-btn" @click="closeCredentialModal">
+          Selesai
+        </button>
+      </div>
+    </div>
+    <div
+      v-if="showDetailModal"
+      class="modal-overlay"
+      @click.self="showDetailModal = false"
+    >
+      <div class="detail-modal">
+        <div class="modal-header">
+          <h3>Detail Karyawan</h3>
+
+          <button class="modal-close" @click="showDetailModal = false">
+            ✕
+          </button>
+        </div>
+
+        <div v-if="detailLoading" class="detail-loading">Memuat data...</div>
+
+        <div v-else-if="selectedEmployee" class="detail-body">
+          <div class="detail-profile">
+            <img
+              v-if="selectedEmployee.photo_url"
+              :src="`${BASE_URL}/${selectedEmployee.photo_url}`"
+              class="detail-photo"
+            />
+
+            <div v-else class="detail-avatar">
+              {{ selectedEmployee.full_name?.[0] }}
+            </div>
+
+            <h2>
+              {{ selectedEmployee.full_name }}
+            </h2>
+
+            <p>
+              {{ selectedEmployee.division_name }}
+            </p>
+          </div>
+
+          <div class="detail-grid">
+            <div class="detail-item">
+              <label>Username</label>
+
+              <span>
+                {{ selectedEmployee.username || "-" }}
+              </span>
+            </div>
+
+            <div class="detail-item">
+              <label>Role</label>
+
+              <span>
+                {{ selectedEmployee.role || "-" }}
+              </span>
+            </div>
+
+            <div class="detail-item">
+              <label>Tipe</label>
+
+              <span>
+                {{ selectedEmployee.tipe || "-" }}
+              </span>
+            </div>
+
+            <div class="detail-item">
+              <label>Status</label>
+
+              <span>
+                {{
+                  selectedEmployee.status === "active"
+                    ? "Aktif"
+                    : selectedEmployee.status === "inactive"
+                      ? "Nonaktif"
+                      : "-"
+                }}
+              </span>
+            </div>
+
+            <div class="detail-item">
+              <label>Divisi</label>
+
+              <span>
+                {{ selectedEmployee.division_name || "-" }}
+              </span>
+            </div>
+
+            <div class="detail-item">
+              <label>Cabang</label>
+
+              <span>
+                {{ selectedEmployee.branch_name || "-" }}
+              </span>
+            </div>
+
+            <div class="detail-item full">
+              <label>Dibuat Pada</label>
+
+              <span>
+                {{ formatDate(selectedEmployee.created_at) }}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -638,9 +855,88 @@ tbody tr:last-child td {
   border-bottom: none;
 }
 
+.employee-row {
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
+}
+
+.employee-row:hover {
+  background: #f5f7ff;
+}
+
+.employee-click {
+  font-weight: 600;
+
+  color: #1e1b4b;
+}
+
 td.bold {
   font-weight: 600;
   color: #1e1b4b;
+}
+
+.employee-name {
+  position: relative;
+
+  display: inline-flex;
+  align-items: center;
+
+  font-weight: 600;
+
+  color: #1e1b4b;
+
+  cursor: pointer;
+
+  transition: all 0.18s ease;
+}
+
+.employee-name:hover {
+  color: #4f46e5;
+
+  text-decoration: underline;
+}
+
+.employee-tooltip {
+  position: absolute;
+
+  top: -10px;
+  left: 50%;
+
+  transform: translate(-50%, -100%);
+
+  background: #111827;
+  color: white;
+
+  padding: 6px 10px;
+
+  border-radius: 8px;
+
+  font-size: 11px;
+
+  white-space: nowrap;
+
+  opacity: 0;
+  visibility: hidden;
+
+  transition: 0.18s ease;
+
+  pointer-events: none;
+
+  z-index: 9999;
+}
+
+.employee-name:hover .employee-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+.employee-name:hover {
+  color: #4f46e5;
+
+  text-decoration: underline;
 }
 
 td.highlight {
@@ -940,36 +1236,85 @@ td.actions button:hover:nth-child(3) {
   cursor: not-allowed;
 }
 
-/* modal delete */
+/* ===== DELETE MODAL ===== */
 .modal-body p {
   font-size: 13px;
-  color: #374151;
-  line-height: 1.5;
+
+  color: #4b5563;
+
+  line-height: 1.6;
 }
 
 .btn-delete {
-  padding: 9px 24px;
-  background: #dc2626;
-  color: #fff;
+  padding: 10px 22px;
+
   border: none;
-  border-radius: 9px;
+  border-radius: 10px;
+
+  background: #e0e7ff;
+
+  color: #4338ca;
+
   font-size: 13px;
   font-weight: 600;
+
   cursor: pointer;
-  transition: all 0.15s ease;
+
+  transition:
+    background 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
 }
 
 .btn-delete:hover {
-  background: #b91c1c;
-  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.3);
+  background: #c7d2fe;
+
+  box-shadow: 0 6px 18px rgba(79, 70, 229, 0.18);
+}
+
+.btn-delete:active {
+  transform: scale(0.97);
+}
+
+.btn-cancel {
+  padding: 10px 20px;
+
+  border-radius: 10px;
+
+  border: none;
+
+  background: #4f46e5;
+
+  color: #ffffff;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: all 0.18s ease;
+}
+
+.btn-cancel:hover {
+  background: #4338ca;
+
+  box-shadow: 0 6px 18px rgba(79, 70, 229, 0.22);
+}
+
+.btn-cancel:active {
+  transform: scale(0.97);
 }
 
 .modal-footer {
-  padding: 16px 24px 20px;
+  padding: 18px 24px 22px;
+
   border-top: 1px solid #f3f4f6;
+
   display: flex;
-  gap: 10px;
+  align-items: center;
   justify-content: flex-end;
+
+  gap: 10px;
 }
 
 .modal-box {
@@ -978,9 +1323,10 @@ td.actions button:hover:nth-child(3) {
 
 @keyframes scaleIn {
   from {
-    transform: scale(0.95);
+    transform: scale(0.96);
     opacity: 0;
   }
+
   to {
     transform: scale(1);
     opacity: 1;
@@ -1001,5 +1347,268 @@ td.actions button:hover:nth-child(3) {
   line-height: 1.6;
 
   border: 1px solid #c7d2fe;
+}
+
+.credential-modal {
+  width: 100%;
+  max-width: 440px;
+
+  background: #ffffff;
+
+  border-radius: 18px;
+
+  padding: 24px;
+
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+
+  animation: scaleIn 0.2s ease;
+}
+
+.credential-modal h2 {
+  text-align: center;
+
+  font-size: 20px;
+  font-weight: 700;
+
+  color: #1e1b4b;
+
+  margin-bottom: 22px;
+}
+
+.credential-group {
+  margin-bottom: 18px;
+}
+
+.credential-group label {
+  display: block;
+
+  margin-bottom: 6px;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  color: #374151;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.4px;
+}
+
+.credential-box {
+  width: 100%;
+
+  padding: 12px 14px;
+
+  border-radius: 10px;
+
+  background: #f9fafb;
+
+  border: 1px solid #e5e7eb;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  color: #111827;
+
+  word-break: break-all;
+}
+
+.password-note {
+  margin-top: 4px;
+
+  padding: 12px 14px;
+
+  border-radius: 12px;
+
+  background: #eef2ff;
+
+  border: 1px solid #c7d2fe;
+
+  color: #4338ca;
+
+  font-size: 12px;
+
+  line-height: 1.6;
+}
+
+.credential-btn {
+  width: 100%;
+
+  margin-top: 20px;
+
+  padding: 12px;
+
+  border: none;
+  border-radius: 10px;
+
+  background: #4f46e5;
+
+  color: white;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
+}
+
+.credential-btn:hover {
+  background: #4338ca;
+
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+}
+
+.detail-modal {
+  width: 100%;
+  max-width: 460px;
+
+  background: #ffffff;
+
+  border-radius: 18px;
+
+  overflow: hidden;
+
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+
+  animation: scaleIn 0.2s ease;
+}
+
+.detail-body {
+  padding: 22px 24px;
+}
+
+.detail-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  text-align: center;
+
+  margin-bottom: 24px;
+}
+
+.detail-photo,
+.detail-avatar {
+  width: 82px;
+  height: 82px;
+
+  border-radius: 50%;
+
+  margin-bottom: 12px;
+
+  object-fit: cover;
+}
+
+.detail-avatar {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+
+  color: white;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 28px;
+  font-weight: 700;
+
+  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.22);
+}
+
+.detail-profile h2 {
+  font-size: 18px;
+  font-weight: 700;
+
+  color: #1e1b4b;
+
+  line-height: 1.4;
+}
+
+.detail-profile p {
+  margin-top: 4px;
+
+  font-size: 13px;
+
+  color: #6b7280;
+}
+
+.detail-grid {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 12px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+
+  gap: 5px;
+}
+
+.detail-item.full {
+  grid-column: span 2;
+}
+
+.detail-item label {
+  font-size: 10px;
+  font-weight: 700;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.5px;
+
+  color: #9ca3af;
+
+  padding-left: 2px;
+}
+
+.detail-item span {
+  padding: 11px 13px;
+
+  border-radius: 12px;
+
+  background: #f9fafb;
+
+  border: 1px solid #eef2f7;
+
+  color: #111827;
+
+  font-size: 13px;
+  font-weight: 500;
+
+  line-height: 1.4;
+
+  min-height: 44px;
+
+  display: flex;
+  align-items: center;
+}
+
+.detail-loading {
+  padding: 36px 20px;
+
+  text-align: center;
+
+  font-size: 13px;
+
+  color: #6b7280;
+}
+
+@media (max-width: 640px) {
+  .detail-modal {
+    width: calc(100% - 24px);
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-item.full {
+    grid-column: span 1;
+  }
 }
 </style>

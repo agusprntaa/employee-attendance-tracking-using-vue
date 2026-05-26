@@ -8,11 +8,13 @@ import {
   checkoutAttendance,
 } from "@/services/attendance";
 import { logout } from "@/utils/logout";
+import { LayoutDashboard, CalendarDays, User, LogOut } from "lucide-vue-next";
 import API from "@/services/api";
 import { getProfileAPI } from "@/services/auth";
 
 import ProfileCard from "@/components/ProfileCard.vue";
 import LocationBanner from "@/components/LocationBanner.vue";
+import EmployeeBottomNav from "@/components/EmployeeBottomNav.vue";
 
 import { getStatusLabel, getStatusClass } from "@/utils/attendanceStatus";
 
@@ -25,9 +27,7 @@ const showPopup = ref(false);
 const loading = ref(false);
 const currentTime = ref("");
 const history = ref([]);
-const historyPage = ref(1);
 const historyLimit = 10;
-const totalHistoryPages = ref(1);
 const todayData = ref(null);
 const showLogoutConfirm = ref(false);
 
@@ -70,7 +70,6 @@ const checkoutInfo = computed(() => {
 
   const checkIn = parseLocalDate(todayData.value.attendance.check_in);
 
-  // const workHours = todayData.value.work_hours || 9;
   const workHours = todayData.value.required_hours || 9;
 
   const checkoutTime = new Date(checkIn.getTime() + workHours * 60 * 60 * 1000);
@@ -158,19 +157,13 @@ async function fetchToday() {
 // HISTORY
 async function fetchHistory() {
   try {
-    const res = await getAttendanceHistory(historyPage.value, historyLimit);
+    const res = await getAttendanceHistory(historyLimit);
 
     history.value = res.data.data.data || [];
-
-    totalHistoryPages.value = res.data.data.total_pages || 1;
   } catch (err) {
     console.error("HISTORY ERROR:", err);
   }
 }
-
-watch(historyPage, () => {
-  fetchHistory();
-});
 
 // NAVIGATION
 function goToScan() {
@@ -425,31 +418,13 @@ async function handleLogout() {
             </div>
           </div>
         </div>
-
-        <div v-if="totalHistoryPages > 1" class="history-pagination">
-          <button :disabled="historyPage === 1" @click="historyPage--">
-            ‹
-          </button>
-
-          <span>
-            {{ historyPage }} /
-            {{ totalHistoryPages }}
-          </span>
-
-          <button
-            :disabled="historyPage === totalHistoryPages"
-            @click="historyPage++"
-          >
-            ›
-          </button>
-        </div>
       </div>
 
-      <div class="logout-wrapper">
+      <!-- <div class="logout-wrapper">
         <button class="btn-logout" @click="showLogoutConfirm = true">
           Keluar
         </button>
-      </div>
+      </div> -->
 
       <div v-if="showLogoutConfirm" class="modal">
         <div class="modal-box">
@@ -487,6 +462,7 @@ async function handleLogout() {
       </div>
     </div>
   </div>
+  <EmployeeBottomNav />
 </template>
 
 <style scoped>
@@ -495,11 +471,38 @@ async function handleLogout() {
   background: #f5f7fb;
 }
 
+.header {
+  height: 64px;
+
+  background: #4f46e5;
+
+  display: flex;
+  align-items: center;
+
+  padding: 0 20px;
+}
+
+.menu-btn {
+  border: none;
+
+  background: transparent;
+
+  color: white;
+
+  font-size: 28px;
+
+  cursor: pointer;
+}
+
 .content {
   width: 100%;
   max-width: 640px;
+
   margin: 0 auto;
+
   padding: 20px;
+
+  padding-bottom: 120px;
 }
 
 @media (min-width: 1024px) {
