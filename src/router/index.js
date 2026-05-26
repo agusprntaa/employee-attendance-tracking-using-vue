@@ -96,16 +96,22 @@ const routes = [
   },
 
   {
+    path: '/employee/calendar',
+    name: 'Calendar',
+    component: () => import('../views/employee/Calendar.vue')
+  },
+
+  {
     path: '/employee/biodata',
     name: 'Biodata',
     component: () => import('../views/employee/Biodata.vue')
   },
 
-  {
-    path: '/employee/complete-profile',
-    name: 'CompleteProfile',
-    component: () => import('../views/employee/CompleteProfile.vue')
-  },
+  // {
+  //   path: '/employee/complete-profile',
+  //   name: 'CompleteProfile',
+  //   component: () => import('../views/employee/CompleteProfile.vue')
+  // },
 
   {
     path: '/:pathMatch(.*)*',
@@ -146,100 +152,100 @@ const router = createRouter({
   
 //  })
 
-//guard router role, tipe
-router.beforeEach((to) => {
-  const token = localStorage.getItem("token");
-  const mustChangePassword =
-  localStorage.getItem(
-    "must_change_password"
-  ) === "true";
+// //guard router role, tipe
+// router.beforeEach((to) => {
+//   const token = localStorage.getItem("token");
+//   const mustChangePassword =
+//   localStorage.getItem(
+//     "must_change_password"
+//   ) === "true";
 
-  let user = null;
+//   let user = null;
 
-  try {
-    user = JSON.parse(localStorage.getItem("user"));
-  } catch (error) {
-    user = null;
-  }
-
-  if (!token || !user) {
-    if (to.path !== "/") {
-      return "/";
-    }
-
-    return true;
-  }
-
-  // FORCE CHANGE PASSWORD
-if (
-  mustChangePassword &&
-  to.path !== "/employee/change-password"
-) {
-  return {
-    path: "/employee/change-password",
-    query: {
-      forced: "true",
-    },
-  };
-}
-
-  //auto dashboard selama masih ada token di local storage
-
-//   if (to.path === "/") {
-//   // kalau wajib ganti password
-//   if (mustChangePassword) {
-//     return "/employee/change-password";
+//   try {
+//     user = JSON.parse(localStorage.getItem("user"));
+//   } catch (error) {
+//     user = null;
 //   }
 
-//   if (
-//     user.role === "admin" &&
-//     user.tipe === "pusat"
-//   ) {
-//     return "/admin-pusat/dashboard";
+//   if (!token || !user) {
+//     if (to.path !== "/") {
+//       return "/";
+//     }
+
+//     return true;
 //   }
 
-//   if (
-//     user.role === "admin" &&
-//     user.tipe === "cabang"
-//   ) {
-//     return "/admin-cabang/dashboard";
-//   }
-
-//   if (user.role === "karyawan") {
-//     return "/employee/dashboard";
-//   }
-
-//   return "/";
+//   // FORCE CHANGE PASSWORD
+// if (
+//   mustChangePassword &&
+//   to.path !== "/employee/change-password"
+// ) {
+//   return {
+//     path: "/employee/change-password",
+//     query: {
+//       forced: "true",
+//     },
+//   };
 // }
 
-  if (
-    to.path.startsWith("/admin-pusat") &&
-    !(
-      user.role === "admin" &&
-      user.tipe === "pusat"
-    )
-  ) {
-    return "/";
-  }
+//   //auto dashboard selama masih ada token di local storage
 
-  if (
-    to.path.startsWith("/admin-cabang") &&
-    !(
-      user.role === "admin" &&
-      user.tipe === "cabang"
-    )
-  ) {
-    return "/";
-  }
+// //   if (to.path === "/") {
+// //   // kalau wajib ganti password
+// //   if (mustChangePassword) {
+// //     return "/employee/change-password";
+// //   }
 
-  if (
-    to.path.startsWith("/employee") &&
-    user.role !== "karyawan"
-  ) {
-    return "/";
-  }
+// //   if (
+// //     user.role === "admin" &&
+// //     user.tipe === "pusat"
+// //   ) {
+// //     return "/admin-pusat/dashboard";
+// //   }
 
-  return true;
-});
+// //   if (
+// //     user.role === "admin" &&
+// //     user.tipe === "cabang"
+// //   ) {
+// //     return "/admin-cabang/dashboard";
+// //   }
+
+// //   if (user.role === "karyawan") {
+// //     return "/employee/dashboard";
+// //   }
+
+// //   return "/";
+// // }
+
+//   if (
+//     to.path.startsWith("/admin-pusat") &&
+//     !(
+//       user.role === "admin" &&
+//       user.tipe === "pusat"
+//     )
+//   ) {
+//     return "/";
+//   }
+
+//   if (
+//     to.path.startsWith("/admin-cabang") &&
+//     !(
+//       user.role === "admin" &&
+//       user.tipe === "cabang"
+//     )
+//   ) {
+//     return "/";
+//   }
+
+//   if (
+//     to.path.startsWith("/employee") &&
+//     user.role !== "karyawan"
+//   ) {
+//     return "/";
+//   }
+
+//   return true;
+// });
 
 export default router
