@@ -173,7 +173,7 @@ function submitLeave() {
       <div>
         <h1>Kalender Cuti</h1>
 
-        <p>Kelola pengajuan cuti karyawan</p>
+        <p>Kalender Pengajuan cuti karyawan</p>
       </div>
 
       <button class="notif-btn">
@@ -369,7 +369,7 @@ function submitLeave() {
 
   <div
     v-if="showLeaveModal"
-    class="modal-overlay"
+    class="modal-cuti"
     @click.self="showLeaveModal = false"
   >
     <div class="leave-modal">
@@ -680,11 +680,11 @@ function submitLeave() {
 }
 
 .dot.employee {
-  background: #3b82f6;
+  background: #ef4444;
 }
 
 .dot.holiday {
-  background: #ef4444;
+  background: #22c55e;
 }
 
 .legend {
@@ -912,13 +912,21 @@ function submitLeave() {
 .modal-overlay {
   position: fixed;
   inset: 0;
-
   background: rgba(15, 23, 42, 0.4);
-
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  z-index: 999;
+  padding: 18px 18px 140px;
+}
 
+.modal-cuti {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
   z-index: 999;
 }
 
@@ -1002,11 +1010,11 @@ function submitLeave() {
 }
 
 .event-icon.employee {
-  background: #3b82f6;
+  background: #ef4444;
 }
 
 .event-icon.holiday {
-  background: #ef4444;
+  background: #22c55e;
 }
 
 .event-info h4 {
