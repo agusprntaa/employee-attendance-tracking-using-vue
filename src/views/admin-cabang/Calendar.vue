@@ -4,7 +4,23 @@ import { ref, computed } from "vue";
 import AdminSidebar from "@/components/AdminSidebar.vue";
 import AdminProfile from "@/components/AdminProfile.vue";
 import { useAuth } from "@/composables/useAuth";
+import { onMounted } from "vue";
+
+import {
+  getLeaveSummary,
+  getLeaveRequests,
+  getLeaveDetail,
+  updateLeaveStatus,
+  getLeaveCalendar,
+  getCalendarDetail,
+  createHoliday,
+} from "@/services/adminLeave";
+
 const { user } = useAuth();
+
+const leaveRequests = ref([]);
+
+const calendarEvents = ref([]);
 
 const currentDate = ref(new Date());
 
@@ -26,129 +42,124 @@ const holidayForm = ref({
   description: "",
 });
 
+const searchQuery = ref("");
+
 const selectedStatus = ref("");
 
 const leaveStats = ref({
-  total: 23,
-  pending: 8,
-  approved: 8,
-  rejected: 7,
+  total: 0,
+  pending: 0,
+  approved: 0,
+  rejected: 0,
 });
 
-const leaveRequests = ref([
-  {
-    id: 1,
-    employee_name: "WIDI",
-    division: "Engineering",
-    leave_type: "Cuti Tahunan",
-    start_date: "2026-05-01",
-    end_date: "2026-05-03",
-    days: 3,
-    reason: "Acara keluarga",
-    status: "pending",
-  },
+const fetchSummary = async () => {
+  try {
+    console.log("[Leave Summary] Request");
 
-  {
-    id: 2,
-    employee_name: "WAHYU",
-    division: "HR",
-    leave_type: "Cuti Sakit",
-    start_date: "2026-05-02",
-    end_date: "2026-05-04",
-    days: 3,
-    reason: "Demam tinggi",
-    status: "approved",
-  },
+    const { data } = await getLeaveSummary();
 
-  {
-    id: 3,
-    employee_name: "AGUS",
-    division: "Sales",
-    leave_type: "Cuti Pribadi",
-    start_date: "2026-05-03",
-    end_date: "2026-05-05",
-    days: 2,
-    reason: "Keperluan pribadi",
-    status: "rejected",
-  },
+    console.log("[Leave Summary] Success", data);
 
-  {
-    id: 4,
-    employee_name: "WIDI",
-    division: "Marketing",
-    leave_type: "Cuti Melahirkan",
-    start_date: "2026-05-04",
-    end_date: "2026-05-06",
-    days: 4,
-    reason: "Persiapan melahirkan",
-    status: "pending",
-  },
-]);
+    leaveStats.value = {
+      total: data.data.total_requests,
+      pending: data.data.pending,
+      approved: data.data.approved,
+      rejected: data.data.rejected,
+    };
+  } catch (error) {
+    console.error("[Leave Summary] Error", error.response?.data || error);
+  }
+};
 
-const calendarEvents = ref([
-  {
-    date: "2026-05-20",
-    type: "employee",
-    employee_name: "AGUS",
-    leave_type: "Cuti Tahunan",
-  },
+const fetchLeaveRequests = async () => {
+  try {
+    console.log("[Leave Requests] Request");
 
-  {
-    date: "2026-05-21",
-    type: "employee",
-    employee_name: "WIDI",
-    leave_type: "Cuti Melahirkan",
-  },
+    const { data } = await getLeaveRequests({
+      status: selectedStatus.value || undefined,
+      page: 1,
+      limit: 100,
+    });
 
-  {
-    date: "2026-05-28",
-    type: "holiday",
-    title: "Hari Raya Waisak",
-  },
-]);
+    console.log("[Leave Requests] Success", data);
 
-const recentActivities = ref([
-  {
-    id: 1,
-    title: "WAHYU mengajukan cuti",
-    time: "5 menit lalu",
-    type: "submit",
-  },
+    leaveRequests.value = data.data.data;
+  } catch (error) {
+    console.error("[Leave Requests] Error", error.response?.data || error);
+  }
+};
 
-  {
-    id: 2,
-    title: "Admin menyetujui cuti WIDI",
-    time: "1 jam lalu",
-    type: "approved",
-  },
+const fetchCalendar = async () => {
+  try {
+    console.log("[Calendar] Request");
 
-  {
-    id: 3,
-    title: "Admin menolak cuti WAHYU",
-    time: "2 jam lalu",
-    type: "rejected",
-  },
-]);
+    const { data } = await getLeaveCalendar({
+      month: currentDate.value.getMonth() + 1,
+      year: currentDate.value.getFullYear(),
+    });
 
-function openDayModal(day) {
-  if (!day) return;
+    console.log("[Calendar] Success", data);
 
-  const year = currentDate.value.getFullYear();
+    calendarEvents.value = data.data.dates;
+    console.log("[Calendar Events Raw]", calendarEvents.value);
+  } catch (error) {
+    console.error("[Calendar] Error", error.response?.data || error);
+  }
+};
 
-  const month = String(currentDate.value.getMonth() + 1).padStart(2, "0");
+//be belum memberikan recent activity
+const recentActivities = ref([]);
+// const recentActivities = ref([
+//   {
+//     id: 1,
+//     title: "WAHYU mengajukan cuti",
+//     time: "5 menit lalu",
+//     type: "submit",
+//   },
 
-  const formattedDay = String(day).padStart(2, "0");
+//   {
+//     id: 2,
+//     title: "Admin menyetujui cuti WIDI",
+//     time: "1 jam lalu",
+//     type: "approved",
+//   },
 
-  const fullDate = `${year}-${month}-${formattedDay}`;
+//   {
+//     id: 3,
+//     title: "Admin menolak cuti WAHYU",
+//     time: "2 jam lalu",
+//     type: "rejected",
+//   },
+// ]);
 
-  selectedDate.value = fullDate;
+const openDayModal = async (day) => {
+  try {
+    if (!day) return;
 
-  selectedEvents.value = calendarEvents.value.filter(
-    (item) => item.date === fullDate,
-  );
+    const year = currentDate.value.getFullYear();
 
-  showCalendarModal.value = true;
-}
+    const month = String(currentDate.value.getMonth() + 1).padStart(2, "0");
+
+    const formattedDay = String(day).padStart(2, "0");
+
+    const fullDate = `${year}-${month}-${formattedDay}`;
+
+    console.log("[Calendar Detail] Request", fullDate);
+
+    const { data } = await getCalendarDetail(fullDate);
+
+    console.log("[Calendar Detail] Success", data);
+
+    selectedDate.value = fullDate;
+
+    selectedEvents.value = [...data.data.holidays, ...data.data.leaves];
+
+    showCalendarModal.value = true;
+  } catch (error) {
+    console.error("[Calendar Detail] Error", error.response?.data || error);
+  }
+};
 
 const monthYear = computed(() => {
   return currentDate.value.toLocaleDateString("id-ID", {
@@ -197,30 +208,42 @@ function getEvents(day) {
   return calendarEvents.value.filter((item) => item.date === currentFullDate);
 }
 
-function prevMonth() {
+async function prevMonth() {
   currentDate.value = new Date(
     currentDate.value.getFullYear(),
     currentDate.value.getMonth() - 1,
     1,
   );
+
+  await fetchCalendar();
 }
 
-function nextMonth() {
+async function nextMonth() {
   currentDate.value = new Date(
     currentDate.value.getFullYear(),
     currentDate.value.getMonth() + 1,
     1,
   );
+
+  await fetchCalendar();
 }
 
 const filteredLeaves = computed(() => {
-  if (!selectedStatus.value) {
-    return leaveRequests.value;
+  let data = [...leaveRequests.value];
+
+  if (selectedStatus.value) {
+    data = data.filter((item) => item.status === selectedStatus.value);
   }
 
-  return leaveRequests.value.filter(
-    (item) => item.status === selectedStatus.value,
-  );
+  if (searchQuery.value) {
+    data = data.filter((item) =>
+      item.employee_name
+        .toLowerCase()
+        .includes(searchQuery.value.toLowerCase()),
+    );
+  }
+
+  return data;
 });
 
 function formatDate(date) {
@@ -230,11 +253,93 @@ function formatDate(date) {
   });
 }
 
-function openLeaveDetail(item) {
-  selectedLeave.value = item;
+const openLeaveDetail = async (item) => {
+  try {
+    console.log("[Leave Detail] Request", item.id);
 
-  showLeaveDetailModal.value = true;
-}
+    const { data } = await getLeaveDetail(item.id);
+
+    console.log("[Leave Detail] Success", data);
+
+    selectedLeave.value = data.data;
+
+    showLeaveDetailModal.value = true;
+  } catch (error) {
+    console.error("[Leave Detail] Error", error.response?.data || error);
+  }
+};
+
+const approveLeave = async (id) => {
+  try {
+    console.log("[Approve Leave] Request", id);
+
+    const response = await updateLeaveStatus(id, {
+      status: "approved",
+      note: "Disetujui Admin Cabang",
+    });
+
+    console.log("[Approve Leave] Success", response.data);
+
+    await fetchSummary();
+    await fetchLeaveRequests();
+
+    showLeaveDetailModal.value = false;
+  } catch (error) {
+    console.error("[Approve Leave] Error", error.response?.data || error);
+  }
+};
+
+const rejectLeave = async (id) => {
+  try {
+    console.log("[Reject Leave] Request", id);
+
+    const response = await updateLeaveStatus(id, {
+      status: "rejected",
+      note: "Ditolak Admin Cabang",
+    });
+
+    console.log("[Reject Leave] Success", response.data);
+
+    await fetchSummary();
+    await fetchLeaveRequests();
+
+    showLeaveDetailModal.value = false;
+  } catch (error) {
+    console.error("[Reject Leave] Error", error.response?.data || error);
+  }
+};
+
+const saveHoliday = async () => {
+  try {
+    console.log("[Create Holiday] Request", holidayForm.value);
+
+    const response = await createHoliday({
+      name: holidayForm.value.title,
+      date: holidayForm.value.date,
+      description: holidayForm.value.description,
+    });
+
+    console.log("[Create Holiday] Success", response.data);
+
+    showHolidayModal.value = false;
+
+    await fetchCalendar();
+  } catch (error) {
+    console.error("[Create Holiday] Error", error.response?.data || error);
+  }
+};
+
+onMounted(async () => {
+  try {
+    console.log("========== LEAVE PAGE INIT ==========");
+
+    await Promise.all([fetchSummary(), fetchLeaveRequests(), fetchCalendar()]);
+
+    console.log("========== LEAVE PAGE READY ==========");
+  } catch (error) {
+    console.error("[PAGE INIT ERROR]", error);
+  }
+});
 </script>
 
 <template>
@@ -252,7 +357,6 @@ function openLeaveDetail(item) {
         <AdminProfile :user="user" />
       </div>
 
-      <!-- STATS -->
       <div class="stats-grid">
         <div class="card">
           <!-- <div class="stats-icon blue"></div> -->
@@ -287,7 +391,6 @@ function openLeaveDetail(item) {
         </div>
       </div>
 
-      <!-- CALENDAR -->
       <div class="calendar-section">
         <div class="calendar-card">
           <div class="calendar-header">
@@ -345,9 +448,12 @@ function openLeaveDetail(item) {
           </div>
         </div>
 
-        <!-- ACTIVITY -->
         <div class="activity-card">
           <h2>Aktivitas Terbaru</h2>
+
+          <div v-if="!recentActivities.length">
+            <p>Aktivitas belum tersedia</p>
+          </div>
 
           <div
             v-for="item in recentActivities"
@@ -365,14 +471,16 @@ function openLeaveDetail(item) {
         </div>
       </div>
 
-      <!-- TABLE -->
       <div class="table-card">
         <div class="table-header">
           <h2>Daftar Pengajuan Cuti</h2>
 
           <div class="table-actions">
-            <input type="text" placeholder="Cari karyawan..." />
-
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Cari karyawan..."
+            />
             <select v-model="selectedStatus">
               <option value="">Semua Status</option>
 
@@ -403,7 +511,7 @@ function openLeaveDetail(item) {
             <tr v-for="item in filteredLeaves" :key="item.id">
               <td>{{ item.employee_name }}</td>
 
-              <td>{{ item.division }}</td>
+              <td>{{ item.division_name }}</td>
 
               <td>{{ item.leave_type }}</td>
 
@@ -413,7 +521,7 @@ function openLeaveDetail(item) {
                 {{ formatDate(item.end_date) }}
               </td>
 
-              <td>{{ item.days }}</td>
+              <td>{{ item.total_days }}</td>
 
               <td class="reason">
                 {{ item.reason }}
@@ -436,7 +544,11 @@ function openLeaveDetail(item) {
                   <button class="view-btn" @click="openLeaveDetail(item)">
                     Detail
                   </button>
-                  <button v-if="item.status === 'pending'" class="approve-btn">
+                  <button
+                    v-if="item.status === 'pending'"
+                    class="approve-btn"
+                    @click="approveLeave(item.id)"
+                  >
                     Setujui
                   </button>
                 </div>
@@ -532,7 +644,7 @@ function openLeaveDetail(item) {
                 Batal
               </button>
 
-              <button class="save-btn">Simpan</button>
+              <button class="save-btn" @click="saveHoliday">Simpan</button>
             </div>
           </div>
         </div>
@@ -560,7 +672,7 @@ function openLeaveDetail(item) {
                   <p>Divisi</p>
 
                   <h4>
-                    {{ selectedLeave.division }}
+                    {{ selectedLeave.division_name }}
                   </h4>
                 </div>
 
@@ -576,7 +688,7 @@ function openLeaveDetail(item) {
                   <p>Durasi</p>
 
                   <h4>
-                    {{ selectedLeave.days }}
+                    {{ selectedLeave.total_days }}
                     Hari
                   </h4>
                 </div>
@@ -606,6 +718,14 @@ function openLeaveDetail(item) {
                 </div>
               </div>
 
+              <div class="reason-section">
+                <p>Catatan Admin</p>
+
+                <div class="reason-box">
+                  {{ selectedLeave.note || "-" }}
+                </div>
+              </div>
+
               <div class="status-section">
                 <p>Status</p>
 
@@ -629,9 +749,19 @@ function openLeaveDetail(item) {
                 Tutup
               </button>
 
-              <button class="detail-reject-btn">Tolak</button>
+              <button
+                class="detail-reject-btn"
+                @click="rejectLeave(selectedLeave.id)"
+              >
+                Tolak
+              </button>
 
-              <button class="detail-approve-btn">Setujui</button>
+              <button
+                class="detail-approve-btn"
+                @click="approveLeave(selectedLeave.id)"
+              >
+                Setujui
+              </button>
             </div>
           </div>
         </div>
@@ -885,10 +1015,12 @@ function openLeaveDetail(item) {
   border-radius: 999px;
 }
 
+.dot.cuti_approved,
 .dot.employee {
   background: #ef4444;
 }
 
+.dot.hari_libur,
 .dot.holiday {
   background: #22c55e;
 }
