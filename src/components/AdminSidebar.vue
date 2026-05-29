@@ -63,6 +63,13 @@ async function handleLogout() {
       </button>
 
       <button
+        @click="router.push('/admin-cabang/calendar')"
+        :class="{ active: route.path === '/admin-cabang/calendar' }"
+      >
+        Kalender cuti
+      </button>
+
+      <button
         @click="router.push('/admin-cabang/settings')"
         :class="{ active: route.path === '/admin-cabang/settings' }"
       >

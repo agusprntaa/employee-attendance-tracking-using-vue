@@ -64,6 +64,13 @@ const routes = [
     name: 'AdminCabangSettings',
     component: () => import('../views/admin-cabang/Settings.vue')
   },
+
+  {
+    path: '/admin-cabang/calendar',
+    name: 'AdminCabangCalendar',
+    component: () => import('../views/admin-cabang/Calendar.vue')
+  },
+
   // EMPLOYEE
   {
     path: '/employee/dashboard',
@@ -124,47 +131,22 @@ const router = createRouter({
   routes
 })
 
-// guard router role
-// router.beforeEach((to, from, next) => {
-
-
-//   const user = localStorage.getItem('user')
-
-//   if (!user) {
-//     console.log('masuk not if ini')
-//     next({
-//       path: '/'
-//     })
-//   }
-
-//     if (to.path.startsWith('/admin-pusat') && user.role !== 'super_admin') {
-//        next({ path: '/' })
-//      }
-
-//      if (to.path.startsWith('/admin-cabang') && user.role !== 'admin_cabang') {
-//        next({ path: '/' })
-//      }
-
-//      if (to.path.startsWith('/employee') && user.role !== 'karyawan') {
-//        next({ path: '/' })
-//     }
-// next()
-  
-//  })
-
-// //guard router role, tipe
+//guard router role, tipe
 // router.beforeEach((to) => {
 //   const token = localStorage.getItem("token");
+
 //   const mustChangePassword =
-//   localStorage.getItem(
-//     "must_change_password"
-//   ) === "true";
+//     localStorage.getItem(
+//       "must_change_password",
+//     ) === "true";
 
 //   let user = null;
 
 //   try {
-//     user = JSON.parse(localStorage.getItem("user"));
-//   } catch (error) {
+//     user = JSON.parse(
+//       localStorage.getItem("user"),
+//     );
+//   } catch {
 //     user = null;
 //   }
 
@@ -177,49 +159,47 @@ const router = createRouter({
 //   }
 
 //   // FORCE CHANGE PASSWORD
-// if (
-//   mustChangePassword &&
-//   to.path !== "/employee/change-password"
-// ) {
-//   return {
-//     path: "/employee/change-password",
-//     query: {
-//       forced: "true",
-//     },
-//   };
-// }
+//   if (
+//     mustChangePassword &&
+//     to.path !==
+//       "/employee/change-password"
+//   ) {
+//     return {
+//       path:
+//         "/employee/change-password",
+//       query: {
+//         forced: "true",
+//       },
+//     };
+//   }
 
-//   //auto dashboard selama masih ada token di local storage
+//   if (to.path === "/") {
+//     // admin pusat
+//     if (
+//       user.role === "admin" &&
+//       user.tipe === "pusat"
+//     ) {
+//       return "/admin-pusat/dashboard";
+//     }
 
-// //   if (to.path === "/") {
-// //   // kalau wajib ganti password
-// //   if (mustChangePassword) {
-// //     return "/employee/change-password";
-// //   }
+//     // admin cabang
+//     if (
+//       user.role === "admin" &&
+//       user.tipe === "cabang"
+//     ) {
+//       return "/admin-cabang/dashboard";
+//     }
 
-// //   if (
-// //     user.role === "admin" &&
-// //     user.tipe === "pusat"
-// //   ) {
-// //     return "/admin-pusat/dashboard";
-// //   }
-
-// //   if (
-// //     user.role === "admin" &&
-// //     user.tipe === "cabang"
-// //   ) {
-// //     return "/admin-cabang/dashboard";
-// //   }
-
-// //   if (user.role === "karyawan") {
-// //     return "/employee/dashboard";
-// //   }
-
-// //   return "/";
-// // }
+//     // employee
+//     if (user.role === "karyawan") {
+//       return "/employee/dashboard";
+//     }
+//   }
 
 //   if (
-//     to.path.startsWith("/admin-pusat") &&
+//     to.path.startsWith(
+//       "/admin-pusat",
+//     ) &&
 //     !(
 //       user.role === "admin" &&
 //       user.tipe === "pusat"
@@ -229,7 +209,9 @@ const router = createRouter({
 //   }
 
 //   if (
-//     to.path.startsWith("/admin-cabang") &&
+//     to.path.startsWith(
+//       "/admin-cabang",
+//     ) &&
 //     !(
 //       user.role === "admin" &&
 //       user.tipe === "cabang"

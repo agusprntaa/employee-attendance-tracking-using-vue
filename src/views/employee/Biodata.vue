@@ -3,6 +3,12 @@ import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import API from "@/services/api";
 
+import {
+  getProfileAPI,
+  uploadProfilePhotoAPI,
+  updateProfileAPI,
+} from "@/services/auth";
+
 import { LayoutDashboard, CalendarDays, User, LogOut } from "lucide-vue-next";
 
 import { logout } from "@/utils/logout";

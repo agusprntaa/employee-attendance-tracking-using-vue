@@ -1,7 +1,17 @@
 <script setup>
-import { ref, computed } from "vue";
-
+import { ref, computed, onMounted, watch } from "vue";
 import EmployeeBottomNav from "@/components/EmployeeBottomNav.vue";
+
+import {
+  getLeaveTypesAPI,
+  getLeaveNotificationsAPI,
+  markLeaveNotificationReadAPI,
+  markAllLeaveNotificationsReadAPI,
+  getLeaveQuotaAPI,
+  getLeaveHolidaysAPI,
+  getLeaveHistoryAPI,
+  submitLeaveAPI,
+} from "@/services/leave";
 
 const currentDate = ref(new Date());
 
@@ -15,89 +25,64 @@ const leaveForm = ref({
   start_date: "",
   end_date: "",
   reason: "",
-  attachment: "",
+  attachment: null,
 });
+
+const leaveTypes = ref([]);
+
+const holidays = ref([]);
+
+const leaveHistory = ref([]);
+
+const uploadError = ref("");
+
+const submitError = ref("");
+
+const submitSuccess = ref("");
 
 const leaveStats = ref({
-  total: 12,
-  used: 8,
-  remaining: 4,
+  total: 0,
+  used: 0,
+  remaining: 0,
 });
 
-const upcomingLeaves = ref([
-  {
-    id: 1,
-    title: "Cuti tahunan",
-    date: "20 Mei - 21 Mei",
-    days: "2 Hari",
-    status: "approved",
-    note: "Disetujui HR",
-  },
-  {
-    id: 2,
-    title: "Cuti sakit",
-    date: "28 Mei - 28 Mei",
-    days: "1 Hari",
-    status: "pending",
-    note: "Menunggu persetujuan HR",
-  },
-]);
+const upcomingLeaves = computed(() => {
+  return leaveHistory.value;
+});
 
-const notifications = ref([
-  {
-    id: 1,
-    title: "Pengajuan cuti disetujui",
-    desc: "Pengajuan cuti tahunan telah disetujui HR",
-    time: "2 jam lalu",
-    type: "success",
-  },
-  {
-    id: 2,
-    title: "Pengajuan cuti ditolak",
-    desc: "Pengajuan cuti ditolak HR",
-    time: "1 hari lalu",
-    type: "danger",
-  },
-  {
-    id: 3,
-    title: "Pengajuan cuti diproses",
-    desc: "Pengajuan cuti sedang menunggu approval",
-    time: "3 hari lalu",
-    type: "warning",
-  },
-]);
+//be belum ada endpoint notifikasi
+const notifications = ref([]);
 
-const calendarEvents = [
-  {
-    day: 15,
-    type: "holiday",
-    title: "Hari Raya",
-  },
+const notificationPagination = ref({
+  page: 1,
+  totalPages: 1,
+  unread: 0,
+});
+// const notifications = ref([
+//   {
+//     id: 1,
+//     title: "Pengajuan cuti disetujui",
+//     desc: "Pengajuan cuti tahunan telah disetujui HR",
+//     time: "2 jam lalu",
+//     type: "success",
+//   },
+//   {
+//     id: 2,
+//     title: "Pengajuan cuti ditolak",
+//     desc: "Pengajuan cuti ditolak HR",
+//     time: "1 hari lalu",
+//     type: "danger",
+//   },
+//   {
+//     id: 3,
+//     title: "Pengajuan cuti diproses",
+//     desc: "Pengajuan cuti sedang menunggu approval",
+//     time: "3 hari lalu",
+//     type: "warning",
+//   },
+// ]);
 
-  {
-    day: 20,
-    type: "employee",
-    title: "Widi mengambil cuti",
-  },
-
-  {
-    day: 20,
-    type: "employee",
-    title: "Agus mengambil cuti",
-  },
-
-  {
-    day: 21,
-    type: "employee",
-    title: "Wahyu mengambil cuti",
-  },
-
-  {
-    day: 28,
-    type: "holiday",
-    title: "Libur Nasional",
-  },
-];
+const calendarEvents = ref([]);
 
 const monthYear = computed(() => {
   return currentDate.value.toLocaleDateString("id-ID", {
@@ -135,7 +120,17 @@ const calendarDays = computed(() => {
 });
 
 function getEvents(day) {
-  return calendarEvents.filter((item) => item.day === day);
+  if (!day) return [];
+
+  const year = currentDate.value.getFullYear();
+
+  const month = String(currentDate.value.getMonth() + 1).padStart(2, "0");
+
+  const formattedDay = String(day).padStart(2, "0");
+
+  const fullDate = `${year}-${month}-${formattedDay}`;
+
+  return calendarEvents.value.filter((item) => item.date === fullDate);
 }
 
 function selectDate(day) {
@@ -160,11 +155,328 @@ function nextMonth() {
   );
 }
 
-function submitLeave() {
-  console.log("SUBMIT CUTI:", leaveForm.value);
+function generateDateRange(startDate, endDate) {
+  const dates = [];
 
-  showLeaveModal.value = false;
+  const current = new Date(startDate);
+
+  const end = new Date(endDate);
+
+  while (current <= end) {
+    dates.push(current.toISOString().split("T")[0]);
+
+    current.setDate(current.getDate() + 1);
+  }
+
+  return dates;
 }
+
+async function fetchLeaveQuota() {
+  try {
+    const response = await getLeaveQuotaAPI();
+
+    leaveStats.value = response.data.data;
+  } catch (error) {
+    console.error("[FE ERROR] FETCH LEAVE QUOTA FAILED");
+
+    console.error(error);
+
+    leaveStats.value = {
+      total: 0,
+      used: 0,
+      remaining: 0,
+    };
+  }
+}
+
+async function fetchLeaveTypes() {
+  try {
+    const response = await getLeaveTypesAPI();
+
+    leaveTypes.value = response.data.data;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function fetchHolidays() {
+  try {
+    const year = currentDate.value.getFullYear();
+
+    const response = await getLeaveHolidaysAPI(year);
+
+    holidays.value = response.data.data;
+
+    const mappedHolidays = holidays.value.map((item) => ({
+      date: item.date,
+      type: "holiday",
+      title: item.name,
+    }));
+
+    calendarEvents.value = mappedHolidays;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function fetchLeaveHistory() {
+  try {
+    const response = await getLeaveHistoryAPI();
+
+    leaveHistory.value = response.data.data.data;
+
+    const mappedLeaves = leaveHistory.value.flatMap((item) => {
+      const dates = generateDateRange(item.start_date, item.end_date);
+
+      if (item.status === "cancelled") {
+        return [];
+      }
+
+      return dates.map((date) => ({
+        date,
+
+        type: "employee",
+
+        title: item.leave_type,
+
+        status: item.status,
+      }));
+    });
+
+    calendarEvents.value = [
+      ...calendarEvents.value.filter((item) => item.type === "holiday"),
+
+      ...mappedLeaves,
+    ];
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function fetchNotifications() {
+  try {
+    console.log("[FE] FETCH LEAVE NOTIFICATIONS");
+
+    const response = await getLeaveNotificationsAPI();
+
+    console.log("[BE SUCCESS] NOTIFICATIONS:", response.data);
+
+    notifications.value = response.data.data.data;
+
+    notificationPagination.value = {
+      page: response.data.data.page,
+
+      totalPages: response.data.data.total_pages,
+
+      unread: response.data.data.unread_count,
+    };
+  } catch (error) {
+    console.error("[BE ERROR] FETCH NOTIFICATIONS FAILED");
+
+    console.error(error);
+
+    notifications.value = [];
+  }
+}
+
+async function markNotificationRead(id) {
+  try {
+    await markLeaveNotificationReadAPI(id);
+
+    notifications.value = notifications.value.map((item) => {
+      if (item.id === id) {
+        return {
+          ...item,
+          is_read: true,
+        };
+      }
+
+      return item;
+    });
+
+    notificationPagination.value.unread = Math.max(
+      0,
+      notificationPagination.value.unread - 1,
+    );
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function markAllNotificationsRead() {
+  try {
+    await markAllLeaveNotificationsReadAPI();
+
+    notifications.value = notifications.value.map((item) => ({
+      ...item,
+      is_read: true,
+    }));
+
+    notificationPagination.value.unread = 0;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function submitLeave() {
+  try {
+    if (leaveForm.value.reason.trim().length < 10) {
+      submitError.value = "Alasan minimal 10 karakter";
+      return;
+    }
+    const formData = new FormData();
+
+    formData.append("leave_type", leaveForm.value.type);
+
+    formData.append("start_date", leaveForm.value.start_date);
+
+    formData.append("end_date", leaveForm.value.end_date);
+
+    formData.append("reason", leaveForm.value.reason);
+
+    if (leaveForm.value.attachment) {
+      formData.append("attachment", leaveForm.value.attachment);
+    }
+
+    await submitLeaveAPI(formData);
+
+    submitError.value = "";
+
+    uploadError.value = "";
+
+    submitSuccess.value = "Pengajuan cuti berhasil dikirim";
+
+    showLeaveModal.value = false;
+
+    await fetchLeaveHistory();
+    await fetchLeaveQuota();
+  } catch (error) {
+    console.error(error);
+
+    const code = error?.response?.data?.code;
+
+    if (code === "NO_QUOTA") {
+      submitError.value = "Kuota cuti tahunan habis";
+    }
+
+    if (code === "DATE_OVERLAP") {
+      submitError.value = "Tanggal bertabrakan dengan pengajuan lain";
+    }
+
+    if (code === "HOLIDAY_CONFLICT") {
+      submitError.value = "Tanggal mengandung hari libur nasional";
+    }
+
+    if (code === "INVALID_ATTACHMENT") {
+      console.error("[BE ERROR] INVALID ATTACHMENT FORMAT");
+
+      submitError.value = "Format lampiran tidak valid";
+    }
+
+    if (code === "ATTACHMENT_TOO_LARGE") {
+      console.error("[BE ERROR] ATTACHMENT TOO LARGE");
+
+      submitError.value = "Ukuran lampiran melebihi 5MB";
+    }
+
+    if (code === "UPLOAD_FAILED") {
+      console.error("[BE ERROR] FAILED UPLOAD ATTACHMENT");
+
+      console.error("CHECK BACKEND:");
+
+      console.error("- uploads folder");
+
+      console.error("- storage permission");
+
+      console.error("- multer config");
+
+      submitError.value = "Gagal mengupload lampiran";
+    }
+  }
+}
+
+function handleFileUpload(event) {
+  try {
+    console.log("[FE] SELECT ATTACHMENT FILE");
+
+    const file = event.target.files[0];
+
+    // user cancel pilih file
+    if (!file) {
+      console.warn("[FE WARNING] USER CANCEL FILE PICKER");
+
+      return;
+    }
+
+    console.log("[FE] FILE SELECTED:", file.name);
+
+    console.log("[FE] FILE TYPE:", file.type);
+
+    console.log("[FE] FILE SIZE:", file.size);
+
+    const allowedTypes = ["application/pdf", "image/png", "image/jpeg"];
+
+    // validasi format
+    if (!allowedTypes.includes(file.type)) {
+      console.error("[FE ERROR] INVALID FILE TYPE");
+
+      console.error("ALLOWED: PDF/JPG/PNG");
+
+      console.error("RECEIVED:", file.type);
+
+      uploadError.value = "Format file harus PDF/JPG/PNG";
+      return;
+    }
+
+    // validasi ukuran
+    if (file.size > 5 * 1024 * 1024) {
+      console.error("[FE ERROR] FILE TOO LARGE");
+
+      console.error("MAX SIZE: 5MB");
+
+      console.error("RECEIVED:", file.size);
+
+      uploadError.value = "Ukuran file maksimal 5MB";
+      return;
+    }
+
+    leaveForm.value.attachment = file;
+
+    console.log("[FE SUCCESS] ATTACHMENT READY TO UPLOAD");
+  } catch (error) {
+    console.error("[FE ERROR] FAILED PROCESS ATTACHMENT");
+
+    console.error(error);
+
+    console.error("CHECK:");
+
+    console.error("- browser file permission");
+
+    console.error("- safari compatibility");
+
+    console.error("- corrupted file");
+
+    console.error("- unsupported mime type");
+
+    uploadError.value = "Gagal memproses lampiran";
+  }
+}
+
+watch(currentDate, async () => {
+  await fetchHolidays();
+
+  await fetchLeaveHistory();
+});
+
+onMounted(async () => {
+  await Promise.all([
+    fetchNotifications(),
+    fetchLeaveTypes(),
+    fetchLeaveQuota(),
+    fetchHolidays(),
+    fetchLeaveHistory(),
+  ]);
+});
 </script>
 
 <template>
@@ -175,11 +487,6 @@ function submitLeave() {
 
         <p>Kalender Pengajuan cuti karyawan</p>
       </div>
-
-      <button class="notif-btn">
-        <!-- tambahkan icon notif.png -->
-        <!-- <img src="/notif.png" alt="notif" /> -->
-      </button>
 
       <div class="stats">
         <div class="stat-card">
@@ -275,16 +582,25 @@ function submitLeave() {
       <div v-for="item in upcomingLeaves" :key="item.id" class="leave-card">
         <div class="leave-top">
           <div>
-            <h3>{{ item.title }}</h3>
+            <h3>{{ item.leave_type }}</h3>
 
             <p>
-              {{ item.date }}
-              ({{ item.days }})
+              {{ item.start_date }}
+              -
+              {{ item.end_date }} ({{ item.total_days }} Hari)
             </p>
           </div>
 
           <span class="status" :class="item.status">
-            {{ item.status === "approved" ? "Disetujui" : "Menunggu" }}
+            {{
+              item.status === "approved"
+                ? "Disetujui"
+                : item.status === "rejected"
+                  ? "Ditolak"
+                  : item.status === "cancelled"
+                    ? "Dibatalkan"
+                    : "Menunggu"
+            }}
           </span>
         </div>
 
@@ -295,31 +611,59 @@ function submitLeave() {
     </div>
 
     <div class="section">
-      <h2>Notifikasi</h2>
+      <div class="notif-header">
+        <h2>Notifikasi</h2>
 
-      <div v-for="item in notifications" :key="item.id" class="notif-card">
-        <div class="notif-icon" :class="item.type">
-          <!-- tambahkan icon sesuai status -->
-          <!-- success.png -->
-          <!-- warning.png -->
-          <!-- danger.png -->
+        <button
+          v-if="notificationPagination.unread > 0"
+          class="read-all-btn"
+          @click="markAllNotificationsRead"
+        >
+          Tandai Dibaca
+        </button>
+      </div>
 
-          <!-- <img v-if="item.type === 'success'" src="/success.png" alt="" /> -->
+      <div v-if="notifications.length">
+        <div
+          v-for="item in notifications"
+          :key="item.id"
+          class="notif-card"
+          :class="{
+            unread: !item.is_read,
+          }"
+          @click="!item.is_read && markNotificationRead(item.id)"
+        >
+          <div class="notif-content">
+            <h3>{{ item.title }}</h3>
 
-          <!-- <img v-else-if="item.type === 'warning'" src="/warning.png" alt="" /> -->
+            <span class="notif-status" :class="item.status">
+              {{
+                item.status === "approved"
+                  ? "Disetujui"
+                  : item.status === "rejected"
+                    ? "Ditolak"
+                    : "Diproses"
+              }}
+            </span>
 
-          <!-- <img v-else src="/danger.png" alt="" /> -->
-        </div>
+            <p>
+              {{ item.description }}
+            </p>
 
-        <div class="notif-content">
-          <h3>{{ item.title }}</h3>
-
-          <p>{{ item.desc }}</p>
-
-          <span>{{ item.time }}</span>
+            <span class="notif-time">
+              {{ item.updated_at }}
+            </span>
+          </div>
         </div>
       </div>
+
+      <div v-else class="empty-event">Belum ada notifikasi cuti</div>
     </div>
+
+    <p class="password-note">
+      Pengajuan cuti akan diproses oleh HR/admin cabang. Silakan hubungi HR
+      untuk kebutuhan mendesak.
+    </p>
 
     <button class="fab" @click="showLeaveModal = true">+</button>
   </div>
@@ -353,9 +697,7 @@ function submitLeave() {
 
           <div class="event-info">
             <h4>
-              <h4>
-                {{ event.type === "holiday" ? "Hari Libur" : "Karyawan Cuti" }}
-              </h4>
+              {{ event.type === "holiday" ? "Hari Libur" : "Karyawan Cuti" }}
             </h4>
 
             <p>{{ event.title }}</p>
@@ -386,13 +728,13 @@ function submitLeave() {
           <select v-model="leaveForm.type">
             <option value="">Pilih jenis cuti</option>
 
-            <option value="tahunan">Cuti Tahunan</option>
-
-            <option value="sakit">Cuti Sakit</option>
-
-            <option value="melahirkan">Cuti Melahirkan</option>
-
-            <option value="pribadi">Cuti Pribadi</option>
+            <option
+              v-for="type in leaveTypes"
+              :key="type.value"
+              :value="type.value"
+            >
+              {{ type.label }}
+            </option>
           </select>
         </div>
 
@@ -419,15 +761,30 @@ function submitLeave() {
           />
         </div>
 
+        <p v-if="submitError" class="submit-error">
+          {{ submitError }}
+        </p>
+
         <div class="form-group">
           <label>Lampiran (Opsional)</label>
 
           <label class="upload-box">
-            <input type="file" hidden />
+            <input type="file" hidden @change="handleFileUpload" />
+            <span v-if="leaveForm.attachment">
+              {{ leaveForm.attachment.name }}
+            </span>
 
-            <span> Upload PDF / JPG / PNG </span>
+            <span v-else> Upload PDF / JPG / PNG </span>
           </label>
+
+          <p v-if="uploadError" class="form-error">
+            {{ uploadError }}
+          </p>
         </div>
+
+        <p v-if="submitSuccess" class="submit-success">
+          {{ submitSuccess }}
+        </p>
 
         <button class="submit-btn" @click="submitLeave">Ajukan Cuti</button>
       </div>
@@ -442,8 +799,7 @@ function submitLeave() {
   min-height: 100vh;
   height: 300;
   background: #f5f7fb;
-
-  padding: 18px 18px 140px;
+  padding: 18px 18px 180px;
 }
 
 .hero {
@@ -477,34 +833,6 @@ function submitLeave() {
   font-size: 14px;
 
   opacity: 0.92;
-}
-
-.notif-btn {
-  position: absolute;
-
-  top: 20px;
-  right: 20px;
-
-  width: 42px;
-  height: 42px;
-
-  border: none;
-  border-radius: 14px;
-
-  background: rgba(255, 255, 255, 0.14);
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  backdrop-filter: blur(10px);
-}
-
-.notif-btn img {
-  width: 20px;
-  height: 20px;
-
-  object-fit: contain;
 }
 
 .stats {
@@ -816,93 +1144,92 @@ function submitLeave() {
 }
 
 .notif-card {
-  display: flex;
+  position: relative;
 
-  gap: 14px;
+  background: #ffffff;
+
+  border-radius: 22px;
+
+  padding: 18px;
+
+  margin-bottom: 14px;
+
+  border: 1px solid #eef2f7;
+
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
 }
 
-.notif-icon {
-  width: 48px;
-  height: 48px;
+.notif-card:hover {
+  transform: translateY(-1px);
 
-  border-radius: 16px;
-
-  flex-shrink: 0;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
 }
 
-.notif-icon.success {
-  background: #dcfce7;
+.notif-card.unread {
+  background: linear-gradient(135deg, #eef2ff, #f8faff);
+
+  border: 1px solid #c7d2fe;
 }
 
-.notif-icon.warning {
-  background: #fef3c7;
-}
-
-.notif-icon.danger {
-  background: #fee2e2;
-}
-
-.notif-icon img {
-  width: 24px;
-  height: 24px;
-
-  object-fit: contain;
+.notif-content {
+  width: 100%;
 }
 
 .notif-content h3 {
   font-size: 15px;
+
   font-weight: 700;
 
+  line-height: 1.4;
+
   color: #111827;
+
+  margin-bottom: 10px;
 }
 
 .notif-content p {
-  margin-top: 5px;
-
   font-size: 13px;
 
   color: #6b7280;
 
-  line-height: 1.5;
+  line-height: 1.6;
+
+  margin-top: 10px;
 }
 
-.notif-content span {
-  display: block;
+.notif-time {
+  display: inline-flex;
 
-  margin-top: 8px;
+  margin-top: 12px;
 
   font-size: 12px;
+
+  font-weight: 500;
 
   color: #9ca3af;
 }
 
 .fab {
   position: fixed;
-
   right: 20px;
   bottom: 96px;
-
   width: 58px;
   height: 58px;
-
   border: none;
   border-radius: 18px;
-
   background: linear-gradient(135deg, #6366f1, #4f46e5);
-
   color: white;
-
   font-size: 34px;
-
   box-shadow: 0 10px 24px rgba(79, 70, 229, 0.24);
-
   z-index: 99;
-
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .fab:active {
@@ -1052,6 +1379,124 @@ function submitLeave() {
   }
 }
 
+.leave-header h2 {
+  font-size: 22px;
+  font-weight: 700;
+
+  color: #111827;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 600;
+
+  color: #111827;
+}
+
+.form-group select,
+.form-group input,
+.form-group textarea {
+  width: 100%;
+
+  border: none;
+  outline: none;
+
+  background: #f3f4f6;
+
+  border-radius: 16px;
+
+  padding: 15px 16px;
+
+  font-size: 14px;
+
+  font-weight: 500;
+
+  color: #111827;
+
+  transition: all 0.18s ease;
+}
+
+.form-group select {
+  appearance: none;
+
+  -webkit-appearance: none;
+
+  -moz-appearance: none;
+
+  cursor: pointer;
+
+  padding-right: 48px;
+
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+
+  background-repeat: no-repeat;
+
+  background-position: right 16px center;
+
+  background-size: 16px;
+}
+
+.form-group select:focus,
+.form-group input:focus,
+.form-group textarea:focus {
+  background: #ffffff;
+
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
+
+  border-color: #6366f1;
+}
+
+.form-group option {
+  color: #111827;
+
+  background: #ffffff;
+}
+
+.form-group textarea {
+  min-height: 120px;
+
+  resize: none;
+}
+
+.date-grid {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 14px;
+}
+
+.upload-box {
+  width: 100%;
+
+  border: 2px dashed #d1d5db;
+
+  border-radius: 18px;
+
+  padding: 20px;
+
+  text-align: center;
+
+  background: #f9fafb;
+
+  cursor: pointer;
+
+  transition: all 0.18s ease;
+}
+
+.upload-box span {
+  font-size: 14px;
+  font-weight: 500;
+
+  color: #6b7280;
+}
+
+.upload-box:hover {
+  border-color: #6366f1;
+
+  background: #eef2ff;
+}
+
 .leave-modal {
   width: 100%;
   max-width: 520px;
@@ -1186,137 +1631,159 @@ function submitLeave() {
   box-shadow: 0 10px 24px rgba(79, 70, 229, 0.24);
 }
 
-.leave-modal {
-  width: 100%;
-  max-width: 520px;
+.password-note {
+  padding: 12px 14px;
 
-  background: white;
+  border-radius: 12px;
 
-  border-radius: 28px 28px 0 0;
+  background: #eef2ff;
 
-  padding: 22px 20px 120px;
+  color: #4338ca;
 
-  animation: slideUp 0.2s ease;
+  font-size: 12px;
+
+  line-height: 1.6;
+
+  border: 1px solid #c7d2fe;
 }
 
-.leave-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  margin-bottom: 24px;
+.status.rejected {
+  background: #fee2e2;
+  color: #dc2626;
 }
 
-.leave-header h2 {
-  font-size: 22px;
-  font-weight: 700;
-
-  color: #111827;
+.status.cancelled {
+  background: #e5e7eb;
+  color: #4b5563;
 }
 
-.leave-form {
-  display: flex;
-  flex-direction: column;
+.form-error {
+  margin-top: 8px;
 
-  gap: 18px;
+  font-size: 12px;
+
+  color: #dc2626;
+
+  line-height: 1.5;
 }
 
-.form-group {
-  display: flex;
-  flex-direction: column;
+.submit-error {
+  padding: 12px 14px;
 
-  gap: 8px;
+  border-radius: 14px;
+
+  background: #fef2f2;
+
+  border: 1px solid #fecaca;
+
+  color: #dc2626;
+
+  font-size: 13px;
+
+  line-height: 1.5;
 }
 
-.form-group label {
-  font-size: 14px;
-  font-weight: 600;
+.submit-success {
+  padding: 12px 14px;
 
-  color: #111827;
+  border-radius: 14px;
+
+  background: #ecfdf5;
+
+  border: 1px solid #bbf7d0;
+
+  color: #15803d;
+
+  font-size: 13px;
+
+  line-height: 1.5;
 }
 
-.form-group select,
-.form-group input,
-.form-group textarea {
-  width: 100%;
-
-  border: none;
-  outline: none;
-
-  background: #f3f4f6;
-
-  border-radius: 16px;
-
-  padding: 15px 16px;
-
-  font-size: 14px;
-
-  color: #111827;
-}
-
-.form-group textarea {
-  min-height: 120px;
-
-  resize: none;
-}
-
-.date-grid {
-  display: grid;
-
-  grid-template-columns: 1fr 1fr;
-
-  gap: 14px;
-}
-
-.upload-box {
-  width: 100%;
-
-  border: 2px dashed #d1d5db;
-
-  border-radius: 18px;
-
-  padding: 20px;
-
-  text-align: center;
-
-  background: #f9fafb;
-
-  cursor: pointer;
-
-  transition: all 0.18s ease;
-}
-
-.upload-box span {
-  font-size: 14px;
-  font-weight: 500;
-
-  color: #6b7280;
-}
-
-.upload-box:hover {
-  border-color: #6366f1;
+.notif-card.unread {
+  border: 1px solid #c7d2fe;
 
   background: #eef2ff;
 }
 
-.submit-btn {
-  width: 100%;
+.notif-status {
+  display: inline-flex;
 
-  border: none;
+  align-items: center;
 
-  border-radius: 18px;
+  justify-content: center;
 
-  padding: 16px;
+  min-width: 88px;
 
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  height: 28px;
 
-  color: white;
+  padding: 0 12px;
 
-  font-size: 15px;
+  border-radius: 999px;
+
+  font-size: 11px;
+
   font-weight: 700;
 
-  margin-top: 8px;
+  letter-spacing: 0.2px;
+}
 
-  box-shadow: 0 10px 24px rgba(79, 70, 229, 0.24);
+.notif-status.approved {
+  background: #dcfce7;
+
+  color: #15803d;
+}
+
+.notif-status.rejected {
+  background: #fee2e2;
+
+  color: #dc2626;
+}
+
+.notif-status.pending {
+  background: #fef3c7;
+
+  color: #b45309;
+}
+
+.read-all-btn {
+  border: none;
+
+  background: #eef2ff;
+
+  color: #4f46e5;
+
+  height: 38px;
+
+  padding: 0 14px;
+
+  border-radius: 12px;
+
+  font-size: 12px;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition: all 0.18s ease;
+
+  margin-bottom: 14px;
+}
+
+.read-all-btn:hover {
+  background: #dbe4ff;
+}
+
+.notif-card {
+  cursor: pointer;
+}
+
+.notif-header {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  margin-bottom: 16px;
 }
 </style>
