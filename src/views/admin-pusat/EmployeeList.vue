@@ -185,8 +185,8 @@ watch([search, status], () => {
 
           <select v-model="status">
             <option value="">Semua Status</option>
-            <option value="Aktif">Active</option>
-            <option value="Nonaktif">Inactive</option>
+            <option value="aktif">Aktif</option>
+            <option value="nonaktif">Nonaktif</option>
           </select>
           <div class="export">
             <div class="export-actions">
@@ -362,6 +362,7 @@ watch([search, status], () => {
 
 .toolbar input {
   flex: 1;
+  min-width: 320px;
   padding: 9px 14px 9px 36px;
 
   border: 1px solid #e5e7eb;
@@ -480,7 +481,7 @@ thead tr {
 th {
   padding: 11px 22px;
 
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
 
   color: #6b7280;
@@ -496,7 +497,7 @@ th {
 td {
   padding: 13px 22px;
 
-  font-size: 13px;
+  font-size: 14px;
   color: #374151;
 
   border-bottom: 1px solid #f9fafb;

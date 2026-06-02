@@ -82,8 +82,12 @@ async function handleLogout() {
 .bottom-nav {
   position: fixed;
 
-  left: 16px;
-  right: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  width: calc(100% - 32px);
+  max-width: 420px;
+
   bottom: 20px;
 
   height: 55px;
@@ -103,8 +107,6 @@ async function handleLogout() {
   box-shadow:
     0 14px 32px rgba(79, 70, 229, 0.28),
     0 4px 12px rgba(0, 0, 0, 0.08);
-
-  backdrop-filter: blur(10px);
 }
 
 .nav-item {
@@ -256,5 +258,16 @@ async function handleLogout() {
 .confirm:hover {
   background: #e5e7eb;
   color: #374151;
+}
+
+@media (min-width: 768px) {
+  .bottom-nav {
+    height: 62px;
+  }
+
+  .nav-item svg {
+    width: 24px;
+    height: 24px;
+  }
 }
 </style>

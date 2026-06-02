@@ -215,7 +215,7 @@ function goBack() {
     </div>
 
     <button v-if="!loading && scanned" class="retry-btn" @click="retryScanner">
-      Scan Again
+      Scan ulang
     </button>
 
     <div v-if="showPopup" class="popup">
@@ -259,7 +259,8 @@ function goBack() {
   margin: 40px auto;
   width: 90%;
   max-width: 420px;
-  height: 500px;
+  aspect-ratio: 3 / 4;
+  height: auto;
   border-radius: 20px;
   overflow: hidden;
   background: black;
@@ -287,12 +288,12 @@ video {
   margin: auto;
   margin-top: 40px;
   padding: 14px;
-  background: white;
-  border-radius: 12px;
   display: flex;
   justify-content: center;
   gap: 10px;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  background: white;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
   font-size: 14px;
 }
 

@@ -245,7 +245,7 @@ onMounted(() => {
             </div>
 
             <div class="field">
-              <label> Batas Check-in (menit) </label>
+              <label> Maksimal Keterlambatan Check-In </label>
 
               <input type="number" v-model="form.checkin_cutoff_min" />
             </div>
@@ -427,7 +427,7 @@ onMounted(() => {
 }
 
 .field label {
-  font-size: 12px;
+  font-size: 13px;
   color: #6b7280;
 }
 
@@ -458,7 +458,7 @@ input:focus {
 }
 
 .toggle-desc {
-  font-size: 11px;
+  font-size: 12px;
   color: #9ca3af;
 }
 

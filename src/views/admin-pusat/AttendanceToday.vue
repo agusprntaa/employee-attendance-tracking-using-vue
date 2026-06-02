@@ -57,11 +57,11 @@ function getStatus(rate) {
 }
 
 function getStatusClass(rate) {
-  if (rate >= 80) return "Sangat Baik";
+  if (rate >= 80) return "sangat-baik";
 
-  if (rate >= 60) return "Baik";
+  if (rate >= 60) return "baik";
 
-  return "Kritis";
+  return "kritis";
 }
 
 function goBack() {
@@ -192,7 +192,9 @@ onMounted(() => {
             </tr>
 
             <tr v-if="!filteredBranches.length">
-              <td colspan="7" class="empty-table">No attendance data found</td>
+              <td colspan="7" class="empty-table">
+                Tidak ada data kehadiran ditemukan
+              </td>
             </tr>
           </tbody>
         </table>
@@ -313,7 +315,8 @@ onMounted(() => {
 }
 
 .search-input {
-  width: 320px;
+  width: 420px;
+  /* width: 320px; */
   height: 46px;
 
   border: 1px solid #dbe2ea;
@@ -357,7 +360,7 @@ th {
 
   padding: 18px 22px;
 
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
 
   color: #64748b;
@@ -403,17 +406,17 @@ td {
   font-weight: 600;
 }
 
-.status-badge.excellent {
+.status-badge.sangat-baik {
   background: #dcfce7;
   color: #15803d;
 }
 
-.status-badge.good {
+.status-badge.baik {
   background: #dbeafe;
   color: #2563eb;
 }
 
-.status-badge.critical {
+.status-badge.kritis {
   background: #fee2e2;
   color: #dc2626;
 }
@@ -453,5 +456,9 @@ td {
 
   font-size: 14px;
   font-weight: 500;
+}
+
+tr.critical-row {
+  background: #fef2f2;
 }
 </style>

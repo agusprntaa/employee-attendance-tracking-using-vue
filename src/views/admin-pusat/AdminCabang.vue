@@ -404,7 +404,7 @@ async function handleDelete(id) {
             <option
               v-for="branch in branches"
               :key="branch.branch_id"
-              :value="branch.id"
+              :value="branch.branch_name"
             >
               {{ branch.branch_name }}
             </option>
@@ -487,14 +487,14 @@ async function handleDelete(id) {
           <div class="pagination-controls">
             <button :disabled="page <= 1" @click="page--">‹</button>
 
-            <!-- <button
+            <button
               v-for="p in totalPages"
               :key="p"
               :class="{ active: p === page }"
               @click="page = p"
             >
               {{ p }}
-            </button> -->
+            </button>
 
             <button :disabled="page >= totalPages" @click="page++">›</button>
           </div>
@@ -768,7 +768,7 @@ th {
 
 td {
   padding: 13px 22px;
-  font-size: 13px;
+  font-size: 14px;
   color: #374151;
   border-bottom: 1px solid #f9fafb;
 }
@@ -788,7 +788,7 @@ td.bold {
 
 td.highlight {
   color: #4f46e5;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 /* ===== BADGE ===== */
