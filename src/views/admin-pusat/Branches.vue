@@ -57,11 +57,11 @@ const filteredBranches = computed(() => {
 });
 
 function getStatusClass(status) {
-  if (status === "Aktif") {
+  if (status === "Active" || status === "Aktif") {
     return "active";
   }
 
-  return "Nonaktif";
+  return "inactive";
 }
 
 function formatDate(date) {
@@ -302,7 +302,8 @@ onMounted(() => {
 
             <input
               v-model="form.latitude"
-              type="text"
+              type="number"
+              step="any"
               placeholder="-8.670458"
             />
           </div>
@@ -312,7 +313,8 @@ onMounted(() => {
 
             <input
               v-model="form.longitude"
-              type="text"
+              type="number"
+              step="any"
               placeholder="115.212629"
             />
           </div>
@@ -320,7 +322,11 @@ onMounted(() => {
           <div class="form-group">
             <label>Radius Meter</label>
 
-            <input v-model="form.radius_meter" type="text" placeholder="200" />
+            <input
+              v-model="form.radius_meter"
+              type="number"
+              placeholder="200"
+            />
           </div>
 
           <div class="form-group">
@@ -449,7 +455,8 @@ onMounted(() => {
 }
 
 .search-input {
-  width: 320px;
+  width: 420px;
+  /* width: 320px; */
   height: 48px;
 
   border: 1px solid #dbe2ea;
@@ -516,7 +523,7 @@ td {
 
   border-radius: 999px;
 
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -797,5 +804,12 @@ td {
 
   font-size: 14px;
   font-weight: 500;
+}
+
+td:nth-child(3) {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

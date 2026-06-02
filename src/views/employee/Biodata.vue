@@ -117,6 +117,11 @@ function getInitials(name) {
     .toUpperCase();
 }
 
+function handleImageError() {
+  imageError.value = true;
+  console.log("Profile image load failed, displaying initials");
+}
+
 async function handlePhoto(event) {
   const file = event.target.files[0];
 
@@ -235,11 +240,18 @@ async function handleLogout() {
   await logout();
 }
 </script>
+
 <template>
   <div class="wrapper">
-    <!-- <div class="header">
-      <img v-if="!isSetup" src="/goBack.png" class="back" @click="goBack" />
-    </div> -->
+    <div class="header">
+      <img
+        v-if="!isSetup"
+        src="/goBack.png"
+        class="back"
+        @click="goBack"
+        alt="Back"
+      />
+    </div>
 
     <div class="content">
       <div v-if="isSetup" class="setup-info">
@@ -277,7 +289,7 @@ async function handleLogout() {
 
           <p>{{ user.division_name }}</p>
 
-          <span class="status active"> {{ user.status }}</span>
+          <span class="status active">{{ user.status }}</span>
         </div>
 
         <!-- RIGHT -->
@@ -360,342 +372,27 @@ async function handleLogout() {
 <style scoped>
 .wrapper {
   min-height: 100vh;
-  background: #f5f7fb;
-  padding-bottom: 110px;
-}
-
-.header {
-  height: 60px;
-  background: #4f46e5;
-
-  display: flex;
-  align-items: center;
-
-  padding: 0 20px;
-}
-
-.back {
-  width: 22px;
-  cursor: pointer;
-}
-
-.setup-info {
-  max-width: 1100px;
-
-  margin: 20px auto 0;
-
-  padding: 14px 18px;
-
-  border-radius: 16px;
-
-  background: #eef2ff;
-
-  color: #4338ca;
-
-  font-size: 14px;
-
-  font-weight: 500;
-}
-
-.content {
-  width: 100%;
-  max-width: 1100px;
-  margin: 0 auto;
-}
-
-.profile-card {
-  background: white;
-
-  border-radius: 28px;
-
-  padding: 32px;
-
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-
-  display: grid;
-  grid-template-columns: 320px 1fr;
-
-  gap: 32px;
-}
-
-.avatar-section {
-  border-right: 1px solid #e5e7eb;
-
-  padding-right: 32px;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.avatar {
-  width: 140px;
-  height: 140px;
-
-  border-radius: 50%;
-
-  overflow: hidden;
-
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  box-shadow: 0 12px 30px rgba(79, 70, 229, 0.2);
-}
-
-.avatar img {
-  width: 100%;
-  height: 100%;
-
-  object-fit: cover;
-}
-
-.avatar span {
-  color: white;
-
-  font-size: 36px;
-  font-weight: 700;
-}
-
-.upload-btn {
-  margin-top: 18px;
-
-  background: #eef2ff;
-  color: #4338ca;
-
-  padding: 10px 18px;
-
-  border-radius: 999px;
-
-  font-size: 13px;
-  font-weight: 600;
-
-  cursor: pointer;
-
-  transition: 0.2s;
-}
-
-.upload-btn:hover {
-  background: #4f46e5;
-  color: white;
-}
-
-.avatar-section h2 {
-  margin-top: 20px;
-
-  font-size: 24px;
-  font-weight: 700;
-
-  color: #111827;
-}
-
-.avatar-section p {
-  margin-top: 6px;
-
-  font-size: 14px;
-
-  color: #6b7280;
-}
-
-.status {
-  margin-top: 18px;
-
-  padding: 8px 18px;
-
-  border-radius: 999px;
-
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.status.active {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.info-section {
-  display: grid;
-
-  grid-template-columns: 1fr 1fr;
-
-  gap: 22px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-}
-
-.field.full {
-  grid-column: span 2;
-}
-
-.field label {
-  font-size: 13px;
-  font-weight: 600;
-
-  color: #6b7280;
-
-  margin-bottom: 8px;
-}
-
-.field input,
-.field textarea {
-  width: 100%;
-
-  border: none;
-
-  background: #f3f4f6;
-
-  border-radius: 16px;
-
-  padding: 15px 18px;
-
-  font-size: 14px;
-
-  color: #111827;
-
-  outline: none;
-}
-
-.field input:disabled {
-  background: #e5e7eb;
-  color: #6b7280;
-}
-
-.field textarea {
-  resize: none;
-  min-height: 120px;
-}
-
-.success {
-  margin-top: 18px;
-
-  color: #16a34a;
-
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.error {
-  margin-top: 18px;
-
-  color: #dc2626;
-
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.save-btn {
-  width: 100%;
-
-  margin-top: 20px;
-
-  border: none;
-
-  background: #4f46e5;
-  color: white;
-
-  padding: 16px;
-
-  border-radius: 18px;
-
-  font-size: 15px;
-  font-weight: 600;
-
-  cursor: pointer;
-
-  transition: 0.2s;
-}
-
-.save-btn:hover {
-  background: #4338ca;
-}
-
-.save-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-@media (max-width: 900px) {
-  .profile-card {
-    grid-template-columns: 1fr;
-  }
-
-  .avatar-section {
-    border-right: none;
-
-    border-bottom: 1px solid #e5e7eb;
-
-    padding-right: 0;
-    padding-bottom: 24px;
-  }
-
-  .info-section {
-    grid-template-columns: 1fr;
-  }
-
-  .field.full {
-    grid-column: span 1;
-  }
-}
-
-@media (max-width: 640px) {
-  .content {
-    padding: 20px 16px;
-  }
-
-  .profile-card {
-    padding: 22px;
-    border-radius: 24px;
-  }
-
-  .avatar {
-    width: 110px;
-    height: 110px;
-  }
-
-  .avatar-section h2 {
-    font-size: 20px;
-  }
-}
-</style>
-
-<!-- <style scoped>
-.wrapper {
-  min-height: 100vh;
-
   background: linear-gradient(180deg, #eef2ff 0%, #f8fafc 35%, #ffffff 100%);
+  padding-bottom: 110px;
 }
 
 /* HEADER */
 .header {
   height: 64px;
-
   background: transparent;
-
   display: flex;
   align-items: center;
-
   padding: 0 20px;
 }
 
 .back {
   width: 42px;
   height: 42px;
-
   padding: 10px;
-
   border-radius: 14px;
-
   background: #4f46e5;
-
   box-shadow: 0 8px 18px rgba(79, 70, 229, 0.24);
-
   cursor: pointer;
-
   transition:
     transform 0.18s ease,
     background 0.18s ease;
@@ -712,24 +409,15 @@ async function handleLogout() {
 /* SETUP INFO */
 .setup-info {
   max-width: 1100px;
-
   margin: 10px auto 0;
-
   padding: 16px 18px;
-
   border-radius: 22px;
-
   background: rgba(255, 255, 255, 0.8);
-
   backdrop-filter: blur(14px);
-
   border: 1px solid rgba(255, 255, 255, 0.7);
-
   color: #4338ca;
-
   font-size: 14px;
   font-weight: 600;
-
   box-shadow: 0 10px 30px rgba(79, 70, 229, 0.08);
 }
 
@@ -737,38 +425,27 @@ async function handleLogout() {
 .content {
   width: 100%;
   max-width: 1100px;
-
   margin: 0 auto;
-
   padding: 24px 20px 40px;
 }
 
 /* PROFILE CARD */
 .profile-card {
   background: rgba(255, 255, 255, 0.82);
-
   backdrop-filter: blur(16px);
-
   border-radius: 34px;
-
   padding: 34px;
-
   border: 1px solid rgba(255, 255, 255, 0.8);
-
   box-shadow: 0 16px 50px rgba(15, 23, 42, 0.08);
-
   display: grid;
   grid-template-columns: 320px 1fr;
-
   gap: 34px;
 }
 
 /* LEFT */
 .avatar-section {
   border-right: 1px solid rgba(203, 213, 225, 0.5);
-
   padding-right: 34px;
-
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -777,52 +454,37 @@ async function handleLogout() {
 .avatar {
   width: 145px;
   height: 145px;
-
   border-radius: 50%;
-
   overflow: hidden;
-
   background: linear-gradient(135deg, #6366f1, #4f46e5);
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   box-shadow: 0 16px 36px rgba(79, 70, 229, 0.24);
 }
 
 .avatar img {
   width: 100%;
   height: 100%;
-
   object-fit: cover;
 }
 
 .avatar span {
   color: white;
-
   font-size: 38px;
   font-weight: 800;
 }
 
 .upload-btn {
   margin-top: 20px;
-
   background: linear-gradient(135deg, #6366f1, #4f46e5);
-
   color: white;
-
   padding: 12px 18px;
-
   border-radius: 999px;
-
   font-size: 13px;
   font-weight: 700;
-
   cursor: pointer;
-
   box-shadow: 0 10px 22px rgba(79, 70, 229, 0.2);
-
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
@@ -830,7 +492,6 @@ async function handleLogout() {
 
 .upload-btn:hover {
   transform: translateY(-2px);
-
   box-shadow: 0 14px 26px rgba(79, 70, 229, 0.28);
 }
 
@@ -840,51 +501,38 @@ async function handleLogout() {
 
 .avatar-section h2 {
   margin-top: 22px;
-
   font-size: 26px;
   font-weight: 800;
-
   color: #111827;
-
   text-align: center;
 }
 
 .avatar-section p {
   margin-top: 8px;
-
   font-size: 14px;
   font-weight: 500;
-
   color: #64748b;
-
   text-align: center;
 }
 
 .status {
   margin-top: 20px;
-
   padding: 9px 18px;
-
   border-radius: 999px;
-
   font-size: 12px;
   font-weight: 700;
-
   letter-spacing: 0.4px;
 }
 
 .status.active {
   background: #dcfce7;
-
   color: #166534;
 }
 
 /* RIGHT */
 .info-section {
   display: grid;
-
   grid-template-columns: 1fr 1fr;
-
   gap: 24px;
 }
 
@@ -900,31 +548,21 @@ async function handleLogout() {
 .field label {
   font-size: 13px;
   font-weight: 700;
-
   color: #64748b;
-
   margin-bottom: 10px;
 }
 
 .field input,
 .field textarea {
   width: 100%;
-
   border: 1px solid transparent;
-
   background: rgba(248, 250, 252, 0.9);
-
   border-radius: 18px;
-
   padding: 16px 18px;
-
   font-size: 14px;
   font-weight: 500;
-
   color: #111827;
-
   outline: none;
-
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
@@ -934,21 +572,17 @@ async function handleLogout() {
 .field input:focus,
 .field textarea:focus {
   border-color: #6366f1;
-
   background: white;
-
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
 }
 
 .field input:disabled {
   background: #eef2f7;
-
   color: #64748b;
 }
 
 .field textarea {
   resize: none;
-
   min-height: 130px;
 }
 
@@ -956,57 +590,42 @@ async function handleLogout() {
 .success,
 .error {
   margin-top: 18px;
-
   padding: 14px 18px;
-
   border-radius: 16px;
-
   font-size: 14px;
   font-weight: 600;
 }
 
 .success {
   background: #dcfce7;
-
   color: #15803d;
 }
 
 .error {
   background: #fee2e2;
-
   color: #dc2626;
 }
 
 /* BUTTON */
 .save-btn {
   width: 100%;
-
   margin-top: 24px;
-
   height: 56px;
-
   border: none;
   border-radius: 20px;
-
   background: linear-gradient(135deg, #6366f1, #4f46e5);
-
   color: white;
-
   font-size: 15px;
   font-weight: 700;
-
   cursor: pointer;
-
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
-
   box-shadow: 0 12px 28px rgba(79, 70, 229, 0.24);
 }
 
 .save-btn:hover {
   transform: translateY(-2px);
-
   box-shadow: 0 16px 34px rgba(79, 70, 229, 0.3);
 }
 
@@ -1016,9 +635,7 @@ async function handleLogout() {
 
 .save-btn:disabled {
   opacity: 0.6;
-
   cursor: not-allowed;
-
   transform: none;
 }
 
@@ -1030,9 +647,7 @@ async function handleLogout() {
 
   .avatar-section {
     border-right: none;
-
     border-bottom: 1px solid rgba(203, 213, 225, 0.5);
-
     padding-right: 0;
     padding-bottom: 28px;
   }
@@ -1054,7 +669,6 @@ async function handleLogout() {
 
   .profile-card {
     padding: 24px;
-
     border-radius: 28px;
   }
 
@@ -1080,4 +694,4 @@ async function handleLogout() {
     height: 54px;
   }
 }
-</style> -->
+</style>

@@ -320,7 +320,10 @@ onUnmounted(() => {
 
           <div class="panel-body">
             <canvas ref="workModeChartRef"></canvas>
-            <p v-if="!workMode.wfo_count" class="empty">
+            <p
+              v-if="workMode.wfo_count === 0 && workMode.wfa_count === 0"
+              class="empty"
+            >
               Tidak ada Data Mode Kerja
             </p>
           </div>
@@ -512,7 +515,7 @@ onUnmounted(() => {
 }
 
 .subtitle {
-  font-size: 13px;
+  font-size: 14px;
   color: #6b7280;
   margin-top: 3px;
 }
@@ -673,7 +676,7 @@ thead tr {
 
 th {
   padding: 11px 22px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: #6b7280;
   text-transform: uppercase;
@@ -684,7 +687,7 @@ th {
 
 td {
   padding: 13px 22px;
-  font-size: 13px;
+  font-size: 14px;
   color: #374151;
   border-bottom: 1px solid #f9fafb;
 }

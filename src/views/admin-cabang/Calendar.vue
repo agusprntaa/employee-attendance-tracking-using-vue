@@ -30,6 +30,8 @@ const selectedEvents = ref([]);
 
 const showCalendarModal = ref(false);
 
+const adminNote = ref("");
+
 const showHolidayModal = ref(false);
 
 const showLeaveDetailModal = ref(false);
@@ -150,11 +152,11 @@ const openDayModal = async (day) => {
     const { data } = await getCalendarDetail(fullDate);
 
     console.log("[Calendar Detail] Success", data);
+    console.log("[Calendar Detail Full]", JSON.stringify(data, null, 2));
 
     selectedDate.value = fullDate;
 
-    selectedEvents.value = [...data.data.holidays, ...data.data.leaves];
-
+    selectedEvents.value = data.data || [];
     showCalendarModal.value = true;
   } catch (error) {
     console.error("[Calendar Detail] Error", error.response?.data || error);
@@ -262,6 +264,7 @@ const openLeaveDetail = async (item) => {
     console.log("[Leave Detail] Success", data);
 
     selectedLeave.value = data.data;
+    adminNote.value = data.data.note || "";
 
     showLeaveDetailModal.value = true;
   } catch (error) {
@@ -269,13 +272,21 @@ const openLeaveDetail = async (item) => {
   }
 };
 
+function closeLeaveModal() {
+  showLeaveDetailModal.value = false;
+
+  selectedLeave.value = null;
+
+  adminNote.value = "";
+}
+
 const approveLeave = async (id) => {
   try {
     console.log("[Approve Leave] Request", id);
 
     const response = await updateLeaveStatus(id, {
       status: "approved",
-      note: "Disetujui Admin Cabang",
+      note: adminNote.value,
     });
 
     console.log("[Approve Leave] Success", response.data);
@@ -295,7 +306,7 @@ const rejectLeave = async (id) => {
 
     const response = await updateLeaveStatus(id, {
       status: "rejected",
-      note: "Ditolak Admin Cabang",
+      note: adminNote.value,
     });
 
     console.log("[Reject Leave] Success", response.data);
@@ -445,6 +456,11 @@ onMounted(async () => {
 
               <p>Libur Nasional</p>
             </div>
+
+            <div class="legend-item">
+              <span class="legend-dot office_holiday"></span>
+              <p>Libur Kantor</p>
+            </div>
           </div>
         </div>
 
@@ -579,16 +595,23 @@ onMounted(async () => {
                 <div class="event-badge" :class="event.type"></div>
 
                 <div>
-                  <template v-if="event.type === 'employee'">
+                  <template
+                    v-if="
+                      event.type === 'employee' ||
+                      event.type === 'cuti_approved'
+                    "
+                  >
                     <h4>{{ event.employee_name }}</h4>
 
                     <p>{{ event.leave_type }}</p>
                   </template>
 
                   <template v-else>
-                    <h4>{{ event.title }}</h4>
+                    <h4>{{ event.name }}</h4>
 
-                    <p>Hari Libur Nasional</p>
+                    <p v-if="event.category === 'khusus'">Libur Kantor</p>
+
+                    <p v-else>Libur Nasional</p>
                   </template>
                 </div>
               </div>
@@ -653,9 +676,7 @@ onMounted(async () => {
             <div class="leave-detail-header">
               <h2>Detail Pengajuan Cuti</h2>
 
-              <button class="close-btn" @click="showLeaveDetailModal = false">
-                ✕
-              </button>
+              <button class="close-btn" @click="closeLeaveModal()">✕</button>
             </div>
 
             <div v-if="selectedLeave" class="leave-detail-content">
@@ -721,9 +742,13 @@ onMounted(async () => {
               <div class="reason-section">
                 <p>Catatan Admin</p>
 
-                <div class="reason-box">
-                  {{ selectedLeave.note || "-" }}
-                </div>
+                <textarea
+                  v-model="adminNote"
+                  rows="4"
+                  placeholder="Masukkan catatan admin"
+                  class="note-textarea"
+                  :disabled="selectedLeave?.status !== 'pending'"
+                />
               </div>
 
               <div class="status-section">
@@ -741,11 +766,11 @@ onMounted(async () => {
               </div>
             </div>
 
-            <div class="detail-actions">
-              <button
-                class="detail-close-btn"
-                @click="showLeaveDetailModal = false"
-              >
+            <div
+              v-if="selectedLeave?.status === 'pending'"
+              class="detail-actions"
+            >
+              <button class="detail-close-btn" @click="closeLeaveModal">
                 Tutup
               </button>
 
@@ -761,6 +786,11 @@ onMounted(async () => {
                 @click="approveLeave(selectedLeave.id)"
               >
                 Setujui
+              </button>
+            </div>
+            <div v-else class="detail-actions">
+              <button class="detail-close-btn" @click="closeLeaveModal">
+                Tutup
               </button>
             </div>
           </div>
@@ -857,7 +887,7 @@ onMounted(async () => {
 .card:nth-child(1) h2 {
   color: #1e1b4b;
 }
-.card:nth-child(2) h2 {
+/* .card:nth-child(2) h2 {
   color: #16a34a;
 }
 .card:nth-child(3) h2 {
@@ -865,6 +895,17 @@ onMounted(async () => {
 }
 .card:nth-child(4) h2 {
   color: #4f46e5;
+} */
+.card:nth-child(2) h2 {
+  color: #d97706;
+}
+
+.card:nth-child(3) h2 {
+  color: #16a34a;
+}
+
+.card:nth-child(4) h2 {
+  color: #dc2626;
 }
 .card:nth-child(5) h2 {
   color: #dc2626;
@@ -912,7 +953,8 @@ onMounted(async () => {
 
 .calendar-section {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  /* grid-template-columns: 1fr 340px; */
+  grid-template-columns: 0.85fr 320px;
   gap: 20px;
   align-items: start;
 }
@@ -981,7 +1023,7 @@ onMounted(async () => {
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 10px;
+  gap: 8px;
   margin-top: 16px;
 }
 
@@ -992,7 +1034,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #374151;
   transition: 0.16s ease;
@@ -1023,6 +1065,18 @@ onMounted(async () => {
 .dot.hari_libur,
 .dot.holiday {
   background: #22c55e;
+}
+
+.dot.office_holiday {
+  background: #3b82f6;
+}
+
+.legend-dot.office_holiday {
+  background: #3b82f6;
+}
+
+.event-badge.office_holiday {
+  background: #3b82f6;
 }
 
 .legend {
@@ -1061,6 +1115,8 @@ onMounted(async () => {
 /* ACTIVITY */
 
 .activity-card {
+  max-height: 620px;
+  overflow-y: auto;
   padding: 22px;
 }
 
@@ -1191,7 +1247,8 @@ tbody tr:hover {
 }
 
 .reason {
-  max-width: 180px;
+  max-width: 250px;
+  /* max-width: 180px; */
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -1335,6 +1392,14 @@ tbody tr:hover {
   background: #22c55e;
 }
 
+.event-badge.hari_libur {
+  background: #22c55e;
+}
+
+.event-badge.cuti_approved {
+  background: #ef4444;
+}
+
 .event-item h4 {
   font-size: 15px;
   color: #111827;
@@ -1423,7 +1488,8 @@ tbody tr:hover {
 
 .leave-detail-modal {
   width: 100%;
-  max-width: 460px;
+  max-width: 560px;
+  /* max-width: 460px; */
 
   background: #ffffff;
 
@@ -1538,5 +1604,32 @@ tbody tr:hover {
 
 .detail-approve-btn:hover {
   background: #3029b1;
+}
+
+.note-textarea {
+  width: 100%;
+
+  min-height: 100px;
+
+  padding: 14px;
+
+  border: 1px solid #e5e7eb;
+
+  border-radius: 12px;
+
+  resize: vertical;
+
+  font-size: 14px;
+
+  outline: none;
+}
+
+.note-textarea:focus {
+  border-color: #4f46e5;
+}
+
+.today {
+  background: #eef2ff;
+  border: 2px solid #4f46e5;
 }
 </style>

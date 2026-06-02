@@ -224,7 +224,7 @@ function goToChangePassword() {
 }
 
 .info p {
-  font-size: 12px;
+  font-size: 13px;
 
   color: #6b7280;
 }
@@ -282,6 +282,37 @@ function goToChangePassword() {
 
 .btn-change:active {
   transform: scale(0.98);
+}
+
+@media (min-width: 768px) {
+  .profile-card {
+    padding: 24px;
+  }
+
+  .avatar {
+    width: 80px;
+    height: 80px;
+
+    font-size: 24px;
+  }
+
+  .info h3 {
+    font-size: 20px;
+  }
+
+  .info p {
+    font-size: 14px;
+  }
+
+  .badge {
+    font-size: 11px;
+    padding: 6px 12px;
+  }
+
+  .btn-change {
+    height: 52px;
+    font-size: 14px;
+  }
 }
 
 @media (min-width: 1024px) {

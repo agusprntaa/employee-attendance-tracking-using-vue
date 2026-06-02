@@ -257,6 +257,7 @@ function exportExcel() {
       Tanggal: formatDate(d.date),
       Hadir: d.total_present,
       Terlambat: d.total_late,
+      WFA: d.total_wfa,
       "Tidak Hadir": d.total_absent,
     })),
   );
@@ -282,7 +283,6 @@ function exportExcel() {
         <AdminProfile :user="user" />
       </div>
 
-      <!-- TOOLBAR -->
       <div class="filter-bar">
         <div class="filter-group">
           <label>Tanggal Awal</label>
@@ -917,7 +917,7 @@ td.bold {
 }
 
 .pagination-info {
-  font-size: 12px;
+  font-size: 13px;
   color: #9ca3af;
 }
 

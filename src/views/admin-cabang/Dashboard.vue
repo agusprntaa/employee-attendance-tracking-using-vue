@@ -733,7 +733,7 @@ const paginatedEmployees = computed(() => {
 }
 
 .header .subtitle {
-  font-size: 13px;
+  font-size: 14px;
   color: #6b7280;
   margin-top: 3px;
   font-weight: 400;
@@ -916,6 +916,8 @@ const paginatedEmployees = computed(() => {
 } */
 
 table {
+  overflow: hidden;
+  text-overflow: ellipsis;
   width: 100%;
   border-collapse: collapse;
 }
@@ -926,7 +928,7 @@ thead tr {
 
 th {
   padding: 11px 22px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   color: #6b7280;
   text-transform: uppercase;
@@ -937,7 +939,7 @@ th {
 
 td {
   padding: 13px 22px;
-  font-size: 13px;
+  font-size: 14px;
   color: #374151;
   border-bottom: 1px solid #f9fafb;
 }
@@ -955,7 +957,7 @@ td .badge {
   align-items: center;
   padding: 3px 10px;
   border-radius: 20px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.3px;
 }
@@ -1100,7 +1102,8 @@ td .badge {
 }
 
 .btn-export {
-  margin-top: 40px;
+  margin-top: 0;
+  /* margin-top: 40px; */
   padding: 8px 14px;
   border-radius: 10px;
   border: 1.5px solid #4f46e5;
@@ -1405,7 +1408,7 @@ td .badge {
 
   border-radius: 20px;
 
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -1450,7 +1453,7 @@ td .badge {
 }
 
 .pagination-info {
-  font-size: 12px;
+  font-size: 13px;
   color: #9ca3af;
 }
 

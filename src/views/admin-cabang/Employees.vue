@@ -507,6 +507,7 @@ async function confirmDelete() {
 
             <select v-model.number="form.division_id">
               <option :value="null">Pilih Divisi</option>
+              <!-- hardcore -->
               <option :value="1">IT</option>
               <option :value="2">HR</option>
               <option :value="3">Marketing</option>
@@ -831,7 +832,7 @@ thead tr {
 
 th {
   padding: 11px 22px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   color: #6b7280;
   text-transform: uppercase;
@@ -944,13 +945,12 @@ td.highlight {
   font-weight: 500;
 }
 
-/* ===== BADGE ===== */
 .badge {
   display: inline-flex;
   align-items: center;
   padding: 4px 12px;
   border-radius: 20px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.3px;
   text-transform: capitalize;
@@ -1021,7 +1021,7 @@ td.actions button:hover:nth-child(3) {
 }
 
 .pagination-info {
-  font-size: 12px;
+  font-size: 13px;
   color: #9ca3af;
 }
 
@@ -1554,7 +1554,7 @@ td.actions button:hover:nth-child(3) {
 }
 
 .detail-item label {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
 
   text-transform: uppercase;
