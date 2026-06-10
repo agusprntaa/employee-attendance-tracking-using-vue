@@ -106,10 +106,18 @@ function goBack() {
 <template>
   <div class="wrapper">
     <div class="header">
-      <img src="/goBack.png" class="back" @click="goBack" />
+      <button type="button" class="back-btn" @click="goBack">
+        <img src="/goBack.png" alt="" />
+        <span>Kembali</span>
+      </button>
     </div>
 
     <div class="content">
+      <section class="page-heading">
+        <!-- <p>Work From Anywhere</p> -->
+        <h1>Pengajuan WFA</h1>
+      </section>
+
       <LocationBanner
         :isInRadius="isInRadius"
         :distance="distance"
@@ -124,7 +132,10 @@ function goBack() {
       </div>
 
       <div class="form">
-        <h3>Catatan / Alasan</h3>
+        <div class="form-heading">
+          <h3>Catatan / Alasan</h3>
+          <span>{{ note.trim().length }}/200</span>
+        </div>
 
         <textarea
           v-model="note"
@@ -133,11 +144,10 @@ function goBack() {
         ></textarea>
 
         <p v-if="error" class="error">{{ error }}</p>
-
-        <p class="counter">{{ note.trim().length }}/200</p>
       </div>
 
       <button
+        type="button"
         class="btn"
         @click="submitWFA"
         :disabled="loading || note.trim().length < 1"
@@ -151,109 +161,217 @@ function goBack() {
 <style scoped>
 .wrapper {
   min-height: 100vh;
-  background: #f3f4f6;
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(37, 99, 235, 0.1),
+      transparent 32rem
+    ),
+    #f8fafc;
+  color: #0f172a;
 }
 
 .header {
-  height: 60px;
-  background: #4f46e5;
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  width: 100%;
+  max-width: 820px;
+  min-height: 72px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #2563eb;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.back-btn img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  filter: invert(37%) sepia(89%) saturate(2342%) hue-rotate(213deg)
+    brightness(96%) contrast(92%);
+}
+
+.back-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
 }
 
 .content {
   width: 100%;
-  max-width: 640px;
+  max-width: 820px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 0 16px 112px;
 }
 
-@media (min-width: 1024px) {
-  .content {
-    max-width: 820px;
-    padding: 30px 40px;
-  }
+.page-heading {
+  margin-bottom: 16px;
 }
 
-.back {
-  width: 24px;
-  cursor: pointer;
+.page-heading p {
+  margin: 0 0 6px;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.page-heading h1 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.15;
 }
 
 .map-box {
-  margin-top: 16px;
-  border-radius: 16px;
   overflow: hidden;
+  margin-top: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
 }
 
 iframe {
   width: 100%;
-  height: 220px;
+  height: 240px;
   border: none;
   display: block;
 }
 
-@media (min-width: 1024px) {
-  iframe {
-    height: 280px;
-  }
-}
-
 .form {
   margin-top: 20px;
+  padding: 20px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+}
+
+.form-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.form-heading h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.form-heading span {
+  flex-shrink: 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 textarea {
   width: 100%;
-  height: 140px;
+  min-height: 150px;
+  padding: 15px 16px;
+  border: 1px solid #cbd5e1;
   border-radius: 16px;
-  border: none;
-  padding: 16px;
-  margin-top: 10px;
-  background: #e5e7eb;
-  resize: none;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  resize: vertical;
   outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
 }
 
-@media (min-width: 1024px) {
-  textarea {
-    height: 160px;
-  }
+textarea:focus {
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
 }
 
 .btn {
   width: 100%;
   margin-top: 24px;
-  padding: 16px;
-  border-radius: 14px;
-  background: #4f46e5;
-  color: white;
-  border: none;
-  font-weight: 600;
+  min-height: 54px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
 }
 
-@media (min-width: 1024px) {
-  .btn {
-    padding: 18px;
-  }
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(37, 99, 235, 0.28);
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.58;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .error {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  border: 1px solid #fecaca;
+  border-radius: 14px;
+  background: #fef2f2;
   color: #dc2626;
-  font-size: 12px;
-  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.5;
 }
 
-.counter {
-  font-size: 12px;
-  text-align: right;
-  margin-top: 6px;
-  color: #6b7280;
+@media (min-width: 768px) {
+  .header {
+    padding: 18px 24px;
+  }
+
+  .content {
+    padding: 0 24px 124px;
+  }
+
+  iframe {
+    height: 300px;
+  }
+}
+
+@media (max-width: 420px) {
+  .back-btn span {
+    display: none;
+  }
 }
 </style>

@@ -23,47 +23,33 @@ export function getTodayAttendanceEmployee() {
 export const checkoutAttendance = (data) =>
   API.patch("/attendance/checkout", data);
 
-//dummy face recognition
-export async function registerFaceAPI(formData) {
-  console.log("REGISTER FACE");
-
-  console.log(formData);
-
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        data: {
-          success: true,
-          message: "Face registered",
-        },
-      });
-    }, 1500);
-  });
+// REGISTER FACE
+export function registerFaceAPI(formData) {
+  return API.post(
+    "/employee/face/register",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
 }
 
-export async function requestFaceTokenAPI() {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        data: {
-          face_token: "dummy-face-token",
-        },
-      });
-    }, 1000);
-  });
+// STEP 1 - GENERATE FACE TOKEN
+export function requestFaceTokenAPI() {
+  return API.post("/attendance/face-token");
 }
 
-export async function verifyFaceAPI(formData) {
-  console.log(formData);
-
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        data: {
-          success: true,
-          confidence: 92,
-        },
-      });
-    }, 1500);
-  });
+// STEP 2 - VERIFY FACE
+export function verifyFaceAPI(formData) {
+  return API.post(
+    "/attendance/verify-face",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
 }

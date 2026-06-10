@@ -107,6 +107,9 @@ async function login() {
       expires_in,
     } = res.data.data;
 
+    console.log("USER LOGIN:", user);
+    console.log("FACE PATH:", user.face_registered);
+
     console.log("ROLE:", user?.role);
 
     console.log("TIPE:", user?.tipe);
@@ -151,11 +154,19 @@ async function login() {
     // redirect sesuai role & tipe
     if (user.role === "admin" && user.tipe === "pusat") {
       router.push("/admin-pusat/dashboard");
-      // } else if (user.role === "admin_cabang") {
-      //   router.push("/admin-cabang/dashboard");
     } else if (user.role === "admin" && user.tipe === "cabang") {
       router.push("/admin-cabang/dashboard");
     } else if (user.role === "karyawan") {
+      console.log("LOGIN USER:", user);
+
+      const faceRegistered = user.face_registered === true;
+      console.log("FACE REGISTERED:", faceRegistered);
+
+      if (!faceRegistered) {
+        router.push("/employee/register-face");
+        return;
+      }
+
       router.push("/employee/dashboard");
     } else {
       errorGlobal.value = "Role user tidak sesuai sistem. backend.";

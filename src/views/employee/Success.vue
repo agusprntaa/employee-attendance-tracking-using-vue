@@ -40,8 +40,8 @@ function goBack() {
 <template>
   <div class="wrapper">
     <div class="content">
-      <!-- <img src="/success.png" class="image" /> -->
-      <img src="/loading.gif" class="image" />
+      <img src="/success.png" class="image" />
+      <!-- <img src="/loading.gif" class="image" /> -->
 
       <h2 class="title">
         {{ type === "wfa" ? "WFA Berhasil" : "Absen Sukses" }}
@@ -64,42 +64,52 @@ function goBack() {
 <style scoped>
 .wrapper {
   min-height: 100vh;
-  background: #fdfcfc;
   display: flex;
   align-items: center;
   justify-content: center;
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(37, 99, 235, 0.12),
+      transparent 30rem
+    ),
+    #f8fafc;
+  color: #0f172a;
 }
 
 .content {
   width: 100%;
   max-width: 420px;
-  padding: 20px;
+  padding: 24px 16px;
   text-align: center;
 }
 
 .image {
-  width: 160px;
+  width: 150px;
   margin: 0 auto 16px;
 }
 
 .title {
-  color: #4f46e5;
+  color: #0f172a;
   margin-bottom: 20px;
-  font-weight: 600;
+  font-size: 24px;
+  font-weight: 800;
 }
 
 .card {
   width: 100%;
-  background: rgb(255, 255, 255);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: 24px;
   padding: 24px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
   margin-bottom: 20px;
 }
 
 .card h1 {
   font-size: 32px;
-  color: #4f46e5;
+  color: #2563eb;
+  font-weight: 800;
 }
 
 .card p {
@@ -109,12 +119,14 @@ function goBack() {
 }
 
 .badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-top: 12px;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .badge.wfo {
@@ -123,18 +135,29 @@ function goBack() {
 }
 
 .badge.wfa {
-  background: #e0e7ff;
-  color: #3730a3;
+  background: #eff6ff;
+  color: #2563eb;
 }
 
 .btn {
   width: 100%;
-  padding: 16px;
-  border-radius: 14px;
-  background: #4f46e5;
-  color: white;
-  border: none;
-  font-weight: 600;
+  min-height: 54px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  border: 1px solid transparent;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(37, 99, 235, 0.28);
 }
 
 @media (min-width: 1024px) {
@@ -156,7 +179,7 @@ function goBack() {
   }
 
   .btn {
-    padding: 18px;
+    min-height: 56px;
   }
 }
 </style>

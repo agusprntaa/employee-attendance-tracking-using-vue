@@ -103,13 +103,13 @@ function goToChangePassword() {
 </script>
 
 <template>
-  <div class="profile-card" v-if="user" @click="goToBiodata">
+  <article class="profile-card" v-if="user" @click="goToBiodata">
     <div class="top">
-      <div class="avatar">
+      <div class="avatar" aria-hidden="true">
         <img
           v-if="photoPreview && !imageError"
           :src="photoPreview"
-          alt="profile"
+          alt="Foto profil"
           @error="imageError = true"
         />
 
@@ -120,8 +120,7 @@ function goToChangePassword() {
 
       <div class="info">
         <span class="badge">
-          DIVISI
-          {{ user.division_name }}
+          Divisi {{ user.division_name || "-" }}
         </span>
 
         <h3>{{ user.name }}</h3>
@@ -132,152 +131,129 @@ function goToChangePassword() {
 
     <div class="divider"></div>
 
-    <button class="btn-change" @click.stop="goToChangePassword()">
-      UBAH PASSWORD
+    <button type="button" class="btn-change" @click.stop="goToChangePassword()">
+      Ubah Password
     </button>
-  </div>
+  </article>
 </template>
 
 <style scoped>
 .profile-card {
-  cursor: pointer;
-
-  background: #ffffff;
-
+  width: 100%;
   padding: 20px;
-
+  margin-bottom: 0;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: 24px;
-
-  margin-bottom: 18px;
-
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-
-  transition: all 0.25s ease;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .profile-card:hover {
-  transform: translateY(-2px);
-
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+  box-shadow: 0 20px 44px rgba(15, 23, 42, 0.08);
 }
 
 .top {
   display: flex;
   align-items: center;
-
   gap: 14px;
+  min-width: 0;
 }
 
 .avatar {
-  width: 60px;
-  height: 60px;
-
-  border-radius: 50%;
-
-  overflow: hidden;
-
-  flex-shrink: 0;
-
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-
   display: flex;
   align-items: center;
   justify-content: center;
-
-  color: white;
-
+  flex-shrink: 0;
+  width: 62px;
+  height: 62px;
+  overflow: hidden;
+  border: 4px solid #dbeafe;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
   font-size: 18px;
-  font-weight: 700;
-
-  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.25);
+  font-weight: 800;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.22);
 }
 
 .avatar img {
+  display: block;
   width: 100%;
   height: 100%;
-
   object-fit: cover;
-
-  display: block;
 }
 
 .avatar span {
-  width: 100%;
-  height: 100%;
-
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  height: 100%;
 }
 
 .info {
   flex: 1;
+  min-width: 0;
 }
 
 .info h3 {
-  margin: 5px 0;
-
-  font-size: 16px;
-  font-weight: 700;
-
-  color: #111827;
+  margin: 7px 0 4px;
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .info p {
+  margin: 0;
+  color: #64748b;
   font-size: 13px;
-
-  color: #6b7280;
+  font-weight: 600;
+  line-height: 1.45;
 }
 
 .badge {
-  display: inline-block;
-
-  background: #eef2ff;
-  color: #4338ca;
-
-  padding: 5px 10px;
-
+  display: inline-flex;
+  max-width: 100%;
+  padding: 6px 10px;
+  overflow: hidden;
   border-radius: 999px;
-
-  font-size: 10px;
-  font-weight: 700;
-
-  letter-spacing: 0.4px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .divider {
-  border-top: 1px dashed #e5e7eb;
-
   margin: 18px 0;
+  border-top: 1px solid #e2e8f0;
 }
 
 .btn-change {
   width: 100%;
-
-  border: none;
-
-  padding: 14px;
-
+  min-height: 50px;
+  padding: 0 16px;
+  border: 1px solid transparent;
   border-radius: 16px;
-
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-
-  color: white;
-
-  font-size: 13px;
-  font-weight: 700;
-
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
   cursor: pointer;
-
-  transition: all 0.25s ease;
-
-  box-shadow: 0 6px 18px rgba(79, 70, 229, 0.25);
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.22);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .btn-change:hover {
-  transform: translateY(-2px);
-
-  box-shadow: 0 10px 26px rgba(79, 70, 229, 0.35);
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(37, 99, 235, 0.28);
 }
 
 .btn-change:active {
@@ -286,53 +262,25 @@ function goToChangePassword() {
 
 @media (min-width: 768px) {
   .profile-card {
-    padding: 24px;
+    padding: 22px;
   }
 
   .avatar {
-    width: 80px;
-    height: 80px;
-
-    font-size: 24px;
-  }
-
-  .info h3 {
-    font-size: 20px;
-  }
-
-  .info p {
-    font-size: 14px;
-  }
-
-  .badge {
-    font-size: 11px;
-    padding: 6px 12px;
-  }
-
-  .btn-change {
-    height: 52px;
-    font-size: 14px;
+    width: 72px;
+    height: 72px;
+    font-size: 22px;
   }
 }
 
-@media (min-width: 1024px) {
-  .profile-card {
-    padding: 24px;
+@media (max-width: 380px) {
+  .top {
+    align-items: flex-start;
   }
 
   .avatar {
-    width: 68px;
-    height: 68px;
-
-    font-size: 20px;
-  }
-
-  .info h3 {
-    font-size: 17px;
-  }
-
-  .btn-change {
-    padding: 15px;
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
   }
 }
 </style>

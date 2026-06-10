@@ -168,8 +168,10 @@ async function fetchHistory() {
 // NAVIGATION
 function goToScan() {
   if (!canCheckIn.value) return;
+  console.log("CHECK IN CLICKED");
 
-  router.push("/checkin-face");
+  router.push("/employee/checkin-face");
+  // router.push("/checkin-face");
 }
 
 function goToWFA() {
@@ -337,77 +339,118 @@ async function handleLogout() {
 
 <template>
   <div class="wrapper">
-    <div class="content">
-      <LocationBanner
-        :isInRadius="isInRadius"
-        :distance="distance"
-        :nearestOffice="nearestOffice"
-      />
+    <main class="content">
+      <section class="dashboard-header" aria-label="Ringkasan dashboard">
+        <div>
+          <!-- <p class="eyebrow">Employee Attendance</p> -->
+          <h1>Dashboard</h1>
+        </div>
 
-      <ProfileCard v-if="user" :user="user" />
+        <div class="clock-card">
+          <span>{{ currentTime || "--:--:--" }}</span>
+          <small>Waktu sekarang</small>
+        </div>
+      </section>
 
-      <div class="clock">
-        <h1>{{ currentTime }}</h1>
-        <p>Waktu sekarang</p>
-      </div>
+      <div class="dashboard-grid">
+        <section class="profile-column" aria-label="Profil dan lokasi">
+          <LocationBanner
+            :isInRadius="isInRadius"
+            :distance="distance"
+            :nearestOffice="nearestOffice"
+          />
 
-      <button class="btn" @click="goToScan" :disabled="!canCheckIn">
-        {{
-          alreadyCheckedIn
-            ? "SUDAH ABSEN"
-            : !isInRadius
-              ? "DI LUAR RADIUS"
-              : "CHECK IN"
-        }}
-      </button>
+          <ProfileCard v-if="user" :user="user" />
+        </section>
 
-      <button
-        class="btn-outline"
-        @click="goToWFA"
-        :disabled="loading || alreadyCheckedIn"
-      >
-        {{ alreadyCheckedIn ? "SUDAH ABSEN" : "WFA" }}
-      </button>
+        <section class="attendance-card" aria-label="Aksi absensi">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Absensi hari ini</p>
+              <h2>Mulai aktivitas kerja</h2>
+            </div>
 
-      <div
-        v-if="alreadyCheckedIn && !alreadyCheckedOut && checkoutInfo"
-        class="checkout-info"
-      >
-        <p class="checkout-time">
-          Anda dapat pulang pukul
-          <strong>
-            {{ formatCheckoutTime(checkoutInfo.checkoutTime) }}
-          </strong>
-        </p>
-
-        <button
-          class="checkout-link"
-          :class="{
-            danger: checkoutInfo.isFinished,
-          }"
-          @click="onClickCheckout"
-        >
-          {{
-            checkoutInfo.isFinished ? "Pulang sekarang" : "Ajukan pulang cepat?"
-          }}
-        </button>
-      </div>
-
-      <div class="history">
-        <h3>Riwayat Absensi</h3>
-
-        <div class="item" v-for="item in history" :key="item.id">
-          <div>
-            <strong class="time">
-              {{ formatTime(item.check_in) }}
-            </strong>
-
-            <p class="date">
-              {{ formatDateIndo(item.date) }}
-            </p>
+            <span
+              class="attendance-state"
+              :class="{ completed: alreadyCheckedIn }"
+            >
+              {{ alreadyCheckedIn ? "Sudah absen" : "Belum absen" }}
+            </span>
           </div>
 
-          <div class="status-wrapper">
+          <div class="action-grid">
+            <button
+              type="button"
+              class="btn btn-primary"
+              @click="goToScan"
+              :disabled="!canCheckIn"
+            >
+              {{
+                alreadyCheckedIn
+                  ? "Sudah Absen"
+                  : !isInRadius
+                    ? "Di Luar Radius"
+                    : "Check In"
+              }}
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-secondary"
+              @click="goToWFA"
+              :disabled="loading || alreadyCheckedIn"
+            >
+              {{ alreadyCheckedIn ? "Sudah Absen" : "WFA" }}
+            </button>
+          </div>
+
+          <div
+            v-if="alreadyCheckedIn && !alreadyCheckedOut && checkoutInfo"
+            class="checkout-info"
+          >
+            <p class="checkout-time">
+              Anda dapat pulang pukul
+              <strong>{{
+                formatCheckoutTime(checkoutInfo.checkoutTime)
+              }}</strong>
+            </p>
+
+            <button
+              type="button"
+              class="checkout-link"
+              :class="{ danger: checkoutInfo.isFinished }"
+              @click="onClickCheckout"
+            >
+              {{
+                checkoutInfo.isFinished
+                  ? "Pulang sekarang"
+                  : "Ajukan pulang cepat?"
+              }}
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <section class="history-card" aria-label="Riwayat absensi">
+        <div class="section-heading history-heading">
+          <div>
+            <p class="section-kicker">Aktivitas</p>
+            <h2>Riwayat Absensi</h2>
+          </div>
+        </div>
+
+        <div class="history-list">
+          <article class="history-item" v-for="item in history" :key="item.id">
+            <div class="history-main">
+              <strong class="time">
+                {{ formatTime(item.check_in) }}
+              </strong>
+
+              <p class="date">
+                {{ formatDateIndo(item.date) }}
+              </p>
+            </div>
+
             <div class="status-wrapper">
               <span class="status" :class="getStatusClass(item.status)">
                 {{ getStatusLabel(item.status) }}
@@ -417,446 +460,293 @@ async function handleLogout() {
                 {{ checkoutLabel(item) }}
               </small>
             </div>
-          </div>
+          </article>
         </div>
+      </section>
+    </main>
+
+    <Transition name="toast">
+      <div v-if="showPopup" class="popup" role="status" aria-live="polite">
+        {{ popupMessage }}
       </div>
+    </Transition>
 
-      <!-- <div class="logout-wrapper">
-        <button class="btn-logout" @click="showLogoutConfirm = true">
-          Keluar
-        </button>
-      </div> -->
+    <div
+      v-if="showLogoutConfirm"
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="logout-title"
+    >
+      <div class="modal-box">
+        <h3 id="logout-title" class="modal-title">Yakin ingin keluar?</h3>
 
-      <div v-if="showLogoutConfirm" class="modal">
-        <div class="modal-box">
-          <p>Yakin ingin keluar?</p>
+        <div class="actions">
+          <button
+            type="button"
+            class="cancel"
+            @click="showLogoutConfirm = false"
+          >
+            Tetap di sini
+          </button>
 
-          <div class="actions">
-            <button class="cancel" @click="showLogoutConfirm = false">
-              Tetap di sini
-            </button>
-
-            <button class="confirm" @click="handleLogout">Keluar</button>
-          </div>
+          <button type="button" class="confirm" @click="handleLogout">
+            Keluar
+          </button>
         </div>
       </div>
     </div>
-    <div v-if="showEarlyLeaveModal" class="modal">
+
+    <div
+      v-if="showEarlyLeaveModal"
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="early-leave-title"
+    >
       <div class="modal-box">
-        <h3 class="modal-title">Alasan Pulang Cepat</h3>
+        <h3 id="early-leave-title" class="modal-title">Alasan Pulang Cepat</h3>
+
+        <label class="reason-label" for="early-leave-reason">
+          Jelaskan alasan Anda
+        </label>
 
         <textarea
+          id="early-leave-reason"
           v-model="earlyLeaveReason"
           class="reason-input"
           placeholder="Masukkan alasan pulang cepat..."
         ></textarea>
 
         <div class="actions">
-          <button class="cancel" @click="showEarlyLeaveModal = false">
+          <button
+            type="button"
+            class="cancel"
+            @click="showEarlyLeaveModal = false"
+          >
             Batal
           </button>
 
-          <button class="confirm" @click="handleCheckout(earlyLeaveReason)">
+          <button
+            type="button"
+            class="confirm"
+            @click="handleCheckout(earlyLeaveReason)"
+          >
             Kirim
           </button>
         </div>
       </div>
     </div>
   </div>
+
   <EmployeeBottomNav />
 </template>
 
 <style scoped>
 .wrapper {
   min-height: 100vh;
-  background: #f5f7fb;
-}
-
-.header {
-  height: 64px;
-
-  background: #4f46e5;
-
-  display: flex;
-  align-items: center;
-
-  padding: 0 20px;
-}
-
-.menu-btn {
-  border: none;
-
-  background: transparent;
-
-  color: white;
-
-  font-size: 28px;
-
-  cursor: pointer;
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(37, 99, 235, 0.1),
+      transparent 32rem
+    ),
+    #f8fafc;
+  color: #0f172a;
 }
 
 .content {
   width: 100%;
-  max-width: 680px;
-
+  max-width: 1120px;
   margin: 0 auto;
+  padding: 20px 16px 112px;
+}
 
+.dashboard-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.eyebrow,
+.section-kicker {
+  margin: 0 0 6px;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dashboard-header h1,
+.section-heading h2 {
+  margin: 0;
+  color: #0f172a;
+}
+
+.dashboard-header h1 {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.clock-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 20px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+}
+
+.clock-card span {
+  color: #0f172a;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.clock-card small {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.profile-column {
+  min-width: 0;
+}
+
+.attendance-card,
+.history-card {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 24px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+}
+
+.attendance-card {
   padding: 20px;
-
-  padding-bottom: 120px;
 }
 
-@media (min-width: 768px) {
-  .content {
-    max-width: 860px;
-    padding: 28px;
-  }
+.section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
 }
 
-@media (min-width: 1024px) {
-  .content {
-    max-width: 1000px;
-    padding: 32px;
-  }
+.section-heading h2 {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.25;
 }
 
-.clock {
-  text-align: center;
-  margin: 28px 0;
+.attendance-state {
+  flex-shrink: 0;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
-.clock h1 {
-  font-size: 42px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: #111827;
+.attendance-state.completed {
+  background: #dcfce7;
+  color: #15803d;
 }
 
-@media (min-width: 768px) {
-  .clock h1 {
-    font-size: 52px;
-  }
+.action-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
 }
 
 .btn {
   width: 100%;
-  padding: 17px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  color: white;
-  border: none;
-  font-weight: 600;
+  min-height: 54px;
+  padding: 0 18px;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-weight: 800;
   cursor: pointer;
-  transition: all 0.25s ease;
-  box-shadow: 0 6px 18px rgba(79, 70, 229, 0.25);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24);
+}
+
+.btn-secondary {
+  background: #ffffff;
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.28);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
 }
 
 .btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(79, 70, 229, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 16px 30px rgba(37, 99, 235, 0.28);
 }
 
 .btn:active {
   transform: scale(0.98);
 }
 
-.btn-outline {
-  width: 100%;
-  padding: 17px;
-  border-radius: 14px;
-  border: 2px solid #4f46e5;
-  background: white;
-  color: #4f46e5;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 12px;
-  transition: all 0.25s ease;
-}
-
-.btn-outline:active {
-  transform: scale(0.98);
-}
-
-@media (min-width: 768px) {
-  .btn,
-  .btn-outline {
-    height: 58px;
-
-    font-size: 15px;
-  }
-}
-
-.btn:disabled,
-.btn-outline:disabled {
-  opacity: 0.5;
+.btn:disabled {
+  opacity: 0.58;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
 }
 
-.history {
-  margin-top: 32px;
-}
-
-.history h3 {
-  margin-bottom: 14px;
-  font-size: 17px;
-  font-weight: 600;
-  color: #374151;
-}
-
-.item {
-  background: #ffffff;
-  border-radius: 18px;
-  padding: 16px;
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 12px;
-  align-items: center;
-  transition: all 0.25s ease;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
-}
-
-.item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
-}
-
-@media (min-width: 768px) {
-  .item {
-    padding: 18px;
-  }
-}
-
-.time {
-  font-size: 22px;
-  font-weight: 700;
-  color: #111827;
-}
-
-.date {
-  color: #3b82f6;
-  font-size: 13px;
-  margin-top: 2px;
-}
-
-.status {
-  padding: 8px 14px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-/* .status.hadir {
-  background: #e0f2fe;
-  color: #0369a1;
-}
-
-.status.wfa {
-  background: #eef2ff;
-  color: #4338ca;
-} */
-
-.status.late {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-.logout-wrapper {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 10px;
-}
-
-.btn-logout {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 18px;
-  background: transparent;
-  border: 1.5px solid #ef4444;
-  color: #ef4444;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-
-.btn-logout:hover {
-  background: #ef4444;
-  color: #fff;
-  transform: translateY(-1px);
-}
-
-.btn-logout:active {
-  transform: scale(0.96);
-}
-
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-  animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.modal-box {
-  background: #ffffff;
-  border-radius: 18px;
-  padding: 28px 24px;
-  width: 100%;
-  max-width: 340px;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.18);
-  text-align: center;
-  animation: slideUp 0.25s ease;
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.modal-box p {
-  font-size: 15px;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 22px;
-}
-
-.actions {
-  display: flex;
-  gap: 10px;
-}
-
-.cancel {
-  flex: 1;
-  padding: 11px 0;
-  background: #6a65d8;
-  color: #ffffff;
-  border: none;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.cancel:hover {
-  background: #4338ca;
-}
-
-.confirm {
-  flex: 1;
-  padding: 11px 0;
-  background: #f3f4f6;
-  color: #6b7280;
-  border: none;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.confirm:hover {
-  background: #e5e7eb;
-  color: #374151;
-}
-
-.popup {
-  position: fixed;
-
-  top: 20px;
-  left: 50%;
-
-  transform: translateX(-50%);
-
-  background: #fee2e2;
-  color: #b91c1c;
-
-  padding: 14px 22px;
-
-  border-radius: 14px;
-
-  font-size: 14px;
-  font-weight: 600;
-
-  z-index: 9999;
-
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-}
-
-.modal-title {
-  font-size: 18px;
-  font-weight: 700;
-
-  color: #111827;
-
-  margin-bottom: 18px;
-}
-
-.reason-input {
-  width: 100%;
-  min-height: 120px;
-
-  border: 1px solid #d1d5db;
-  border-radius: 14px;
-
-  padding: 14px;
-
-  resize: none;
-
-  font-size: 14px;
-
-  outline: none;
-
-  margin-bottom: 18px;
-}
-
-.reason-input:focus {
-  border-color: #4f46e5;
-}
-
 .checkout-info {
-  margin-top: 18px;
-
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   text-align: center;
 }
 
 .checkout-time {
+  margin: 0 0 8px;
+  color: #64748b;
   font-size: 13px;
+  line-height: 1.5;
+}
 
-  color: #6b7280;
-
-  margin-bottom: 6px;
+.checkout-time strong {
+  color: #0f172a;
 }
 
 .checkout-link {
   border: none;
   background: transparent;
-  color: #7973e5;
+  color: #2563eb;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -866,6 +756,77 @@ async function handleLogout() {
 
 .checkout-link.danger {
   color: #dc2626;
+}
+
+.history-card {
+  margin-top: 16px;
+  padding: 20px;
+}
+
+.history-heading {
+  margin-bottom: 14px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: #ffffff;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.history-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.history-main {
+  min-width: 0;
+}
+
+.time {
+  display: block;
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.date {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.status-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  gap: 5px;
+}
+
+.status {
+  padding: 7px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .status.hadir {
@@ -879,47 +840,237 @@ async function handleLogout() {
 }
 
 .status.wfa {
-  background: #e0e7ff;
-  color: #4338ca;
-}
-
-.history-pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  gap: 12px;
-
-  margin-top: 18px;
-}
-
-.history-pagination button {
-  width: 34px;
-  height: 34px;
-
-  border: none;
-  border-radius: 10px;
-
-  background: #4f46e5;
-  color: white;
-
-  cursor: pointer;
-}
-
-.history-pagination button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.status-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
+  background: #dbeafe;
+  color: #1d4ed8;
 }
 
 .status-note {
-  font-size: 10px;
-  color: #9ca3af;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(6px);
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-box {
+  width: 100%;
+  max-width: 380px;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 24px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2);
+  animation: slideUp 0.24s ease;
+}
+
+.modal-title {
+  margin: 0 0 18px;
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.reason-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.reason-input {
+  width: 100%;
+  min-height: 124px;
+  padding: 14px;
+  margin-bottom: 16px;
+  resize: vertical;
+  border: 1px solid #cbd5e1;
+  border-radius: 16px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 14px;
+  line-height: 1.5;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.reason-input:focus {
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.cancel,
+.confirm {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.cancel {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+}
+
+.confirm {
+  border: 1px solid transparent;
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22);
+}
+
+.cancel:hover,
+.confirm:hover {
+  transform: translateY(-1px);
+}
+
+.cancel:hover {
+  background: #f8fafc;
+}
+
+.popup {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  z-index: 10000;
+  width: calc(100% - 32px);
+  max-width: 420px;
+  transform: translateX(-50%);
+  padding: 14px 18px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.94);
+  color: #ffffff;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.toast-enter-active,
+.toast-leave-active {
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
+}
+
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -10px);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (min-width: 640px) {
+  .content {
+    padding: 28px 24px 124px;
+  }
+
+  .dashboard-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .clock-card {
+    width: auto;
+    min-width: 220px;
+    align-items: flex-end;
+  }
+
+  .action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 900px) {
+  .content {
+    padding: 34px 28px 130px;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+    align-items: start;
+  }
+
+  .attendance-card {
+    min-height: 100%;
+  }
+
+  .dashboard-header h1 {
+    font-size: 32px;
+  }
+}
+
+@media (max-width: 430px) {
+  .section-heading {
+    flex-direction: column;
+  }
+
+  .attendance-state {
+    align-self: flex-start;
+  }
+
+  .history-item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .status-wrapper {
+    align-items: flex-start;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
 }
 </style>

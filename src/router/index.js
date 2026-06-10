@@ -114,26 +114,18 @@ const routes = [
     component: () => import('../views/employee/Biodata.vue')
   },
 
-  //dummy face recognition
 {
-  path: "/register-face",
-  name: "register-face",
+  path: "/employee/register-face",
+  name: "RegisterFace",
   component: () =>
     import("../views/employee/RegisterFaceView.vue"),
 },
 {
-  path: "/checkin-face",
-  name: "checkin-face",
+  path: "/employee/checkin-face",
+  name: "CheckInFace",
   component: () =>
     import("../views/employee/CheckInFaceView.vue"),
 },
-
-  // {
-  //   path: '/employee/complete-profile',
-  //   name: 'CompleteProfile',
-  //   component: () => import('../views/employee/CompleteProfile.vue')
-  // },
-
   {
     path: '/:pathMatch(.*)*',
     redirect: '/'
@@ -146,102 +138,111 @@ const router = createRouter({
 })
 
 // guard router role, tipe
-// router.beforeEach((to) => {
-//   const token = localStorage.getItem("token");
+router.beforeEach((to) => {
+  const token = localStorage.getItem("token");
 
-//   const mustChangePassword =
-//     localStorage.getItem(
-//       "must_change_password",
-//     ) === "true";
+  const mustChangePassword =
+    localStorage.getItem("must_change_password") === "true";
 
-//   let user = null;
+  let user = null;
 
-//   try {
-//     user = JSON.parse(
-//       localStorage.getItem("user"),
-//     );
-//   } catch {
-//     user = null;
-//   }
+  try {
+    user = JSON.parse(
+      localStorage.getItem("user")
+    );
+  } catch {
+    user = null;
+  }
 
-//   if (!token || !user) {
-//     if (to.path !== "/") {
-//       return "/";
-//     }
+  // BELUM LOGIN
+  if (!token || !user) {
+    if (to.path !== "/") {
+      return "/";
+    }
 
-//     return true;
-//   }
+    return true;
+  }
 
-//   // FORCE CHANGE PASSWORD
-//   if (
-//     mustChangePassword &&
-//     to.path !==
-//       "/employee/change-password"
-//   ) {
-//     return {
-//       path:
-//         "/employee/change-password",
-//       query: {
-//         forced: "true",
-//       },
-//     };
-//   }
+  const isEmployee =
+    user.role === "karyawan";
 
-//   if (to.path === "/") {
-//     // admin pusat
-//     if (
-//       user.role === "admin" &&
-//       user.tipe === "pusat"
-//     ) {
-//       return "/admin-pusat/dashboard";
-//     }
+  const isAdminPusat =
+    user.role === "admin" &&
+    user.tipe === "pusat";
 
-//     // admin cabang
-//     if (
-//       user.role === "admin" &&
-//       user.tipe === "cabang"
-//     ) {
-//       return "/admin-cabang/dashboard";
-//     }
+  const isAdminCabang =
+    user.role === "admin" &&
+    user.tipe === "cabang";
 
-//     // employee
-//     if (user.role === "karyawan") {
-//       return "/employee/dashboard";
-//     }
-//   }
+// const faceRegistered =
+//   !!user.face_reference_path;
 
-//   // if (
-//   //   to.path.startsWith(
-//   //     "/admin-pusat",
-//   //   ) &&
-//   //   !(
-//   //     user.role === "admin" &&
-//   //     user.tipe === "pusat"
-//   //   )
-//   // ) {
-//   //   return "/";
-//   // }
+// const profileCompleted =
+//   user.profile_completed === true;
 
-//   // if (
-//   //   to.path.startsWith(
-//   //     "/admin-cabang",
-//   //   ) &&
-//   //   !(
-//   //     user.role === "admin" &&
-//   //     user.tipe === "cabang"
-//   //   )
-//   // ) {
-//   //   return "/";
-//   // }
+  // if (
+  //   isEmployee &&
+  //   mustChangePassword &&
+  //   to.path !== "/employee/change-password"
+  // ) {
+  //   return "/employee/change-password";
+  // }
 
-//   // if (
-//   //   to.path.startsWith("/employee") &&
-//   //   user.role !== "karyawan"
-//   // ) {
-//   //   return "/";
-//   // }
+  // if (
+  //   isEmployee &&
+  //   !mustChangePassword &&
+  //   !faceRegistered &&
+  //   to.path !== "/employee/register-face"
+  // ) {
+  //   return "/employee/register-face";
+  // }
 
-//   return true;
-// });
+  // if (
+  //   isEmployee &&
+  //   !mustChangePassword &&
+  //   faceRegistered &&
+  //   !profileCompleted &&
+  //   to.path !== "/employee/biodata"
+  // ) {
+  //   return "/employee/biodata";
+  // }
+
+  if (to.path === "/") {
+    if (isAdminPusat) {
+      return "/admin-pusat/dashboard";
+    }
+
+    if (isAdminCabang) {
+      return "/admin-cabang/dashboard";
+    }
+
+    if (isEmployee) {
+      return "/employee/dashboard";
+    }
+  }
+
+  if (
+    to.path.startsWith("/admin-pusat") &&
+    !isAdminPusat
+  ) {
+    return "/";
+  }
+
+  if (
+    to.path.startsWith("/admin-cabang") &&
+    !isAdminCabang
+  ) {
+    return "/";
+  }
+
+  if (
+    to.path.startsWith("/employee") &&
+    !isEmployee
+  ) {
+    return "/";
+  }
+
+  return true;
+});
 
 export default router

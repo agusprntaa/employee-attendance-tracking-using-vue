@@ -7,100 +7,116 @@ defineProps({
 </script>
 
 <template>
-  <div
+  <aside
     v-if="nearestOffice"
     class="banner"
     :class="isInRadius ? 'inside' : 'outside'"
   >
-    <p class="status">
-      {{ isInRadius ? "Dalam radius kantor" : "Di luar radius kantor" }}
-    </p>
+    <div class="status-dot" aria-hidden="true"></div>
 
-    <template v-if="!isInRadius">
-      <p class="office">Kantor terdekat: {{ nearestOffice.name }}</p>
+    <div class="banner-content">
+      <p class="status">
+        {{ isInRadius ? "Dalam radius kantor" : "Di luar radius kantor" }}
+      </p>
 
-      <small class="distance" v-if="distance !== null && !isNaN(distance)">
-        Jarak: {{ Math.round(distance) }} m
-      </small>
-    </template>
-  </div>
+      <template v-if="!isInRadius">
+        <p class="office">Kantor terdekat: {{ nearestOffice.name }}</p>
+
+        <small class="distance" v-if="distance !== null && !isNaN(distance)">
+          Jarak {{ Math.round(distance) }} m
+        </small>
+      </template>
+    </div>
+  </aside>
 </template>
 
 <style scoped>
 .banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
   width: 100%;
-  padding: 14px 16px;
-  border-radius: 16px;
+  padding: 16px;
   margin-bottom: 16px;
-  text-align: center;
-  transition: all 0.25s ease;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+}
+
+.status-dot {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  margin-top: 4px;
+  border-radius: 999px;
+}
+
+.banner-content {
+  min-width: 0;
 }
 
 .status {
-  font-weight: 600;
+  margin: 0;
+  color: #0f172a;
   font-size: 14px;
-  line-height: 1.4;
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .office {
-  margin-top: 6px;
+  margin: 6px 0 0;
+  color: #64748b;
   font-size: 13px;
-  opacity: 0.85;
+  font-weight: 600;
+  line-height: 1.45;
 }
 
 .distance {
-  display: block;
-  margin-top: 4px;
+  display: inline-flex;
+  margin-top: 8px;
+  padding: 5px 9px;
+  border-radius: 999px;
   font-size: 12px;
-  opacity: 0.7;
+  font-weight: 800;
 }
 
 .inside {
-  background: #e6f4ea;
-  color: #2e7d32;
+  border-color: rgba(22, 163, 74, 0.16);
+}
+
+.inside .status-dot {
+  background: #16a34a;
+  box-shadow: 0 0 0 5px rgba(22, 163, 74, 0.12);
+}
+
+.inside .distance {
+  background: #dcfce7;
+  color: #15803d;
 }
 
 .outside {
-  background: #f5eed1;
-  color: #92400e;
+  border-color: rgba(217, 119, 6, 0.18);
+}
+
+.outside .status-dot {
+  background: #d97706;
+  box-shadow: 0 0 0 5px rgba(217, 119, 6, 0.12);
+}
+
+.outside .distance {
+  background: #fef3c7;
+  color: #b45309;
 }
 
 @media (min-width: 640px) {
   .banner {
-    padding: 16px 18px;
-    border-radius: 18px;
+    padding: 18px;
+    border-radius: 22px;
   }
 
   .status {
     font-size: 15px;
-  }
-
-  .office {
-    font-size: 14px;
-  }
-
-  .distance {
-    font-size: 13px;
-  }
-}
-
-@media (min-width: 1024px) {
-  .banner {
-    padding: 18px 20px;
-    border-radius: 20px;
-  }
-
-  .status {
-    font-size: 16px;
-  }
-
-  .office {
-    font-size: 15px;
-  }
-
-  .distance {
-    font-size: 14px;
   }
 }
 </style>

@@ -19,60 +19,69 @@ async function handleLogout() {
 </script>
 
 <template>
-  <div class="bottom-nav">
+  <nav class="bottom-nav" aria-label="Navigasi karyawan">
     <button
+      type="button"
       class="nav-item"
-      :class="{
-        active: route.path === '/employee/dashboard',
-      }"
+      :class="{ active: route.path === '/employee/dashboard' }"
+      aria-label="Dashboard"
       @click="router.push('/employee/dashboard')"
     >
-      <LayoutDashboard :size="22" />
-
-      <!-- <span>Home</span> -->
+      <LayoutDashboard :size="21" />
+      <span>Home</span>
     </button>
 
     <button
+      type="button"
       class="nav-item"
-      :class="{
-        active: route.path === '/employee/calendar',
-      }"
+      :class="{ active: route.path === '/employee/calendar' }"
+      aria-label="Kalender"
       @click="router.push('/employee/calendar')"
     >
-      <CalendarDays :size="22" />
-
-      <!-- <span>Kalender</span> -->
+      <CalendarDays :size="21" />
+      <span>Kalender</span>
     </button>
 
     <button
+      type="button"
       class="nav-item"
-      :class="{
-        active: route.path === '/employee/biodata',
-      }"
+      :class="{ active: route.path === '/employee/biodata' }"
+      aria-label="Profil"
       @click="router.push('/employee/biodata')"
     >
-      <User :size="22" />
-
-      <!-- <span>Profile</span> -->
+      <User :size="21" />
+      <span>Profil</span>
     </button>
 
-    <button class="nav-item" @click="showLogoutConfirm = true">
-      <LogOut :size="22" />
-
-      <!-- <span>Keluar</span> -->
+    <button
+      type="button"
+      class="nav-item danger"
+      aria-label="Keluar"
+      @click="showLogoutConfirm = true"
+    >
+      <LogOut :size="21" />
+      <span>Keluar</span>
     </button>
-  </div>
+  </nav>
 
-  <div v-if="showLogoutConfirm" class="modal">
+  <div
+    v-if="showLogoutConfirm"
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="employee-logout-title"
+  >
     <div class="modal-box">
-      <p>Yakin ingin keluar?</p>
+      <h3 id="employee-logout-title">Yakin ingin keluar?</h3>
 
       <div class="actions">
-        <button class="cancel" @click="showLogoutConfirm = false">
+        <button type="button" class="cancel" @click="showLogoutConfirm = false">
           Tetap di sini
         </button>
 
-        <button class="confirm" @click="handleLogout">Keluar</button>
+        <button type="button" class="confirm" @click="handleLogout">
+          Keluar
+        </button>
       </div>
     </div>
   </div>
@@ -81,193 +90,178 @@ async function handleLogout() {
 <style scoped>
 .bottom-nav {
   position: fixed;
-
   left: 50%;
-  transform: translateX(-50%);
-
-  width: calc(100% - 32px);
-  max-width: 420px;
-
-  bottom: 20px;
-
-  height: 55px;
-
-  background: linear-gradient(135deg, #4f46e5, #4338ca);
-
-  border-radius: 24px;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-
-  padding: 0 10px;
-
+  bottom: calc(14px + env(safe-area-inset-bottom));
   z-index: 999;
-
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: center;
+  width: calc(100% - 28px);
+  max-width: 460px;
+  min-height: 68px;
+  padding: 8px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.94);
   box-shadow:
-    0 14px 32px rgba(79, 70, 229, 0.28),
-    0 4px 12px rgba(0, 0, 0, 0.08);
+    0 18px 42px rgba(15, 23, 42, 0.12),
+    0 4px 14px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(16px);
+  transform: translateX(-50%);
 }
 
 .nav-item {
-  flex: 1;
-
-  height: 100%;
-
-  border: none;
-  background: transparent;
-
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-
-  gap: 5px;
-
-  color: rgba(255, 255, 255, 0.72);
-
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  min-height: 52px;
+  border: none;
+  border-radius: 18px;
+  background: transparent;
+  color: #64748b;
   cursor: pointer;
-
-  border-radius: 24px;
-
-  transition: all 0.22s ease;
-
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
 .nav-item svg {
-  stroke-width: 2.3;
-
-  transition: all 0.22s ease;
+  flex-shrink: 0;
+  stroke-width: 2.4;
 }
 
 .nav-item span {
+  max-width: 100%;
+  overflow: hidden;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 800;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-  letter-spacing: 0.2px;
+.nav-item:hover {
+  background: #f8fafc;
+  color: #2563eb;
 }
 
 .nav-item:active {
-  transform: scale(0.95);
+  transform: scale(0.96);
 }
 
 .nav-item.active {
-  color: #ffffff;
-
-  background: rgba(255, 255, 255, 0.14);
+  background: #eff6ff;
+  color: #2563eb;
 }
 
-.nav-item.active svg {
-  transform: translateY(-1px) scale(1.05);
+.nav-item.danger:hover {
+  color: #dc2626;
+  background: #fef2f2;
 }
 
 .modal {
   position: fixed;
-
-  top: 0;
-  left: 0;
-
-  width: 100vw;
-  height: 100vh;
-
-  background: rgba(15, 23, 42, 0.45);
-
+  inset: 0;
+  z-index: 99999;
   display: flex;
   align-items: center;
   justify-content: center;
-
-  z-index: 99999;
-
-  backdrop-filter: blur(2px);
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(6px);
 }
 
 .modal-box {
-  background: #ffffff;
-  border-radius: 18px;
-  padding: 28px 24px;
   width: 100%;
-  max-width: 340px;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.18);
+  max-width: 380px;
+  padding: 24px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2);
+  animation: slideUp 0.24s ease;
+}
+
+.modal-box h3 {
+  margin: 0 0 18px;
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 800;
   text-align: center;
-  animation: slideUp 0.25s ease;
-}
-
-.modal-box {
-  position: relative;
-
-  margin: auto;
-}
-
-.modal-box p {
-  font-size: 15px;
-  font-weight: 600;
-
-  color: #111827;
-
-  margin-bottom: 22px;
 }
 
 .actions {
   display: flex;
-  justify-content: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-.actions button {
-  min-width: 120px;
-  height: 42px;
-  padding: 0 18px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
+.cancel,
+.confirm {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 800;
   cursor: pointer;
-  transition: 0.18s ease;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .cancel {
-  flex: 1;
-  padding: 11px 0;
-  background: #6a65d8;
-  color: #ffffff;
-  border: none;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.cancel:hover {
-  background: #4338ca;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
 }
 
 .confirm {
-  flex: 1;
-  padding: 11px 0;
-  background: #f3f4f6;
-  color: #6b7280;
-  border: none;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  background: #dc2626;
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(220, 38, 38, 0.2);
 }
 
+.cancel:hover,
 .confirm:hover {
-  background: #e5e7eb;
-  color: #374151;
+  transform: translateY(-1px);
+}
+
+.cancel:hover {
+  background: #f8fafc;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (min-width: 768px) {
   .bottom-nav {
-    height: 62px;
+    min-height: 72px;
+  }
+}
+
+@media (max-width: 360px) {
+  .bottom-nav {
+    width: calc(100% - 20px);
+    padding: 6px;
   }
 
-  .nav-item svg {
-    width: 24px;
-    height: 24px;
+  .nav-item span {
+    font-size: 10px;
   }
 }
 </style>

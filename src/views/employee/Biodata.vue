@@ -244,21 +244,24 @@ async function handleLogout() {
 <template>
   <div class="wrapper">
     <div class="header">
-      <img
+      <button
         v-if="!isSetup"
-        src="/goBack.png"
-        class="back"
+        type="button"
+        class="back-btn"
         @click="goBack"
-        alt="Back"
-      />
+      >
+        <img src="/goBack.png" alt="" />
+        <span>Kembali</span>
+      </button>
     </div>
 
     <div class="content">
       <div v-if="isSetup" class="setup-info">
-        Lengkapi biodata Anda sebelum menggunakan sistem.
+        <strong>Lengkapi biodata</strong>
+        <span>Lengkapi biodata Anda sebelum menggunakan sistem.</span>
       </div>
+
       <div class="profile-card">
-        <!-- LEFT -->
         <div class="avatar-section">
           <div class="avatar">
             <img
@@ -275,7 +278,7 @@ async function handleLogout() {
           </div>
 
           <label class="upload-btn">
-            {{ uploading ? "Uploading..." : "Upload Foto" }}
+            {{ uploading ? "Mengunggah..." : "Upload Foto" }}
 
             <input
               type="file"
@@ -292,7 +295,6 @@ async function handleLogout() {
           <span class="status active">{{ user.status }}</span>
         </div>
 
-        <!-- RIGHT -->
         <div class="info-section">
           <div class="field">
             <label>Nama Lengkap</label>
@@ -372,95 +374,110 @@ async function handleLogout() {
 <style scoped>
 .wrapper {
   min-height: 100vh;
-  background: linear-gradient(180deg, #eef2ff 0%, #f8fafc 35%, #ffffff 100%);
-  padding-bottom: 110px;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.1), transparent 32rem),
+    #f8fafc;
+  color: #0f172a;
+  padding-bottom: 112px;
 }
 
-/* HEADER */
 .header {
-  height: 64px;
-  background: transparent;
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  width: 100%;
+  max-width: 1120px;
+  min-height: 72px;
+  margin: 0 auto;
+  padding: 16px;
 }
 
-.back {
-  width: 42px;
-  height: 42px;
-  padding: 10px;
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: 14px;
-  background: #4f46e5;
-  box-shadow: 0 8px 18px rgba(79, 70, 229, 0.24);
-  cursor: pointer;
-  transition:
-    transform 0.18s ease,
-    background 0.18s ease;
-}
-
-.back:hover {
-  background: #4338ca;
-}
-
-.back:active {
-  transform: scale(0.92);
-}
-
-/* SETUP INFO */
-.setup-info {
-  max-width: 1100px;
-  margin: 10px auto 0;
-  padding: 16px 18px;
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  color: #4338ca;
+  background: rgba(255, 255, 255, 0.92);
+  color: #2563eb;
   font-size: 14px;
-  font-weight: 600;
-  box-shadow: 0 10px 30px rgba(79, 70, 229, 0.08);
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* CONTENT */
+.back-btn img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  filter: invert(37%) sepia(89%) saturate(2342%) hue-rotate(213deg)
+    brightness(96%) contrast(92%);
+}
+
+.back-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+}
+
+.setup-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid rgba(37, 99, 235, 0.14);
+  border-radius: 20px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.setup-info strong {
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 800;
+}
+
 .content {
   width: 100%;
-  max-width: 1100px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 24px 20px 40px;
+  padding: 0 16px 40px;
 }
 
-/* PROFILE CARD */
 .profile-card {
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(16px);
-  border-radius: 34px;
-  padding: 34px;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 16px 50px rgba(15, 23, 42, 0.08);
   display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 34px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  padding: 20px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
 }
 
-/* LEFT */
 .avatar-section {
-  border-right: 1px solid rgba(203, 213, 225, 0.5);
-  padding-right: 34px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .avatar {
-  width: 145px;
-  height: 145px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 16px 36px rgba(79, 70, 229, 0.24);
+  width: 128px;
+  height: 128px;
+  overflow: hidden;
+  border: 5px solid #dbeafe;
+  border-radius: 28px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  box-shadow: 0 16px 32px rgba(37, 99, 235, 0.22);
 }
 
 .avatar img {
@@ -470,29 +487,26 @@ async function handleLogout() {
 }
 
 .avatar span {
-  color: white;
-  font-size: 38px;
+  color: #ffffff;
+  font-size: 34px;
   font-weight: 800;
 }
 
 .upload-btn {
-  margin-top: 20px;
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  color: white;
-  padding: 12px 18px;
+  margin-top: 18px;
+  padding: 11px 16px;
   border-radius: 999px;
+  background: #eff6ff;
+  color: #2563eb;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 10px 22px rgba(79, 70, 229, 0.2);
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .upload-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 26px rgba(79, 70, 229, 0.28);
+  background: #dbeafe;
+  transform: translateY(-1px);
 }
 
 .upload-btn:active {
@@ -500,40 +514,41 @@ async function handleLogout() {
 }
 
 .avatar-section h2 {
-  margin-top: 22px;
-  font-size: 26px;
+  margin: 20px 0 0;
+  color: #0f172a;
+  font-size: 24px;
   font-weight: 800;
-  color: #111827;
+  line-height: 1.2;
   text-align: center;
+  overflow-wrap: anywhere;
 }
 
 .avatar-section p {
-  margin-top: 8px;
-  font-size: 14px;
-  font-weight: 500;
+  margin: 8px 0 0;
   color: #64748b;
+  font-size: 14px;
+  font-weight: 700;
   text-align: center;
 }
 
 .status {
-  margin-top: 20px;
-  padding: 9px 18px;
+  margin-top: 16px;
+  padding: 8px 13px;
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: capitalize;
 }
 
 .status.active {
   background: #dcfce7;
-  color: #166534;
+  color: #15803d;
 }
 
-/* RIGHT */
 .info-section {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
 }
 
 .field {
@@ -542,58 +557,56 @@ async function handleLogout() {
 }
 
 .field.full {
-  grid-column: span 2;
+  grid-column: 1 / -1;
 }
 
 .field label {
+  margin-bottom: 8px;
+  color: #475569;
   font-size: 13px;
-  font-weight: 700;
-  color: #64748b;
-  margin-bottom: 10px;
+  font-weight: 800;
 }
 
 .field input,
 .field textarea {
   width: 100%;
-  border: 1px solid transparent;
-  background: rgba(248, 250, 252, 0.9);
-  border-radius: 18px;
-  padding: 16px 18px;
+  padding: 15px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 16px;
+  background: #f8fafc;
+  color: #0f172a;
   font-size: 14px;
-  font-weight: 500;
-  color: #111827;
+  font-weight: 600;
   outline: none;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    background 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .field input:focus,
 .field textarea:focus {
-  border-color: #6366f1;
-  background: white;
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
 }
 
 .field input:disabled {
-  background: #eef2f7;
+  background: #f1f5f9;
   color: #64748b;
+  cursor: not-allowed;
 }
 
 .field textarea {
-  resize: none;
   min-height: 130px;
+  resize: vertical;
 }
 
-/* ALERT */
 .success,
 .error {
   margin-top: 18px;
   padding: 14px 18px;
   border-radius: 16px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 800;
+  line-height: 1.5;
 }
 
 .success {
@@ -606,27 +619,24 @@ async function handleLogout() {
   color: #dc2626;
 }
 
-/* BUTTON */
 .save-btn {
   width: 100%;
+  min-height: 54px;
   margin-top: 24px;
-  height: 56px;
-  border: none;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  color: white;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
-  box-shadow: 0 12px 28px rgba(79, 70, 229, 0.24);
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .save-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 16px 34px rgba(79, 70, 229, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(37, 99, 235, 0.28);
 }
 
 .save-btn:active {
@@ -639,46 +649,47 @@ async function handleLogout() {
   transform: none;
 }
 
-/* TABLET */
-@media (max-width: 900px) {
-  .profile-card {
-    grid-template-columns: 1fr;
+@media (min-width: 720px) {
+  .header {
+    padding: 18px 24px;
   }
 
-  .avatar-section {
-    border-right: none;
-    border-bottom: 1px solid rgba(203, 213, 225, 0.5);
-    padding-right: 0;
-    padding-bottom: 28px;
+  .content {
+    padding: 0 24px 48px;
   }
 
   .info-section {
-    grid-template-columns: 1fr;
-  }
-
-  .field.full {
-    grid-column: span 1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-/* MOBILE */
-@media (max-width: 640px) {
-  .content {
-    padding: 20px 16px 40px;
+@media (min-width: 960px) {
+  .profile-card {
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 28px;
+    padding: 28px;
+  }
+
+  .avatar-section {
+    padding-right: 28px;
+    padding-bottom: 0;
+    border-right: 1px solid #e2e8f0;
+    border-bottom: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .back-btn span {
+    display: none;
   }
 
   .profile-card {
-    padding: 24px;
-    border-radius: 28px;
+    padding: 18px;
   }
 
   .avatar {
-    width: 118px;
-    height: 118px;
-  }
-
-  .avatar span {
-    font-size: 32px;
+    width: 112px;
+    height: 112px;
   }
 
   .avatar-section h2 {

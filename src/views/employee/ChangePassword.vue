@@ -80,8 +80,7 @@ async function handleSubmit() {
 
       //direct ke update biodata
       if (user.role === "karyawan") {
-        router.push("/employee/biodata?setup=true");
-
+        router.push("/employee/register-face");
         return;
       }
     }, 1500);
@@ -100,11 +99,20 @@ function goBack() {
 <template>
   <div class="wrapper">
     <div class="header">
-      <img v-if="!isForced" src="/goBack.png" class="back" @click="goBack" />
+      <button v-if="!isForced" type="button" class="back-btn" @click="goBack">
+        <img src="/goBack.png" alt="" />
+        <span>Kembali</span>
+      </button>
     </div>
 
     <div class="content">
       <div class="card">
+        <div class="card-header">
+          <!-- <p>Keamanan Akun</p> -->
+          <h1>Ubah Password</h1>
+          <span>Gunakan password yang kuat untuk menjaga keamanan akun.</span>
+        </div>
+
         <p v-if="isForced" class="forced-info">
           Demi keamanan akun, Anda wajib mengganti password sebelum menggunakan
           sistem.
@@ -172,108 +180,121 @@ function goBack() {
 <style scoped>
 .wrapper {
   min-height: 100vh;
-
-  background: linear-gradient(180deg, #eef2ff 0%, #f8fafc 35%, #ffffff 100%);
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(37, 99, 235, 0.1),
+      transparent 32rem
+    ),
+    #f8fafc;
+  color: #0f172a;
 }
 
 .header {
-  height: 64px;
-
-  background: transparent;
-
   display: flex;
   align-items: center;
-
-  padding: 0 20px;
+  width: 100%;
+  max-width: 480px;
+  min-height: 72px;
+  margin: 0 auto;
+  padding: 16px;
 }
 
-.back {
-  width: 42px;
-  height: 42px;
-
-  padding: 10px;
-
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: 14px;
-
-  background: #4f46e5;
-
-  box-shadow: 0 8px 18px rgba(79, 70, 229, 0.24);
-
+  background: rgba(255, 255, 255, 0.92);
+  color: #2563eb;
+  font-size: 14px;
+  font-weight: 800;
   cursor: pointer;
-
-  object-fit: contain;
-
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
   transition:
-    transform 0.18s ease,
-    background 0.18s ease,
-    box-shadow 0.18s ease;
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-.back:hover {
-  background: #4338ca;
-
-  box-shadow: 0 12px 24px rgba(79, 70, 229, 0.3);
+.back-btn img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  filter: invert(37%) sepia(89%) saturate(2342%) hue-rotate(213deg)
+    brightness(96%) contrast(92%);
 }
 
-.back:active {
-  transform: scale(0.92);
+.back-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+}
+
+.back-btn:active {
+  transform: scale(0.97);
 }
 
 .content {
   display: flex;
   justify-content: center;
-
-  padding: 10px 20px 40px;
+  padding: 0 16px 40px;
 }
 
 .card {
   width: 100%;
-  max-width: 380px;
-
-  background: rgba(255, 255, 255, 0.92);
-
-  backdrop-filter: blur(14px);
-
+  max-width: 420px;
   padding: 28px 22px;
-
-  border-radius: 28px;
-
-  border: 1px solid rgba(255, 255, 255, 0.7);
-
-  box-shadow:
-    0 10px 40px rgba(79, 70, 229, 0.08),
-    0 2px 10px rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
 }
 
-h2 {
+.card-header {
   text-align: center;
-
   margin-bottom: 24px;
+}
 
+.card-header p {
+  margin: 0 0 6px;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.card-header h1 {
+  margin: 0;
+  color: #0f172a;
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 800;
+  line-height: 1.2;
+}
 
-  color: #111827;
+.card-header span {
+  display: block;
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .forced-info {
-  margin-top: -6px;
   margin-bottom: 22px;
-
   padding: 14px 16px;
-
   border-radius: 16px;
-
-  background: #eef2ff;
-
-  border: 1px solid #c7d2fe;
-
+  background: #eff6ff;
+  border: 1px solid rgba(37, 99, 235, 0.16);
   text-align: center;
-
   font-size: 12px;
   line-height: 1.7;
-
-  color: #4338ca;
+  color: #1d4ed8;
+  font-weight: 700;
 }
 
 .field {
@@ -282,13 +303,10 @@ h2 {
 
 label {
   display: block;
-
   margin-bottom: 8px;
-
   font-size: 13px;
-  font-weight: 600;
-
-  color: #374151;
+  font-weight: 800;
+  color: #475569;
 }
 
 .password-wrapper {
@@ -297,23 +315,15 @@ label {
 
 .password-wrapper input {
   width: 100%;
-
   height: 52px;
-
   padding: 0 48px 0 16px;
-
   border-radius: 16px;
-
-  border: 1px solid #e5e7eb;
-
-  background: #ffffff;
-
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #0f172a;
   font-size: 14px;
-
-  color: #111827;
-
+  font-weight: 600;
   outline: none;
-
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
@@ -321,32 +331,24 @@ label {
 }
 
 .password-wrapper input:focus {
-  border-color: #6366f1;
-
+  border-color: #2563eb;
   background: #ffffff;
-
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
 }
 
 .password-wrapper input::placeholder {
-  color: #9ca3af;
+  color: #94a3b8;
 }
 
 .toggle {
   position: absolute;
-
   right: 14px;
   top: 50%;
-
   transform: translateY(-50%);
-
   width: 22px;
   height: 22px;
-
   cursor: pointer;
-
   opacity: 0.55;
-
   transition:
     opacity 0.18s ease,
     transform 0.18s ease;
@@ -362,36 +364,25 @@ label {
 
 .btn {
   width: 100%;
-
   height: 52px;
-
   border-radius: 16px;
-
-  border: none;
-
+  border: 1px solid transparent;
   margin-top: 14px;
-
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-
-  color: white;
-
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
   font-size: 14px;
-  font-weight: 700;
-
+  font-weight: 800;
   cursor: pointer;
-
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24);
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease,
     opacity 0.2s ease;
-
-  box-shadow: 0 10px 24px rgba(79, 70, 229, 0.22);
 }
 
 .btn:hover {
-  transform: translateY(-2px);
-
-  box-shadow: 0 14px 32px rgba(79, 70, 229, 0.28);
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(37, 99, 235, 0.28);
 }
 
 .btn:active {
@@ -399,44 +390,38 @@ label {
 }
 
 .btn:disabled {
-  opacity: 0.5;
-
+  opacity: 0.58;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .error {
   margin-top: 10px;
-
-  font-size: 12px;
-
+  padding: 12px 14px;
+  border: 1px solid #fecaca;
+  border-radius: 14px;
+  background: #fef2f2;
   color: #dc2626;
-
+  font-size: 13px;
+  font-weight: 800;
   text-align: center;
-
   line-height: 1.5;
 }
 
 .toast {
   position: fixed;
-
   left: 50%;
   bottom: 26px;
-
   transform: translateX(-50%);
-
-  background: #10b981;
-
-  color: white;
-
+  z-index: 10000;
+  background: rgba(15, 23, 42, 0.94);
+  color: #ffffff;
   padding: 14px 22px;
-
   border-radius: 16px;
-
   font-size: 13px;
-  font-weight: 600;
-
-  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.28);
-
+  font-weight: 800;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
   animation: slideUp 0.25s ease;
 }
 
@@ -451,6 +436,22 @@ label {
     opacity: 1;
 
     transform: translateX(-50%) translateY(0);
+  }
+}
+
+@media (min-width: 640px) {
+  .header {
+    padding: 18px 24px;
+  }
+
+  .content {
+    padding: 0 24px 48px;
+  }
+}
+
+@media (max-width: 420px) {
+  .back-btn span {
+    display: none;
   }
 }
 </style>

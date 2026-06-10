@@ -118,24 +118,40 @@ async function handleScan(decodedText) {
   stopScanner();
 
   console.log("QR RESULT:", decodedText);
-  try {
-    const parsedQR = JSON.parse(decodedText);
 
-    console.log("PARSED QR:", parsedQR);
+  const parsedQR = JSON.parse(decodedText);
+
+  console.log("PARSED QR:", parsedQR);
+  try {
+    // const parsedQR = JSON.parse(decodedText);
+
+    // console.log("PARSED QR:", parsedQR);
+
+    console.log("FACE TOKEN:", localStorage.getItem("face_token"));
 
     const payload = {
       work_type: "WFO",
+
       lat: latitude.value,
       lon: longitude.value,
       accuracy: accuracy.value,
+
       qr_token: parsedQR.token,
       branch_id: parsedQR.branch_id,
+
+      face_token: localStorage.getItem("face_token"),
     };
 
     console.log("PAYLOAD:", payload);
 
     // const res = await checkInAPI(payload);
     const res = await checkInAPI(payload);
+
+    console.log("LATITUDE:", latitude.value);
+    console.log("LONGITUDE:", longitude.value);
+    console.log("PARSED QR:", parsedQR);
+    console.log("FACE TOKEN:", localStorage.getItem("face_token"));
+    console.log("CHECKIN PAYLOAD:", payload);
 
     console.log("FULL RESPONSE:", res);
 
@@ -144,6 +160,8 @@ async function handleScan(decodedText) {
     console.log("RESPONSE INNER DATA:", res.data?.data);
 
     console.log("RESPONSE STATUS:", res.status);
+
+    localStorage.removeItem("face_token");
 
     router.push({
       path: "/employee/success",
@@ -163,22 +181,22 @@ async function handleScan(decodedText) {
 
     console.log("ERROR MESSAGE:", err.response?.data?.message);
 
+    const message = err.response?.data?.message;
+
     const code = err.response?.data?.code;
 
-    if (code === "NOT_WORK_DAY") {
-      openPopup("Hari ini bukan jadwal kerja");
-    } else if (code === "GPS_ACCURACY_LOW") {
-      openPopup("GPS tidak akurat");
-    } else if (code === "OUT_OF_RADIUS") {
-      openPopup("Di luar radius kantor");
-    } else if (code === "BRANCH_MISMATCH") {
-      openPopup("QR bukan milik cabang anda");
-    } else if (code === "CUTOFF_EXCEEDED") {
-      openPopup("Jam check-in sudah lewat");
-    } else if (code === "EMPLOYEE_DATA_INCOMPLETE") {
-      openPopup("Data employee belum lengkap");
+    if (code === "FACE_NOT_VERIFIED") {
+      openPopup("Verifikasi wajah belum dilakukan");
+    } else if (code === "QR_INVALID") {
+      openPopup("QR tidak valid");
+    } else if (code === "LOCATION_OUT_OF_RANGE") {
+      openPopup("Anda berada di luar radius kantor");
+    } else if (message === "TOKEN_INVALID") {
+      openPopup("Token check in sudah expired");
+    } else if (message === "Sudah check-in hari ini") {
+      openPopup("Anda sudah check-in hari ini");
     } else {
-      openPopup(err.response?.data?.message || err.message || "Check-in gagal");
+      openPopup(message || "Check in gagal");
     }
 
     scanned.value = false;
@@ -197,8 +215,16 @@ function goBack() {
 <template>
   <div class="wrapper">
     <div class="header">
-      <img src="/goBack.png" class="back" @click="goBack" />
+      <button type="button" class="back-btn" @click="goBack">
+        <img src="/goBack.png" alt="" />
+        <span>Kembali</span>
+      </button>
     </div>
+
+    <section class="page-heading">
+      <!-- <p>Check In WFO</p> -->
+      <h1>Scan QR Kantor</h1>
+    </section>
 
     <div v-if="error" class="error">
       {{ error }}
@@ -227,43 +253,103 @@ function goBack() {
 <style scoped>
 .wrapper {
   min-height: 100vh;
-  background: #f3f4f6;
   display: flex;
   flex-direction: column;
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(37, 99, 235, 0.1),
+      transparent 32rem
+    ),
+    #f8fafc;
+  color: #0f172a;
+  padding-bottom: 40px;
 }
 
 .header {
-  height: 60px;
-  background: #4f46e5;
   display: flex;
   align-items: center;
-  padding: 0 30px;
+  width: 100%;
+  max-width: 520px;
+  min-height: 72px;
+  margin: 0 auto;
+  padding: 16px;
 }
 
-.back {
-  width: 24px;
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #2563eb;
+  font-size: 14px;
+  font-weight: 800;
   cursor: pointer;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.back-btn img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  filter: invert(37%) sepia(89%) saturate(2342%) hue-rotate(213deg)
+    brightness(96%) contrast(92%);
+}
+
+.page-heading {
+  width: calc(100% - 32px);
+  max-width: 520px;
+  margin: 0 auto 16px;
+}
+
+.page-heading p {
+  margin: 0 0 6px;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.page-heading h1 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.15;
 }
 
 .error {
-  background: #fee2e2;
-  color: #b91c1c;
-  padding: 10px;
-  margin: 10px;
-  border-radius: 10px;
+  width: calc(100% - 32px);
+  max-width: 520px;
+  margin: 0 auto 16px;
+  padding: 12px 14px;
+  border: 1px solid #fecaca;
+  border-radius: 14px;
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.5;
   text-align: center;
 }
 
 .scan-box {
   position: relative;
-  margin: 40px auto;
-  width: 90%;
+  margin: 0 auto;
+  width: calc(100% - 32px);
   max-width: 420px;
   aspect-ratio: 3 / 4;
   height: auto;
-  border-radius: 20px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 28px;
   overflow: hidden;
-  background: black;
+  background: #020617;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
 }
 
 video {
@@ -274,31 +360,37 @@ video {
 
 .frame {
   position: absolute;
-  width: 220px;
-  height: 220px;
-  border: 3px solid white;
+  width: 62%;
+  aspect-ratio: 1;
+  border: 3px solid rgba(255, 255, 255, 0.92);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  border-radius: 12px;
+  border-radius: 24px;
+  box-shadow: 0 0 0 999px rgba(15, 23, 42, 0.18);
 }
 
 .scan-status {
-  width: 70%;
-  margin: auto;
-  margin-top: 40px;
-  padding: 14px;
+  width: calc(100% - 32px);
+  max-width: 420px;
+  margin: 18px auto 0;
+  padding: 14px 16px;
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 10px;
-  border-radius: 20px;
-  background: white;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
   font-size: 14px;
+  font-weight: 800;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
 }
 
 .spinner {
   animation: spin 1s linear infinite;
+  color: #2563eb;
 }
 
 @keyframes spin {
@@ -309,29 +401,21 @@ video {
 
 .popup {
   position: fixed;
-
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-
   width: calc(100% - 32px);
   max-width: 420px;
-
   padding: 14px 18px;
-
+  border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: 16px;
-
-  background: #fee2e2;
-  color: #b91c1c;
-
+  background: rgba(15, 23, 42, 0.94);
+  color: #ffffff;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 800;
   text-align: center;
-
   z-index: 9999;
-
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
   animation: popupSlide 0.25s ease;
 }
 
@@ -355,19 +439,23 @@ video {
 }
 
 .retry-btn {
-  margin: 20px auto;
-
-  padding: 12px 20px;
-
-  border: none;
-  border-radius: 12px;
-
-  background: #4f46e5;
-  color: white;
-
+  width: calc(100% - 32px);
+  max-width: 420px;
+  min-height: 50px;
+  margin: 20px auto 0;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
   font-size: 14px;
-  font-weight: 600;
-
+  font-weight: 800;
   cursor: pointer;
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24);
+}
+
+@media (max-width: 420px) {
+  .back-btn span {
+    display: none;
+  }
 }
 </style>

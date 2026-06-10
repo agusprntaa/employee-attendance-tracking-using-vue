@@ -35,3 +35,18 @@ export const createHoliday = (payload) =>
 
 export const deleteHoliday = (id) =>
   API.delete(`/admin-cabang/holidays/${id}`);
+
+// RECENT ACTIVITY
+
+export function getRecentActivities(
+  limit = 6
+) {
+  return API.get(
+    "/admin-cabang/leave/recent-activity",
+    {
+      params: {
+        limit,
+      },
+    }
+  );
+}

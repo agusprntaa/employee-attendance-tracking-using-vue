@@ -4,7 +4,7 @@ import { logout } from '@/utils/logout'
 
 const API = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
-  timeout: 10000
+  timeout: 30000
 })
 
 // const API = axios.create({

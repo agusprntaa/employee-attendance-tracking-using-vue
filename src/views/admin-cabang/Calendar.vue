@@ -14,6 +14,7 @@ import {
   getLeaveCalendar,
   getCalendarDetail,
   createHoliday,
+  getRecentActivities,
 } from "@/services/adminLeave";
 
 const { user } = useAuth();
@@ -112,7 +113,36 @@ const fetchCalendar = async () => {
 
 //be belum memberikan recent activity
 const recentActivities = ref([]);
-// const recentActivities = ref([
+
+function formatActivityTime(dateString) {
+  const now = new Date();
+  const date = new Date(dateString);
+
+  const diff = Math.floor((now - date) / 1000);
+
+  if (diff < 60) return `${diff} detik lalu`;
+  if (diff < 3600) return `${Math.floor(diff / 60)} menit lalu`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} jam lalu`;
+
+  return `${Math.floor(diff / 86400)} hari lalu`;
+}
+
+const fetchRecentActivities = async () => {
+  try {
+    const { data } = await getRecentActivities(6);
+
+    recentActivities.value = data.data.map((item) => ({
+      id: item.id,
+      title: item.message,
+      time: formatActivityTime(item.created_at),
+      type: item.type,
+    }));
+
+    console.log("[Recent Activities] Success", recentActivities.value);
+  } catch (error) {
+    console.error("[Recent Activities] Error", error.response?.data || error);
+  }
+}; // const recentActivities = ref([
 //   {
 //     id: 1,
 //     title: "WAHYU mengajukan cuti",
@@ -156,7 +186,10 @@ const openDayModal = async (day) => {
 
     selectedDate.value = fullDate;
 
-    selectedEvents.value = data.data || [];
+    selectedEvents.value = [
+      ...(data.data.holidays || []),
+      ...(data.data.leaves || []),
+    ];
     showCalendarModal.value = true;
   } catch (error) {
     console.error("[Calendar Detail] Error", error.response?.data || error);
@@ -328,6 +361,7 @@ const saveHoliday = async () => {
       name: holidayForm.value.title,
       date: holidayForm.value.date,
       description: holidayForm.value.description,
+      category: "khusus",
     });
 
     console.log("[Create Holiday] Success", response.data);
@@ -344,8 +378,12 @@ onMounted(async () => {
   try {
     console.log("========== LEAVE PAGE INIT ==========");
 
-    await Promise.all([fetchSummary(), fetchLeaveRequests(), fetchCalendar()]);
-
+    await Promise.all([
+      fetchSummary(),
+      fetchLeaveRequests(),
+      fetchCalendar(),
+      fetchRecentActivities(),
+    ]);
     console.log("========== LEAVE PAGE READY ==========");
   } catch (error) {
     console.error("[PAGE INIT ERROR]", error);
@@ -438,7 +476,13 @@ onMounted(async () => {
                   v-for="(event, i) in getEvents(day)"
                   :key="i"
                   class="dot"
-                  :class="event.type"
+                  :class="
+                    event.category === 'khusus'
+                      ? 'office_holiday'
+                      : event.category === 'nasional'
+                        ? 'holiday'
+                        : 'employee'
+                  "
                 />
               </div>
             </div>
@@ -592,15 +636,18 @@ onMounted(async () => {
                 :key="index"
                 class="event-item"
               >
-                <div class="event-badge" :class="event.type"></div>
-
+                <div
+                  class="event-badge"
+                  :class="
+                    event.category === 'khusus'
+                      ? 'office_holiday'
+                      : event.category === 'nasional'
+                        ? 'holiday'
+                        : 'employee'
+                  "
+                ></div>
                 <div>
-                  <template
-                    v-if="
-                      event.type === 'employee' ||
-                      event.type === 'cuti_approved'
-                    "
-                  >
+                  <template v-if="event.employee_name">
                     <h4>{{ event.employee_name }}</h4>
 
                     <p>{{ event.leave_type }}</p>
@@ -953,8 +1000,7 @@ onMounted(async () => {
 
 .calendar-section {
   display: grid;
-  /* grid-template-columns: 1fr 340px; */
-  grid-template-columns: 0.85fr 320px;
+  grid-template-columns: minmax(0, 1fr) 320px;
   gap: 20px;
   align-items: start;
 }
@@ -1112,36 +1158,41 @@ onMounted(async () => {
   color: #6b7280;
 }
 
-/* ACTIVITY */
-
 .activity-card {
-  max-height: 620px;
+  padding: 20px;
+  height: fit-content;
+  align-self: start;
+  max-height: 650px;
   overflow-y: auto;
-  padding: 22px;
 }
 
 .activity-card h2 {
   font-size: 18px;
   font-weight: 700;
   color: #1e1b4b;
-  margin-bottom: 22px;
+  margin-bottom: 16px;
 }
 
 .activity-item {
   display: flex;
+  align-items: flex-start;
   gap: 12px;
-  margin-bottom: 22px;
+  padding: 14px 0;
+  border-bottom: 1px solid #eef2f7;
+}
+s.activity-item > div {
+  flex: 1;
+  min-width: 0;
+}
+.activity-item:last-child {
+  border-bottom: none;
 }
 
 .activity-icon {
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   border-radius: 12px;
   flex-shrink: 0;
-}
-
-.activity-icon.submit {
-  background: #dbeafe;
 }
 
 .activity-icon.approved {
@@ -1152,19 +1203,34 @@ onMounted(async () => {
   background: #fee2e2;
 }
 
+.activity-icon.pending {
+  background: #fef3c7;
+}
+
 .activity-item h4 {
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 13px;
+  font-weight: 600;
   color: #111827;
+  line-height: 1.45;
+
+  margin: 0 0 4px;
+
+  word-break: break-word;
+  white-space: normal;
 }
 
 .activity-item p {
-  margin-top: 4px;
+  margin: 0;
   font-size: 12px;
-  color: #9ca3af;
+  color: #94a3b8;
 }
 
-/* TABLE */
+.activity-card > div > p {
+  text-align: center;
+  padding: 20px 0;
+  color: #94a3b8;
+  font-size: 13px;
+}
 
 .table-card {
   overflow: hidden;
@@ -1631,5 +1697,21 @@ tbody tr:hover {
 .today {
   background: #eef2ff;
   border: 2px solid #4f46e5;
+}
+
+.activity-icon.pending {
+  background: #d6c996;
+}
+
+.activity-icon.submit {
+  background: #376fb9;
+}
+
+.activity-icon.approved {
+  background: #dcfce7;
+}
+
+.activity-icon.rejected {
+  background: #d18282;
 }
 </style>
