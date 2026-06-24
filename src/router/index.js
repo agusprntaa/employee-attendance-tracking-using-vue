@@ -113,27 +113,6 @@ const routes = [
     name: 'Biodata',
     component: () => import('../views/employee/Biodata.vue')
   },
-
-  //dummy face recognition
-{
-  path: "/register-face",
-  name: "register-face",
-  component: () =>
-    import("../views/employee/RegisterFaceView.vue"),
-},
-{
-  path: "/checkin-face",
-  name: "checkin-face",
-  component: () =>
-    import("../views/employee/CheckInFaceView.vue"),
-},
-
-  // {
-  //   path: '/employee/complete-profile',
-  //   name: 'CompleteProfile',
-  //   component: () => import('../views/employee/CompleteProfile.vue')
-  // },
-
   {
     path: '/:pathMatch(.*)*',
     redirect: '/'
