@@ -1,36 +1,28 @@
 <script setup>
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { logout } from "@/utils/logout";
 const router = useRouter();
 const route = useRoute();
 
 const showLogoutConfirm = ref(false);
+const showAttendanceMenu = ref(false);
 
-// function handleLogout() {
-//   localStorage.clear();
+watch(
+  () => route.path,
+  (newPath) => {
+    if (
+      newPath === "/admin-pusat/absen-kantor" ||
+      newPath === "/admin-pusat/absen-event"
+    ) {
+      showAttendanceMenu.value = true;
+    } else {
+      showAttendanceMenu.value = false;
+    }
+  },
+  { immediate: true },
+);
 
-//   router.replace("/login");
-// }
-
-//logout
-// async function handleLogout() {
-//   try {
-//     const refresh = localStorage.getItem("refresh_token");
-
-//     if (refresh) {
-//       await logoutAPI(refresh);
-//     }
-//   } catch (err) {
-//     console.error("LOGOUT ERROR:", err);
-//   } finally {
-//     showLogoutConfirm.value = false;
-
-//     localStorage.clear();
-
-//     window.location.href = "/";
-//   }
-// }
 async function handleLogout() {
   showLogoutConfirm.value = false;
 
@@ -52,6 +44,41 @@ async function handleLogout() {
       >
         Dashboard Admin Pusat
       </button>
+
+      <div class="menu-group">
+        <button
+          class="menu-parent"
+          @click="showAttendanceMenu = !showAttendanceMenu"
+        >
+          <span>Absensi</span>
+
+          <span class="arrow">
+            {{ showAttendanceMenu ? "▾" : "▸" }}
+          </span>
+        </button>
+
+        <div v-if="showAttendanceMenu" class="submenu">
+          <button
+            class="submenu-btn"
+            @click="router.push('/admin-pusat/absen-kantor')"
+            :class="{
+              active: route.path === '/admin-pusat/absen-kantor',
+            }"
+          >
+            Absensi Kantor
+          </button>
+
+          <button
+            class="submenu-btn"
+            @click="router.push('/admin-pusat/absen-event')"
+            :class="{
+              active: route.path === '/admin-pusat/absen-event',
+            }"
+          >
+            Absensi Event
+          </button>
+        </div>
+      </div>
 
       <button
         @click="router.push('/admin-pusat/employees')"
@@ -308,5 +335,40 @@ async function handleLogout() {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+.menu-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-parent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.arrow {
+  font-size: 12px;
+}
+
+.submenu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  margin-left: 16px;
+  margin-top: 4px;
+}
+
+.submenu-btn {
+  font-size: 13px !important;
+  padding: 10px 14px !important;
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+
+.submenu-btn.active {
+  background: #4f46e5;
+  color: white !important;
 }
 </style>

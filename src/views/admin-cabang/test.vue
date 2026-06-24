@@ -1,10 +1,12 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
+
 import { useAuth } from "@/composables/useAuth";
 import { getBranchSettings } from "@/services/adminCabang";
-import AdminProfile from "@/components/AdminProfile.vue";
+
 import AdminSidebar from "@/components/AdminSidebar.vue";
+import AdminProfile from "@/components/AdminProfile.vue";
 
 const router = useRouter();
 
@@ -20,51 +22,76 @@ onMounted(async () => {
 async function fetchSettings() {
   try {
     const res = await getBranchSettings();
+
     settings.value = res.data.data || {};
-  } catch (err) {
-    console.error("settings error:", err);
+  } catch (error) {
+    console.error("SETTINGS ERROR:", error);
   }
 }
 
 function goToOfficeAttendance() {
-  router.push("/admin-cabang/absen-kantor");
+  router.push("/admin-cabang/absensi-kantor");
 }
 
 function goToEventAttendance() {
-  router.push("/admin-cabang/absen-event");
+  router.push("/admin-cabang/absensi-event");
 }
 </script>
 
 <template>
   <div class="layout">
-    <admin-sidebar />
+    <AdminSidebar />
 
     <main class="main">
       <div class="header">
         <div>
           <h2>Dashboard Cabang</h2>
+
           <p class="subtitle">
-            {{ settings.branch_information?.branch_name || "-" }}
+            {{
+              settings.branch_information?.branch_name ||
+              "-"
+            }}
           </p>
         </div>
+
         <AdminProfile :user="user" />
       </div>
+
       <div class="panel">
         <div class="welcome-card">
           <div class="welcome-content">
-            <span class="badge"> Admin Cabang </span>
-            <h1>Selamat Datang, {{ user?.name }}</h1>
+            <span class="badge">
+              Admin Cabang
+            </span>
+
+            <h1>
+              Selamat Datang,
+              {{ user?.name }}
+            </h1>
+
             <p>
               Anda sedang mengelola cabang
-              <strong>{{
-                settings.branch_information?.branch_name || "-"
-              }}</strong>
+              <strong>
+                {{
+                  settings.branch_information?.branch_name ||
+                  "-"
+                }}
+              </strong>
             </p>
-            <div class="action">
-              <button class="btn-primary" @click="goToOfficeAttendance">
+
+            <div class="actions">
+              <button
+                class="btn-primary"
+                @click="goToOfficeAttendance"
+              >
                 Absensi Kantor
               </button>
-              <button class="btn-secondary" @click="goToEventAttendance">
+
+              <button
+                class="btn-secondary"
+                @click="goToEventAttendance"
+              >
                 Absensi Event
               </button>
             </div>
@@ -160,13 +187,16 @@ function goToEventAttendance() {
 
 .btn-primary,
 .btn-secondary {
-  margin-right: 20px;
   border: none;
   border-radius: 12px;
+
   padding: 12px 22px;
+
   font-size: 14px;
   font-weight: 600;
+
   cursor: pointer;
+
   transition: 0.2s;
 }
 

@@ -18,11 +18,11 @@ function getInitial(name) {
 <template>
   <div class="profile" v-if="user">
     <div class="avatar">
-      {{ getInitial(user.username) }}
+      {{ getInitial(user.name) }}
     </div>
 
     <div class="info">
-      <p class="name">{{ user.username }}</p>
+      <p class="name">{{ user.name }}</p>
       <small class="role">
         {{ formatRole(user.role) }}
         <span v-if="user.branch_name"> • {{ user.branch_name }} </span>

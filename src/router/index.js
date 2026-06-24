@@ -40,6 +40,18 @@ const routes = [
     component: () => import('../views/admin-pusat/AdminCabang.vue')
   },
 
+  {
+    path: '/admin-pusat/absen-event',
+    name: 'AdminPusatAbsenEvent',
+    component: () => import('../views/admin-pusat/AbsenEvent.vue')
+  },
+
+  {
+    path: '/admin-pusat/absen-kantor',
+    name: 'AdminPusatAbsenKantor',
+    component: () => import('../views/admin-pusat/AbsenKantor.vue')
+  },
+
   // ADMIN CABANG
   {
     path: '/admin-cabang/dashboard',
@@ -69,6 +81,18 @@ const routes = [
     path: '/admin-cabang/calendar',
     name: 'AdminCabangCalendar',
     component: () => import('../views/admin-cabang/Calendar.vue')
+  },
+
+  {
+    path: '/admin-cabang/absen-event',
+    name: 'AdminCabangAbsenEvent',
+    component: () => import('../views/admin-cabang/AbsenEvent.vue')
+  },
+
+  {
+    path: '/admin-cabang/absen-kantor',
+    name: 'AdminCabangAbsenKantor',
+    component: () => import('../views/admin-cabang/AbsenKantor.vue')
   },
 
   // EMPLOYEE
