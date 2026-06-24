@@ -1692,9 +1692,4 @@ tbody tr:hover {
 .activity-icon.rejected {
   background: #d18282;
 }
-
-.activity-icon.request,
-.activity-icon.submit {
-  background: #d97706;
-}
 </style>
