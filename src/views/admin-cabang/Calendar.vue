@@ -111,7 +111,6 @@ const fetchCalendar = async () => {
   }
 };
 
-//be belum memberikan recent activity
 const recentActivities = ref([]);
 
 function formatActivityTime(dateString) {
@@ -1674,12 +1673,12 @@ tbody tr:hover {
 }
 
 .today {
-  background: #eef2ff;
+  background: #6079ca;
   border: 2px solid #4f46e5;
 }
 
 .activity-icon.pending {
-  background: #d6c996;
+  background: #dfcc7f;
 }
 
 .activity-icon.submit {
@@ -1692,5 +1691,10 @@ tbody tr:hover {
 
 .activity-icon.rejected {
   background: #d18282;
+}
+
+.activity-icon.request,
+.activity-icon.submit {
+  background: #d97706;
 }
 </style>
