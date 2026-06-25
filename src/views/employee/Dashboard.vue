@@ -168,8 +168,7 @@ async function fetchHistory() {
 // NAVIGATION
 function goToScan() {
   if (!canCheckIn.value) return;
-
-  router.push("/checkin-face");
+  router.push("/employee/scan");
 }
 
 function goToWFA() {
@@ -497,7 +496,7 @@ async function handleLogout() {
 
 .content {
   width: 100%;
-  max-width: 680px;
+  max-width: 640px;
 
   margin: 0 auto;
 
@@ -506,17 +505,10 @@ async function handleLogout() {
   padding-bottom: 120px;
 }
 
-@media (min-width: 768px) {
-  .content {
-    max-width: 860px;
-    padding: 28px;
-  }
-}
-
 @media (min-width: 1024px) {
   .content {
-    max-width: 1000px;
-    padding: 32px;
+    max-width: 820px;
+    padding: 30px 40px;
   }
 }
 
@@ -526,21 +518,21 @@ async function handleLogout() {
 }
 
 .clock h1 {
-  font-size: 42px;
+  font-size: 38px;
   font-weight: 700;
   letter-spacing: 1px;
   color: #111827;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
   .clock h1 {
-    font-size: 52px;
+    font-size: 44px;
   }
 }
 
 .btn {
   width: 100%;
-  padding: 17px;
+  padding: 16px;
   border-radius: 14px;
   background: linear-gradient(135deg, #6366f1, #4f46e5);
   color: white;
@@ -562,7 +554,7 @@ async function handleLogout() {
 
 .btn-outline {
   width: 100%;
-  padding: 17px;
+  padding: 16px;
   border-radius: 14px;
   border: 2px solid #4f46e5;
   background: white;
@@ -577,12 +569,10 @@ async function handleLogout() {
   transform: scale(0.98);
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
   .btn,
   .btn-outline {
-    height: 58px;
-
-    font-size: 15px;
+    padding: 18px;
   }
 }
 
@@ -600,7 +590,7 @@ async function handleLogout() {
 
 .history h3 {
   margin-bottom: 14px;
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 600;
   color: #374151;
 }
@@ -629,14 +619,14 @@ async function handleLogout() {
 }
 
 .time {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   color: #111827;
 }
 
 .date {
   color: #3b82f6;
-  font-size: 13px;
+  font-size: 12px;
   margin-top: 2px;
 }
 

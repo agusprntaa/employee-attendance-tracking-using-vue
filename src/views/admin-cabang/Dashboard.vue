@@ -1103,7 +1103,7 @@ td .badge {
 
 .btn-export {
   margin-top: 0;
-  /* margin-top: 40px; */
+  margin-top: 20px;
   padding: 8px 14px;
   border-radius: 10px;
   border: 1.5px solid #4f46e5;
