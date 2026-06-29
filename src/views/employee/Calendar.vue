@@ -802,7 +802,11 @@ onMounted(async () => {
   margin: 0 auto;
   padding: 20px 16px 132px;
   background:
-    radial-gradient(circle at top left, rgba(37, 99, 235, 0.1), transparent 32rem),
+    radial-gradient(
+      circle at top left,
+      rgba(37, 99, 235, 0.1),
+      transparent 32rem
+    ),
     #f8fafc;
   color: #0f172a;
 }
@@ -923,7 +927,10 @@ onMounted(async () => {
   font-size: 22px;
   font-weight: 800;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .calendar-nav button:hover,
@@ -977,7 +984,10 @@ onMounted(async () => {
   font-size: 14px;
   font-weight: 800;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .day:hover {
@@ -1073,7 +1083,9 @@ onMounted(async () => {
   border: 1px solid #e2e8f0;
   border-radius: 18px;
   background: #ffffff;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .leave-card:last-child,
@@ -1274,10 +1286,12 @@ onMounted(async () => {
 }
 
 .leave-modal {
-  max-height: calc(100vh - 40px);
-  overflow-y: auto;
-  padding: 22px 20px 110px;
-  border-radius: 24px 24px 0 0;
+  width: 100%;
+  max-width: 560px;
+  background: #fff;
+  border-radius: 28px 28px 0 0;
+  padding: 24px;
+  animation: slideUp 0.2s ease;
 }
 
 .event-header {
@@ -1349,7 +1363,10 @@ onMounted(async () => {
   font-size: 14px;
   font-weight: 600;
   outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
 }
 
 .form-group select {
@@ -1394,7 +1411,9 @@ onMounted(async () => {
   background: #f8fafc;
   text-align: center;
   cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
 }
 
 .upload-box span {
@@ -1525,6 +1544,46 @@ onMounted(async () => {
 
   .status {
     align-self: flex-start;
+  }
+}
+
+@media (min-width: 1024px) {
+  .modal-cuti {
+    align-items: center;
+    padding: 32px;
+  }
+
+  .leave-modal {
+    max-width: 760px;
+
+    border-radius: 28px;
+
+    padding: 36px;
+
+    max-height: 90vh;
+
+    overflow-y: auto;
+  }
+
+  .date-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .submit-btn {
+    margin-top: 12px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .event-modal {
+    max-width: 760px;
+    margin-bottom: 0;
+    border-radius: 28px;
+  }
+
+  .modal-overlay {
+    align-items: center;
+    padding: 32px;
   }
 }
 </style>
