@@ -509,155 +509,161 @@ onMounted(async () => {
       </div>
     </div>
 
-    <div class="calendar-card">
-      <div class="calendar-header">
-        <h2>{{ monthYear }}</h2>
+    <div class="calendar-layout">
+      <div class="calendar-left">
+        <div class="calendar-card">
+          <div class="calendar-header">
+            <h2>{{ monthYear }}</h2>
 
-        <div class="calendar-nav">
-          <button @click="prevMonth">‹</button>
+            <div class="calendar-nav">
+              <button @click="prevMonth">‹</button>
 
-          <button @click="nextMonth">›</button>
-        </div>
-      </div>
-
-      <div class="weekdays">
-        <span>Minggu</span>
-        <span>Senin</span>
-        <span>Selasa</span>
-        <span>Rabu</span>
-        <span>Kamis</span>
-        <span>Jumat</span>
-        <span>Sabtu</span>
-      </div>
-
-      <div class="calendar-grid">
-        <div
-          v-for="(day, index) in calendarDays"
-          :key="index"
-          class="day"
-          :class="{
-            active: selectedDate === day,
-          }"
-          @click="day && selectDate(day)"
-        >
-          <span v-if="day">
-            {{ day }}
-          </span>
-
-          <div v-if="getEvents(day).length" class="event-dots">
-            <span
-              v-for="(event, index) in getEvents(day)"
-              :key="index"
-              class="dot"
-              :class="event.type"
-            />
+              <button @click="nextMonth">›</button>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div class="legend">
-        <div class="legend-item">
-          <span class="legend-dot employee" />
+          <div class="weekdays">
+            <span>Minggu</span>
+            <span>Senin</span>
+            <span>Selasa</span>
+            <span>Rabu</span>
+            <span>Kamis</span>
+            <span>Jumat</span>
+            <span>Sabtu</span>
+          </div>
 
-          <p>Cuti Karyawan</p>
-        </div>
+          <div class="calendar-grid">
+            <div
+              v-for="(day, index) in calendarDays"
+              :key="index"
+              class="day"
+              :class="{
+                active: selectedDate === day,
+              }"
+              @click="day && selectDate(day)"
+            >
+              <span v-if="day">
+                {{ day }}
+              </span>
 
-        <div class="legend-item">
-          <span class="legend-dot holiday" />
+              <div v-if="getEvents(day).length" class="event-dots">
+                <span
+                  v-for="(event, index) in getEvents(day)"
+                  :key="index"
+                  class="dot"
+                  :class="event.type"
+                />
+              </div>
+            </div>
+          </div>
 
-          <p>Libur Nasional</p>
-        </div>
+          <div class="legend">
+            <div class="legend-item">
+              <span class="legend-dot employee" />
 
-        <!-- <div class="legend-item">
+              <p>Cuti Karyawan</p>
+            </div>
+
+            <div class="legend-item">
+              <span class="legend-dot holiday" />
+
+              <p>Libur Nasional</p>
+            </div>
+
+            <!-- <div class="legend-item">
           <span class="legend-dot personal" />
 
           <p>Personal Leave</p>
         </div> -->
-      </div>
-    </div>
-
-    <div class="section">
-      <h2>Cuti Mendatang</h2>
-
-      <div v-for="item in upcomingLeaves" :key="item.id" class="leave-card">
-        <div class="leave-top">
-          <div>
-            <h3>{{ item.leave_type }}</h3>
-
-            <p>
-              {{ item.start_date }}
-              -
-              {{ item.end_date }} ({{ item.total_days }} Hari)
-            </p>
-          </div>
-
-          <span class="status" :class="item.status">
-            {{
-              item.status === "approved"
-                ? "Disetujui"
-                : item.status === "rejected"
-                  ? "Ditolak"
-                  : item.status === "cancelled"
-                    ? "Dibatalkan"
-                    : "Menunggu"
-            }}
-          </span>
-        </div>
-
-        <div class="leave-note">
-          {{ item.note }}
-        </div>
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="notif-header">
-        <h2>Notifikasi</h2>
-
-        <button
-          v-if="notificationPagination.unread > 0"
-          class="read-all-btn"
-          @click="markAllNotificationsRead"
-        >
-          Tandai Dibaca
-        </button>
-      </div>
-
-      <div v-if="notifications.length">
-        <div
-          v-for="item in notifications"
-          :key="item.id"
-          class="notif-card"
-          :class="{
-            unread: !item.is_read,
-          }"
-          @click="!item.is_read && markNotificationRead(item.id)"
-        >
-          <div class="notif-content">
-            <h3>{{ item.title }}</h3>
-
-            <span class="notif-status" :class="item.status">
-              {{
-                item.status === "approved"
-                  ? "Disetujui"
-                  : item.status === "rejected"
-                    ? "Ditolak"
-                    : "Diproses"
-              }}
-            </span>
-
-            <p>
-              {{ item.description }}
-            </p>
-
-            <span class="notif-time">
-              {{ item.updated_at }}
-            </span>
           </div>
         </div>
       </div>
 
-      <div v-else class="empty-event">Belum ada notifikasi cuti</div>
+      <div class="calendar-right">
+        <div class="section">
+          <h2>Cuti Mendatang</h2>
+
+          <div v-for="item in upcomingLeaves" :key="item.id" class="leave-card">
+            <div class="leave-top">
+              <div>
+                <h3>{{ item.leave_type }}</h3>
+
+                <p>
+                  {{ item.start_date }}
+                  -
+                  {{ item.end_date }} ({{ item.total_days }} Hari)
+                </p>
+              </div>
+
+              <span class="status" :class="item.status">
+                {{
+                  item.status === "approved"
+                    ? "Disetujui"
+                    : item.status === "rejected"
+                      ? "Ditolak"
+                      : item.status === "cancelled"
+                        ? "Dibatalkan"
+                        : "Menunggu"
+                }}
+              </span>
+            </div>
+
+            <div class="leave-note">
+              {{ item.note }}
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="notif-header">
+            <h2>Notifikasi</h2>
+
+            <button
+              v-if="notificationPagination.unread > 0"
+              class="read-all-btn"
+              @click="markAllNotificationsRead"
+            >
+              Tandai Dibaca
+            </button>
+          </div>
+
+          <div v-if="notifications.length">
+            <div
+              v-for="item in notifications"
+              :key="item.id"
+              class="notif-card"
+              :class="{
+                unread: !item.is_read,
+              }"
+              @click="!item.is_read && markNotificationRead(item.id)"
+            >
+              <div class="notif-content">
+                <h3>{{ item.title }}</h3>
+
+                <span class="notif-status" :class="item.status">
+                  {{
+                    item.status === "approved"
+                      ? "Disetujui"
+                      : item.status === "rejected"
+                        ? "Ditolak"
+                        : "Diproses"
+                  }}
+                </span>
+
+                <p>
+                  {{ item.description }}
+                </p>
+
+                <span class="notif-time">
+                  {{ item.updated_at }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="empty-event">Belum ada notifikasi cuti</div>
+        </div>
+      </div>
     </div>
 
     <p class="password-note">
@@ -796,10 +802,13 @@ onMounted(async () => {
 
 <style scoped>
 .calendar-page {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
   min-height: 100vh;
-  height: 300;
   background: #f5f7fb;
-  padding: 18px 18px 180px;
+  padding: 24px;
+  padding-bottom: 140px;
 }
 
 .hero {
@@ -893,12 +902,18 @@ onMounted(async () => {
 
   margin-bottom: 24px;
 }
+@media (min-width: 1024px) {
+  .calendar-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 32px;
+    align-items: start;
+  }
 
-.calendar-header h2 {
-  font-size: 21px;
-  font-weight: 700;
-
-  color: #111827;
+  .calendar-left,
+  .calendar-right {
+    width: auto;
+  }
 }
 
 .calendar-nav {
@@ -948,9 +963,7 @@ onMounted(async () => {
 
 .calendar-grid {
   display: grid;
-
   grid-template-columns: repeat(7, 1fr);
-
   gap: 10px;
 }
 
@@ -1499,13 +1512,13 @@ onMounted(async () => {
 
 .leave-modal {
   width: 100%;
-  max-width: 520px;
+  max-width: 560px;
 
-  background: white;
+  background: #fff;
 
   border-radius: 28px 28px 0 0;
 
-  padding: 22px 20px 120px;
+  padding: 24px;
 
   animation: slideUp 0.2s ease;
 }
@@ -1785,5 +1798,124 @@ onMounted(async () => {
   justify-content: space-between;
 
   margin-bottom: 16px;
+}
+
+@media (min-width: 1024px) {
+  .calendar-page {
+    padding: 40px 40px 80px;
+  }
+
+  .hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 34px 38px;
+  }
+
+  .hero h1 {
+    font-size: 36px;
+  }
+
+  .hero p {
+    font-size: 15px;
+  }
+
+  .stats {
+    width: 420px;
+
+    margin-top: 0;
+  }
+
+  .calendar-card {
+    padding: 32px;
+  }
+
+  .calendar-grid {
+    min-height: 520px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .day {
+    min-height: 72px;
+
+    border-radius: 18px;
+
+    font-size: 17px;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .leave-card,
+  .notif-card {
+    padding: 24px;
+
+    border-radius: 24px;
+  }
+
+  .leave-top h3 {
+    font-size: 20px;
+  }
+
+  .leave-note {
+    font-size: 14px;
+  }
+}
+
+.calendar-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.calendar-left,
+.calendar-right {
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .modal-cuti {
+    align-items: center;
+    padding: 32px;
+  }
+
+  .leave-modal {
+    max-width: 760px;
+
+    border-radius: 28px;
+
+    padding: 36px;
+
+    max-height: 90vh;
+
+    overflow-y: auto;
+  }
+
+  .date-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .submit-btn {
+    margin-top: 12px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .event-modal {
+    max-width: 760px;
+    margin-bottom: 0;
+    border-radius: 28px;
+  }
+
+  .modal-overlay {
+    align-items: center;
+    padding: 32px;
+  }
 }
 </style>

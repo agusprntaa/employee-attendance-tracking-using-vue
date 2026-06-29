@@ -337,59 +337,69 @@ async function handleLogout() {
 <template>
   <div class="wrapper">
     <div class="content">
-      <LocationBanner
-        :isInRadius="isInRadius"
-        :distance="distance"
-        :nearestOffice="nearestOffice"
-      />
+      <div class="dashboard-grid">
+        <div class="left-panel">
+          <LocationBanner
+            :isInRadius="isInRadius"
+            :distance="distance"
+            :nearestOffice="nearestOffice"
+          />
 
-      <ProfileCard v-if="user" :user="user" />
+          <ProfileCard v-if="user" :user="user" />
+        </div>
 
-      <div class="clock">
-        <h1>{{ currentTime }}</h1>
-        <p>Waktu sekarang</p>
-      </div>
+        <div class="right-panel">
+          <div class="action-card">
+            <div class="clock">
+              <h1>{{ currentTime }}</h1>
+              <p>Waktu sekarang</p>
+            </div>
 
-      <button class="btn" @click="goToScan" :disabled="!canCheckIn">
-        {{
-          alreadyCheckedIn
-            ? "SUDAH ABSEN"
-            : !isInRadius
-              ? "DI LUAR RADIUS"
-              : "CHECK IN"
-        }}
-      </button>
+            <button class="btn" @click="goToScan" :disabled="!canCheckIn">
+              {{
+                alreadyCheckedIn
+                  ? "SUDAH ABSEN"
+                  : !isInRadius
+                    ? "DI LUAR RADIUS"
+                    : "CHECK IN"
+              }}
+            </button>
 
-      <button
-        class="btn-outline"
-        @click="goToWFA"
-        :disabled="loading || alreadyCheckedIn"
-      >
-        {{ alreadyCheckedIn ? "SUDAH ABSEN" : "WFA" }}
-      </button>
+            <button
+              class="btn-outline"
+              @click="goToWFA"
+              :disabled="loading || alreadyCheckedIn"
+            >
+              {{ alreadyCheckedIn ? "SUDAH ABSEN" : "WFA" }}
+            </button>
 
-      <div
-        v-if="alreadyCheckedIn && !alreadyCheckedOut && checkoutInfo"
-        class="checkout-info"
-      >
-        <p class="checkout-time">
-          Anda dapat pulang pukul
-          <strong>
-            {{ formatCheckoutTime(checkoutInfo.checkoutTime) }}
-          </strong>
-        </p>
+            <div
+              v-if="alreadyCheckedIn && !alreadyCheckedOut && checkoutInfo"
+              class="checkout-info"
+            >
+              <p class="checkout-time">
+                Anda dapat pulang pukul
+                <strong>
+                  {{ formatCheckoutTime(checkoutInfo.checkoutTime) }}
+                </strong>
+              </p>
 
-        <button
-          class="checkout-link"
-          :class="{
-            danger: checkoutInfo.isFinished,
-          }"
-          @click="onClickCheckout"
-        >
-          {{
-            checkoutInfo.isFinished ? "Pulang sekarang" : "Ajukan pulang cepat?"
-          }}
-        </button>
+              <button
+                class="checkout-link"
+                :class="{
+                  danger: checkoutInfo.isFinished,
+                }"
+                @click="onClickCheckout"
+              >
+                {{
+                  checkoutInfo.isFinished
+                    ? "Pulang sekarang"
+                    : "Ajukan pulang cepat?"
+                }}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="history">
@@ -469,6 +479,8 @@ async function handleLogout() {
 .wrapper {
   min-height: 100vh;
   background: #f5f7fb;
+  display: flex;
+  justify-content: center;
 }
 
 .header {
@@ -496,31 +508,35 @@ async function handleLogout() {
 
 .content {
   width: 100%;
-  max-width: 640px;
+  max-width: 1200px;
 
-  margin: 0 auto;
-
-  padding: 20px;
-
+  padding: 24px;
   padding-bottom: 120px;
+
+  transition: all 0.25s;
 }
 
-@media (min-width: 1024px) {
-  .content {
-    max-width: 820px;
-    padding: 30px 40px;
-  }
+.dashboard-grid {
+  display: block;
+}
+
+.left-panel,
+.right-panel {
+  min-width: 0;
 }
 
 .clock {
   text-align: center;
-  margin: 28px 0;
+  margin: 24px;
 }
 
 .clock h1 {
-  font-size: 38px;
+  font-size: 54px;
+
   font-weight: 700;
-  letter-spacing: 1px;
+
+  line-height: 1;
+
   color: #111827;
 }
 
@@ -531,8 +547,9 @@ async function handleLogout() {
 }
 
 .btn {
+  margin-bottom: 14px;
   width: 100%;
-  padding: 16px;
+  padding: 15px 18px;
   border-radius: 14px;
   background: linear-gradient(135deg, #6366f1, #4f46e5);
   color: white;
@@ -553,8 +570,9 @@ async function handleLogout() {
 }
 
 .btn-outline {
+  margin-top: 12px;
   width: 100%;
-  padding: 16px;
+  padding: 15px 18px;
   border-radius: 14px;
   border: 2px solid #4f46e5;
   background: white;
@@ -585,7 +603,7 @@ async function handleLogout() {
 }
 
 .history {
-  margin-top: 32px;
+  margin-top: 24px;
 }
 
 .history h3 {
@@ -610,12 +628,6 @@ async function handleLogout() {
 .item:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
-}
-
-@media (min-width: 768px) {
-  .item {
-    padding: 18px;
-  }
 }
 
 .time {
@@ -828,7 +840,11 @@ async function handleLogout() {
 }
 
 .checkout-info {
-  margin-top: 18px;
+  margin-top: 24px;
+
+  padding-top: 24px;
+
+  border-top: 1px solid #eef2f7;
 
   text-align: center;
 }
@@ -911,5 +927,46 @@ async function handleLogout() {
 .status-note {
   font-size: 10px;
   color: #9ca3af;
+}
+
+@media (min-width: 1024px) {
+  .content {
+    padding: 36px 40px 120px;
+  }
+
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 360px minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+  }
+
+  .left-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .right-panel {
+    align-self: start;
+  }
+
+  .action-card {
+    width: 100%;
+
+    background: #ffffff;
+
+    border: 1px solid #edf2f7;
+
+    border-radius: 26px;
+
+    padding: 34px;
+
+    box-shadow: 0 12px 34px rgba(15, 23, 42, 0.06);
+  }
+
+  .history {
+    margin-top: 28px;
+  }
 }
 </style>

@@ -335,4 +335,35 @@ function goToChangePassword() {
     padding: 15px;
   }
 }
+
+@media (min-width: 1200px) {
+  .profile-card {
+    padding: 32px;
+  }
+
+  .top {
+    gap: 22px;
+  }
+
+  .avatar {
+    width: 90px;
+    height: 90px;
+
+    font-size: 28px;
+  }
+
+  .info h3 {
+    font-size: 24px;
+  }
+
+  .info p {
+    font-size: 15px;
+  }
+
+  .btn-change {
+    height: 56px;
+
+    font-size: 15px;
+  }
+}
 </style>

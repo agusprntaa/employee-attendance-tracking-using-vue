@@ -103,4 +103,24 @@ defineProps({
     font-size: 14px;
   }
 }
+
+@media (min-width: 1200px) {
+  .banner {
+    padding: 22px 28px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    text-align: left;
+  }
+
+  .office {
+    margin-top: 0;
+  }
+
+  .distance {
+    margin-top: 0;
+  }
+}
 </style>

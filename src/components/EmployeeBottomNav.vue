@@ -262,7 +262,28 @@ async function handleLogout() {
 
 @media (min-width: 768px) {
   .bottom-nav {
-    height: 62px;
+    left: 24px;
+    top: 24px;
+    bottom: 24px;
+
+    transform: none;
+
+    width: 90px;
+    max-width: none;
+    height: auto;
+
+    padding: 18px 0;
+
+    flex-direction: column;
+
+    border-radius: 24px;
+  }
+
+  .nav-item {
+    flex: none;
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
   }
 
   .nav-item svg {
