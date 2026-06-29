@@ -423,57 +423,73 @@ async function handleDelete(id) {
           <pre>{{ admins }}</pre>
         </div> -->
 
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Username</th>
-              <th>Nama Lengkap</th>
-              <th>Cabang</th>
-              <th>Status</th>
-              <th>Tanggal Dibuat</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
+        <div class="table-region">
+          <p class="mobile-table-hint" aria-hidden="true">
+            Geser tabel ke samping untuk melihat kolom lainnya
+          </p>
 
-          <tbody>
-            <tr v-for="admin in paginatedAdmins" :key="admin.id">
-              <td>{{ adminCode(admin.id) }}</td>
+          <div
+            class="table-scroll"
+            tabindex="0"
+            role="region"
+            aria-label="Daftar admin cabang"
+          >
+            <table>
+              <caption class="sr-only">
+                Daftar Admin Cabang
+              </caption>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Username</th>
+                  <th>Nama Lengkap</th>
+                  <th>Cabang</th>
+                  <th>Status</th>
+                  <th>Tanggal Dibuat</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
 
-              <td class="bold">
-                {{ admin.username }}
-              </td>
+              <tbody>
+                <tr v-for="admin in paginatedAdmins" :key="admin.id">
+                  <td>{{ adminCode(admin.id) }}</td>
 
-              <td>
-                {{ admin.full_name || "-" }}
-              </td>
+                  <td class="bold">
+                    {{ admin.username }}
+                  </td>
 
-              <td class="highlight">
-                {{ admin.branch_name || "-" }}
-              </td>
+                  <td>
+                    {{ admin.full_name || "-" }}
+                  </td>
 
-              <td>
-                <span :class="['badge', admin.status?.toLowerCase()]">
-                  {{ admin.status === "active" ? "Aktif" : "Nonaktif" }}
-                </span>
-              </td>
+                  <td class="highlight">
+                    {{ admin.branch_name || "-" }}
+                  </td>
 
-              <td>
-                {{ formatDate(admin.created_at) }}
-              </td>
+                  <td>
+                    <span :class="['badge', admin.status?.toLowerCase()]">
+                      {{ admin.status === "active" ? "Aktif" : "Nonaktif" }}
+                    </span>
+                  </td>
 
-              <td class="actions">
-                <button @click="openEdit(admin)">
-                  <img src="/edit.png" class="action-icon" />
-                </button>
+                  <td>
+                    {{ formatDate(admin.created_at) }}
+                  </td>
 
-                <button @click="handleDelete(admin.id)">
-                  <img src="/delete.png" class="action-icon" />
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                  <td class="actions">
+                    <button @click="openEdit(admin)">
+                      <img src="/edit.png" class="action-icon" />
+                    </button>
+
+                    <button @click="handleDelete(admin.id)">
+                      <img src="/delete.png" class="action-icon" />
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
 
         <div class="pagination">
           <span class="pagination-info">
@@ -613,6 +629,7 @@ async function handleDelete(id) {
 }
 
 .main {
+  min-width: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -624,6 +641,10 @@ async function handleDelete(id) {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+}
+
+.header > div:first-child {
+  min-width: 0;
 }
 
 .header h2 {
@@ -644,6 +665,44 @@ async function handleDelete(id) {
   background: #ffffff;
   border-radius: 16px;
   border: 1px solid #e8e8f0;
+  overflow: hidden;
+}
+
+.table-region {
+  position: relative;
+  min-width: 0;
+}
+
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c7d2fe #f8f8ff;
+}
+
+.table-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+  background: #f8f8ff;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  background: #c7d2fe;
+  border-radius: 999px;
+  border: 2px solid #f8f8ff;
+}
+
+.mobile-table-hint {
+  display: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
   overflow: hidden;
 }
 
@@ -748,7 +807,10 @@ async function handleDelete(id) {
 
 table {
   width: 100%;
-  border-collapse: collapse;
+  min-width: 930px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
 }
 
 thead tr {
@@ -1119,6 +1181,128 @@ td.actions button:hover:nth-child(3) {
   to {
     transform: scale(1);
     opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .layout {
+    flex-direction: column;
+  }
+
+  .main {
+    gap: 18px;
+    padding: 20px 16px 28px;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding-inline: 16px;
+  }
+
+  .search-wrap {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .toolbar input,
+  .toolbar select,
+  .btn-add {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .mobile-table-hint {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+    padding: 10px 16px;
+    border-bottom: 1px solid #edf0f4;
+    background: #fafaff;
+    color: #6b7280;
+    font-size: 11px;
+  }
+
+  .mobile-table-hint::before {
+    content: "↔";
+    color: #4f46e5;
+  }
+
+  .table-scroll {
+    scroll-snap-type: x proximity;
+  }
+
+  .pagination {
+    flex-direction: column;
+    align-items: flex-start;
+    padding-inline: 16px;
+  }
+
+  .pagination-controls {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 3px;
+  }
+
+  .modal-overlay {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main {
+    padding: 16px 12px 24px;
+  }
+
+  .panel {
+    border-radius: 14px;
+  }
+
+  .toolbar {
+    padding-inline: 16px;
+  }
+
+  .modal-box {
+    width: 100%;
+    max-height: calc(100dvh - 24px);
+    border-radius: 16px;
+  }
+
+  .modal-body {
+    padding: 18px;
+  }
+
+  .modal-footer {
+    flex-direction: column;
+  }
+
+  .btn-submit,
+  .btn-cancel {
+    width: 100%;
+  }
+}
+
+@media (max-width: 360px) {
+  .main {
+    padding-inline: 10px;
+  }
+
+  .toolbar {
+    padding-inline: 12px;
+  }
+
+  .header h2 {
+    font-size: 22px;
+  }
+
+  .pagination-info {
+    font-size: 12px;
   }
 }
 </style>

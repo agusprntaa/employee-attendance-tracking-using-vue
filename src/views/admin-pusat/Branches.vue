@@ -148,7 +148,7 @@ onMounted(() => {
             + Tambah Cabang
           </button>
 
-          <button class="back-btn" @click="goBack">×</button>
+          <!-- <button class="back-btn" @click="goBack">×</button> -->
         </div>
       </div>
 
@@ -200,67 +200,83 @@ onMounted(() => {
       <div v-if="loading" class="loading-state">Memuat cabang...</div>
 
       <div v-else class="table-card">
-        <table>
-          <thead>
-            <tr>
-              <th>ID Cabang</th>
-              <th>Nama Cabang</th>
-              <th>Alamat</th>
-              <th>Karyawan</th>
-              <th>Kehadiran</th>
-              <th>Radius</th>
-              <th>Status</th>
-              <th>Dibuat</th>
-            </tr>
-          </thead>
+        <div class="table-region">
+          <p class="mobile-table-hint" aria-hidden="true">
+            Geser tabel ke samping untuk melihat kolom lainnya
+          </p>
 
-          <tbody>
-            <tr v-for="branch in filteredBranches" :key="branch.branch_id">
-              <td>{{ branch.branch_id }}</td>
+          <div
+            class="table-wrapper"
+            tabindex="0"
+            role="region"
+            aria-label="Daftar cabang"
+          >
+            <table>
+              <caption class="sr-only">
+                Daftar seluruh cabang
+              </caption>
+              <thead>
+                <tr>
+                  <th>ID Cabang</th>
+                  <th>Nama Cabang</th>
+                  <th>Alamat</th>
+                  <th>Karyawan</th>
+                  <th>Kehadiran</th>
+                  <th>Radius</th>
+                  <th>Status</th>
+                  <th>Dibuat</th>
+                </tr>
+              </thead>
 
-              <td>
-                {{ branch.branch_name }}
-              </td>
+              <tbody>
+                <tr v-for="branch in filteredBranches" :key="branch.branch_id">
+                  <td>{{ branch.branch_id }}</td>
 
-              <td>
-                {{ branch.address }}
-              </td>
+                  <td>
+                    {{ branch.branch_name }}
+                  </td>
 
-              <td>
-                {{ branch.total_employees }}
-              </td>
+                  <td>
+                    {{ branch.address }}
+                  </td>
 
-              <td>
-                {{
-                  branch.attendance_rate_30d != null
-                    ? Math.round(branch.attendance_rate_30d) + "%"
-                    : "0%"
-                }}
-              </td>
+                  <td>
+                    {{ branch.total_employees }}
+                  </td>
 
-              <td>
-                {{ branch.radius_meter ? branch.radius_meter + "m" : "-" }}
-              </td>
+                  <td>
+                    {{
+                      branch.attendance_rate_30d != null
+                        ? Math.round(branch.attendance_rate_30d) + "%"
+                        : "0%"
+                    }}
+                  </td>
 
-              <td>
-                <span
-                  class="status-badge"
-                  :class="getStatusClass(branch.status)"
-                >
-                  {{ branch.status }}
-                </span>
-              </td>
+                  <td>
+                    {{ branch.radius_meter ? branch.radius_meter + "m" : "-" }}
+                  </td>
 
-              <td>
-                {{ formatDate(branch.created_date) }}
-              </td>
-            </tr>
+                  <td>
+                    <span
+                      class="status-badge"
+                      :class="getStatusClass(branch.status)"
+                    >
+                      {{ branch.status }}
+                    </span>
+                  </td>
 
-            <tr v-if="!filteredBranches.length">
-              <td colspan="8" class="empty-table">Tidak ada data cabang</td>
-            </tr>
-          </tbody>
-        </table>
+                  <td>
+                    {{ formatDate(branch.created_date) }}
+                  </td>
+                </tr>
+
+                <tr v-if="!filteredBranches.length">
+                  <td colspan="8" class="empty-table">Tidak ada data cabang</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -365,17 +381,20 @@ onMounted(() => {
 }
 
 .content {
+  min-width: 0;
   flex: 1;
-  padding: 32px;
-  overflow-x: auto;
+  padding: 28px 32px;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-
+  align-items: flex-start;
   margin-bottom: 28px;
+}
+
+.page-header > div:first-child {
+  min-width: 0;
 }
 
 .page-header h1 {
@@ -485,10 +504,52 @@ onMounted(() => {
   border: 1px solid #eef2ff;
 }
 
+.table-region {
+  position: relative;
+  min-width: 0;
+}
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c7d2fe #f8f8ff;
+}
+
+.table-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: #f8f8ff;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #c7d2fe;
+  border-radius: 999px;
+  border: 2px solid #f8f8ff;
+}
+
+.mobile-table-hint {
+  display: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
 table {
   width: 100%;
-
-  border-collapse: collapse;
+  min-width: 980px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
 }
 
 thead {
@@ -811,5 +872,154 @@ td:nth-child(3) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .branches-page {
+    flex-direction: column;
+  }
+
+  .content {
+    padding: 20px 16px 28px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .add-btn,
+  .back-btn {
+    width: 100%;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .summary-card {
+    min-width: 0;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .mobile-table-hint {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+    padding: 10px 16px;
+    border-bottom: 1px solid #edf0f4;
+    background: #fafaff;
+    color: #6b7280;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  .mobile-table-hint::before {
+    content: "↔";
+    color: #4f46e5;
+    font-size: 15px;
+  }
+
+  .table-wrapper {
+    scroll-snap-type: x proximity;
+  }
+
+  .modal-overlay {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .content {
+    padding: 16px 12px 24px;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .summary-card {
+    min-height: 108px;
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .summary-card h2 {
+    margin-top: 10px;
+    font-size: 28px;
+  }
+
+  .summary-card span {
+    font-size: 11px;
+  }
+
+  .table-card {
+    border-radius: 14px;
+  }
+
+  .page-header h1 {
+    font-size: 24px;
+  }
+
+  .page-header p {
+    font-size: 13px;
+  }
+
+  .modal-box {
+    width: 100%;
+    max-height: calc(100dvh - 24px);
+    border-radius: 16px;
+  }
+
+  .modal-footer {
+    flex-direction: column;
+  }
+
+  .btn-submit,
+  .btn-cancel {
+    width: 100%;
+  }
+}
+
+@media (max-width: 360px) {
+  .content {
+    padding-inline: 10px;
+  }
+
+  .summary-grid {
+    gap: 8px;
+  }
+
+  .summary-card {
+    min-height: 102px;
+    padding: 14px;
+  }
+
+  .summary-card h2 {
+    font-size: 24px;
+  }
+
+  .summary-card span {
+    font-size: 10px;
+  }
+
+  .page-header h1 {
+    font-size: 22px;
+  }
+
+  .page-header p {
+    font-size: 12px;
+  }
 }
 </style>

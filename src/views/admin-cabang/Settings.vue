@@ -363,6 +363,7 @@ onMounted(() => {
 }
 
 .main {
+  min-width: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -375,6 +376,10 @@ onMounted(() => {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+}
+
+.header > div:first-child {
+  min-width: 0;
 }
 
 .header h2 {
@@ -571,22 +576,100 @@ input:disabled {
 }
 
 /* responsive */
-@media (max-width: 900px) {
+@media (max-width: 768px) {
+  .layout {
+    flex-direction: column;
+  }
+
+  .main {
+    gap: 18px;
+    padding: 20px 16px 28px;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .section-body {
+    padding: 16px;
+  }
+
   .grid-2,
   .grid-3 {
     grid-template-columns: 1fr;
   }
 
-  .main {
-    padding: 22px;
+  .save-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
   }
 
-  .save-bar {
-    justify-content: stretch;
+  .success,
+  .error {
+    text-align: center;
   }
 
   .btn-save {
     width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .main {
+    padding: 16px 12px 24px;
+  }
+
+  .section {
+    border-radius: 14px;
+  }
+
+  .section-header {
+    padding: 14px 16px;
+  }
+
+  .section-body {
+    padding: 16px;
+  }
+
+  .field label {
+    font-size: 12px;
+  }
+
+  input,
+  textarea {
+    font-size: 13px;
+  }
+
+  .btn-save {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 360px) {
+  .main {
+    padding-inline: 10px;
+  }
+
+  .section-header {
+    padding-inline: 14px;
+  }
+
+  .section-body {
+    padding: 14px;
+  }
+
+  .header h2 {
+    font-size: 22px;
+  }
+
+  .subtitle {
+    font-size: 12px;
+  }
+
+  .field label {
+    font-size: 11px;
   }
 }
 </style>

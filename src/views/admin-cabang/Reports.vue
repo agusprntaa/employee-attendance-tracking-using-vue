@@ -413,46 +413,73 @@ function exportExcel() {
         <div class="panel-header">
           <h3>Performa Divisi</h3>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Divisi</th>
-              <th>Total Karyawan</th>
-              <th>Persentase Kehadiran</th>
-              <th>Progres</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="!divisions.length">
-              <td colspan="5" class="empty-cell">Tidak ada data divisi</td>
-            </tr>
-            <tr v-for="d in divisions" :key="d.division_name">
-              <td class="bold">{{ d.division_name }}</td>
-              <td>{{ d.total_employees }}</td>
-              <td>{{ d.attendance_rate }}%</td>
-              <td>
-                <div class="progress-bar">
-                  <div
-                    class="progress-fill"
-                    :style="{ width: d.attendance_rate + '%' }"
-                  ></div>
-                </div>
-              </td>
-              <td>
-                <span
-                  class="badge"
-                  :class="{
-                    'badge-excellent': d.status === 'Sangat Baik',
-                    'badge-good': d.status === 'Baik',
-                    'badge-poor': d.status === 'Buruk',
-                  }"
-                  >{{ d.status }}</span
-                >
-              </td>
-            </tr>
-          </tbody>
-        </table>
+
+        <div class="table-region">
+          <p class="mobile-table-hint" aria-hidden="true">
+            Geser tabel ke samping untuk melihat kolom lainnya
+          </p>
+
+          <div
+            class="table-scroll"
+            tabindex="0"
+            role="region"
+            aria-label="Data performa divisi"
+          >
+            <table>
+              <caption class="sr-only">
+                Tabel performa divisi
+              </caption>
+
+              <colgroup>
+                <col class="col-division" />
+                <col class="col-total" />
+                <col class="col-rate" />
+                <col class="col-progress" />
+                <col class="col-status" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th scope="col">Divisi</th>
+                  <th scope="col">Total Karyawan</th>
+                  <th scope="col">Persentase Kehadiran</th>
+                  <th scope="col">Progres</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="!divisions.length">
+                  <td colspan="5" class="empty-cell">Tidak ada data divisi</td>
+                </tr>
+                <tr v-for="d in divisions" :key="d.division_name">
+                  <th scope="row" class="row-name">
+                    {{ d.division_name }}
+                  </th>
+                  <td>{{ d.total_employees }}</td>
+                  <td>{{ d.attendance_rate }}%</td>
+                  <td>
+                    <div class="progress-bar">
+                      <div
+                        class="progress-fill"
+                        :style="{ width: d.attendance_rate + '%' }"
+                      ></div>
+                    </div>
+                  </td>
+                  <td>
+                    <span
+                      class="badge"
+                      :class="{
+                        'badge-excellent': d.status === 'Sangat Baik',
+                        'badge-good': d.status === 'Baik',
+                        'badge-poor': d.status === 'Buruk',
+                      }"
+                      >{{ d.status }}</span
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <!-- DAILY ATTENDANCE TABLE -->
@@ -460,38 +487,65 @@ function exportExcel() {
         <div class="panel-header">
           <h3>Rincian Harian</h3>
         </div>
-        <div>
-          <table>
-            <thead>
-              <tr>
-                <th>Tanggal</th>
-                <th>Hadir</th>
-                <th>Terlambat</th>
-                <th>WFA</th>
-                <th>Tidak Hadir</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="!daily.length">
-                <td colspan="5" class="empty-cell">Tidak ada data harian</td>
-              </tr>
-              <tr v-for="d in paginatedDaily" :key="d.date">
-                <td class="bold">{{ formatDate(d.date) }}</td>
-                <td>
-                  <span class="badge badge-PRESENT">{{ d.total_present }}</span>
-                </td>
-                <td>
-                  <span class="badge badge-LATE">{{ d.total_late }}</span>
-                </td>
-                <td>
-                  <span class="badge badge-WFA">{{ d.total_wfa }}</span>
-                </td>
-                <td>
-                  <span class="badge badge-ABSENT">{{ d.total_absent }}</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+
+        <div class="table-region">
+          <p class="mobile-table-hint" aria-hidden="true">
+            Geser tabel ke samping untuk melihat kolom lainnya
+          </p>
+
+          <div
+            class="table-scroll"
+            tabindex="0"
+            role="region"
+            aria-label="Data rincian absensi harian"
+          >
+            <table>
+              <caption class="sr-only">
+                Tabel rincian absensi harian
+              </caption>
+
+              <colgroup>
+                <col class="col-date" />
+                <col class="col-number" />
+                <col class="col-number" />
+                <col class="col-number" />
+                <col class="col-number" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th scope="col">Tanggal</th>
+                  <th scope="col">Hadir</th>
+                  <th scope="col">Terlambat</th>
+                  <th scope="col">WFA</th>
+                  <th scope="col">Tidak Hadir</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="!daily.length">
+                  <td colspan="5" class="empty-cell">Tidak ada data harian</td>
+                </tr>
+                <tr v-for="d in paginatedDaily" :key="d.date">
+                  <th scope="row" class="row-name">
+                    {{ formatDate(d.date) }}
+                  </th>
+                  <td>
+                    <span class="badge badge-PRESENT">{{
+                      d.total_present
+                    }}</span>
+                  </td>
+                  <td>
+                    <span class="badge badge-LATE">{{ d.total_late }}</span>
+                  </td>
+                  <td>
+                    <span class="badge badge-WFA">{{ d.total_wfa }}</span>
+                  </td>
+                  <td>
+                    <span class="badge badge-ABSENT">{{ d.total_absent }}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div class="pagination">
@@ -542,6 +596,7 @@ function exportExcel() {
 }
 
 .main {
+  min-width: 0;
   flex: 1;
 
   display: flex;
@@ -549,13 +604,17 @@ function exportExcel() {
 
   padding: 28px 32px;
 
-  gap: 20px;
+  gap: 24px;
 }
 
 .header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+}
+
+.header > div:first-child {
+  min-width: 0;
 }
 
 .header h2 {
@@ -722,6 +781,98 @@ function exportExcel() {
   width: 10px;
   height: 10px;
   border-radius: 2px;
+}
+
+.table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.table-region {
+  position: relative;
+  min-width: 0;
+}
+
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c7d2fe #f8f8ff;
+}
+
+.table-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+  background: #f8f8ff;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  background: #c7d2fe;
+  border-radius: 999px;
+  border: 2px solid #f8f8ff;
+}
+
+.mobile-table-hint {
+  display: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.col-division {
+  width: 180px;
+}
+
+.col-total {
+  width: 120px;
+}
+
+.col-rate {
+  width: 160px;
+}
+
+.col-progress {
+  width: 180px;
+}
+
+.col-status {
+  width: 140px;
+}
+
+.col-date {
+  width: 180px;
+}
+
+.col-number {
+  width: 140px;
+}
+
+tbody .row-name {
+  overflow: hidden;
+  padding: 13px 22px;
+  border-bottom: 1px solid #f0f2f5;
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .panel {
@@ -1003,5 +1154,176 @@ td.bold {
 .btn-export:hover .tooltip {
   opacity: 1;
   visibility: visible;
+}
+
+@media (max-width: 768px) {
+  .mobile-table-hint {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+    padding: 10px 16px;
+    border-bottom: 1px solid #edf0f4;
+    background: #fafaff;
+    color: #6b7280;
+    font-size: 11px;
+  }
+
+  .mobile-table-hint::before {
+    content: "↔";
+    color: #4f46e5;
+  }
+
+  .table-scroll {
+    scroll-snap-type: x proximity;
+  }
+  .layout {
+    flex-direction: column;
+  }
+
+  .main {
+    gap: 18px;
+    padding: 20px 16px 28px;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px;
+  }
+
+  .filter-group {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .filter-group input,
+  .btn-apply {
+    width: 100%;
+  }
+
+  .export {
+    width: 100%;
+  }
+
+  .export-actions {
+    width: 100%;
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn-export {
+    flex: 1;
+  }
+
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .chart-row {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-header {
+    gap: 12px;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .legend {
+    flex-wrap: wrap;
+  }
+
+  .pagination {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pagination-controls {
+    display: flex;
+    flex-wrap: nowrap;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 3px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main {
+    padding: 16px 12px 24px;
+  }
+
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .card {
+    min-width: 0;
+    min-height: 108px;
+    padding: 16px;
+  }
+
+  .card-value {
+    margin: 0 0 9px;
+    font-size: 26px;
+  }
+
+  .card-label {
+    font-size: 10.5px;
+    line-height: 1.4;
+  }
+
+  .card-change {
+    font-size: 10px;
+    line-height: 1.4;
+  }
+
+  .panel {
+    border-radius: 14px;
+  }
+
+  .chart-body {
+    height: 220px;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 360px) {
+  .main {
+    padding-inline: 10px;
+  }
+
+  .cards {
+    gap: 8px;
+  }
+
+  .card {
+    min-height: 102px;
+    padding: 14px;
+  }
+
+  .card-value {
+    font-size: 24px;
+  }
+
+  .card-label,
+  .card-change {
+    font-size: 10px;
+  }
+
+  .panel-header {
+    padding: 14px 16px;
+  }
+
+  .pagination-info {
+    font-size: 12px;
+  }
 }
 </style>

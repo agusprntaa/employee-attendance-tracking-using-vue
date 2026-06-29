@@ -1,11 +1,20 @@
 <script setup>
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { logout } from "@/utils/logout";
 const router = useRouter();
 const route = useRoute();
 
 const showLogoutConfirm = ref(false);
+
+const showMobileMenu = ref(false);
+
+watch(
+  () => route.fullPath,
+  () => {
+    showMobileMenu.value = false;
+  },
+);
 
 // function handleLogout() {
 //   localStorage.clear();
@@ -33,18 +42,58 @@ const showLogoutConfirm = ref(false);
 // }
 async function handleLogout() {
   showLogoutConfirm.value = false;
+  showMobileMenu.value = false;
 
   await logout();
 }
 </script>
 
 <template>
-  <aside class="sidebar">
+  <header class="mobile-topbar" v-if="$route.meta?.showSidebar !== false">
+    <button
+      class="menu-toggle"
+      type="button"
+      aria-label="Buka menu navigasi"
+      aria-controls="admin-navigation"
+      :aria-expanded="showMobileMenu"
+      @click="showMobileMenu = true"
+    >
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <span class="mobile-brand">ABSENSI BTW</span>
+  </header>
+
+  <div
+    v-if="showMobileMenu"
+    class="sidebar-overlay"
+    aria-hidden="true"
+    @click="showMobileMenu = false"
+  />
+
+  <aside
+    id="admin-navigation"
+    class="sidebar"
+    :class="{ open: showMobileMenu }"
+    aria-label="Navigasi admin pusat"
+  >
     <!-- <div class="logo-btw">
       <img src="/logo.png" />
     </div> -->
-    <h2>ABSENSI BTW</h2>
+    <div class="sidebar-brand">
+      <h2>ABSENSI BTW</h2>
 
+      <button
+        class="menu-close"
+        type="button"
+        aria-label="Tutup menu"
+        @click="showMobileMenu = false"
+      >
+        ✕
+      </button>
+    </div>
     <div class="nav">
       <button
         @click="router.push('/admin-pusat/dashboard')"
@@ -91,10 +140,14 @@ async function handleLogout() {
       </button>
     </div>
   </aside>
-  <div v-if="showLogoutConfirm" class="modal">
-    <div class="modal-box">
-      <p>Yakin ingin keluar?</p>
-
+  <div v-if="showLogoutConfirm" class="modal" role="presentation">
+    <div
+      class="modal-box"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="logout-title"
+    >
+      <p id="logout-title">Yakin ingin keluar?</p>
       <div class="actions">
         <button class="cancel" @click="showLogoutConfirm = false">
           Tetap di sini
@@ -107,7 +160,16 @@ async function handleLogout() {
 </template>
 
 <style scoped>
+.mobile-topbar,
+.menu-close {
+  display: none;
+}
 .sidebar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: 100vh;
+  height: 100dvh;
   width: 240px;
   min-width: 240px;
   background: #1e1b4b;
@@ -126,7 +188,16 @@ async function handleLogout() {
   display: none;
 }
 
-.sidebar h2 {
+.sidebar-brand {
+  min-height: 82px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-brand h2 {
   font-size: 20px;
   font-weight: 700;
   color: #ffffff;
@@ -171,6 +242,15 @@ async function handleLogout() {
   background: #4f46e5;
   color: #ffffff;
   box-shadow: 0 4px 14px rgba(79, 70, 229, 0.45);
+}
+
+.sidebar .nav button:focus-visible,
+.btn-logout:focus-visible,
+.menu-toggle:focus-visible,
+.menu-close:focus-visible,
+.actions button:focus-visible {
+  outline: 3px solid rgba(165, 180, 252, 0.9);
+  outline-offset: 2px;
 }
 
 .sidebar .logout-wrap {
@@ -307,6 +387,181 @@ async function handleLogout() {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 768px) {
+  .mobile-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 900;
+
+    min-height: 64px;
+
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+
+    align-items: center;
+
+    gap: 10px;
+
+    padding: 0 16px;
+
+    background: #1e1b4b;
+
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+    box-shadow: 0 5px 20px rgba(30, 27, 75, 0.18);
+  }
+
+  .menu-toggle {
+    grid-column: 1;
+  }
+
+  .mobile-brand {
+    grid-column: 2;
+
+    color: #fff;
+
+    font-size: 18px;
+
+    font-weight: 700;
+
+    text-align: center;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+  }
+
+  .menu-toggle,
+  .menu-close {
+    width: 44px;
+    height: 44px;
+
+    border: 1px solid rgba(255, 255, 255, 0.14);
+
+    border-radius: 10px;
+
+    background: rgba(255, 255, 255, 0.06);
+
+    color: #fff;
+
+    cursor: pointer;
+  }
+
+  .menu-toggle {
+    display: flex;
+
+    flex-direction: column;
+
+    justify-content: center;
+
+    align-items: center;
+
+    gap: 5px;
+  }
+
+  .menu-toggle span {
+    width: 19px;
+
+    height: 2px;
+
+    background: white;
+
+    border-radius: 999px;
+  }
+
+  .menu-close {
+    display: grid;
+
+    place-items: center;
+
+    font-size: 17px;
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+
+    inset: 0;
+
+    display: block;
+
+    z-index: 999;
+
+    background: rgba(15, 23, 42, 0.52);
+
+    backdrop-filter: blur(2px);
+  }
+
+  .sidebar {
+    position: fixed;
+
+    top: 0;
+
+    left: 0;
+
+    bottom: 0;
+
+    width: min(84vw, 300px);
+
+    min-width: 0;
+
+    transform: translateX(-105%);
+
+    visibility: hidden;
+
+    transition:
+      transform 0.22s ease,
+      visibility 0.22s ease;
+
+    z-index: 1000;
+
+    box-shadow: 18px 0 48px rgba(15, 23, 42, 0.24);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+
+    visibility: visible;
+  }
+
+  .sidebar-brand {
+    min-height: 72px;
+
+    padding-inline: 18px 14px;
+  }
+
+  .sidebar-brand h2 {
+    font-size: 18px;
+  }
+
+  .sidebar .nav {
+    padding-top: 16px;
+  }
+}
+
+@media (max-width: 380px) {
+  .mobile-topbar {
+    padding-inline: 14px;
+  }
+
+  .modal-box {
+    padding: 24px 18px 18px;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .modal-box {
+    animation: none;
+    transition: none;
   }
 }
 </style>

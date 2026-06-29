@@ -163,12 +163,12 @@ watch([search, status], () => {
           <p>Kelola dan lihat seluruh data karyawan</p>
         </div>
 
-        <button
+        <!-- <button
           class="close-btn"
           @click="router.push('/admin-pusat/dashboard')"
         >
           ×
-        </button>
+        </button> -->
       </div>
 
       <div v-if="errorMessage" class="error-box">
@@ -205,38 +205,49 @@ watch([search, status], () => {
           </div>
         </div>
 
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>ID Karyawan</th>
-                <th>Nama Lengkap</th>
-                <th>Posisi</th>
-                <th>Cabang</th>
-                <th>Status</th>
-                <th>Tanggal Dibuat</th>
-              </tr>
-            </thead>
+        <div class="table-region">
+          <p class="mobile-table-hint" aria-hidden="true">
+            Geser tabel ke samping untuk melihat kolom lainnya
+          </p>
 
-            <tbody>
-              <tr v-for="emp in paginatedEmployees" :key="emp.id">
-                <td>{{ emp.id }}</td>
-                <td>{{ emp.name }}</td>
-                <td>{{ emp.position }}</td>
-                <td>{{ emp.branch }}</td>
+          <div
+            class="table-wrapper"
+            tabindex="0"
+            role="region"
+            aria-label="Daftar karyawan"
+          >
+            <table>
+              <thead>
+                <tr>
+                  <th>ID Karyawan</th>
+                  <th>Nama Lengkap</th>
+                  <th>Posisi</th>
+                  <th>Cabang</th>
+                  <th>Status</th>
+                  <th>Tanggal Dibuat</th>
+                </tr>
+              </thead>
 
-                <td>
-                  <span class="status" :class="emp.status.toLowerCase()">
-                    {{ emp.status }}
-                  </span>
-                </td>
+              <tbody>
+                <tr v-for="emp in paginatedEmployees" :key="emp.id">
+                  <td>{{ emp.id }}</td>
+                  <td>{{ emp.name }}</td>
+                  <td>{{ emp.position }}</td>
+                  <td>{{ emp.branch }}</td>
 
-                <td>
-                  {{ formatDate(emp.created_at) }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  <td>
+                    <span class="status" :class="emp.status.toLowerCase()">
+                      {{ emp.status }}
+                    </span>
+                  </td>
+
+                  <td>
+                    {{ formatDate(emp.created_at) }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div class="footer">
@@ -306,6 +317,10 @@ watch([search, status], () => {
   justify-content: space-between;
 
   margin-bottom: 22px;
+}
+
+.header > div:first-child {
+  min-width: 0;
 }
 
 .header h1 {
@@ -465,13 +480,42 @@ watch([search, status], () => {
   box-shadow: 0 4px 14px rgba(220, 38, 38, 0.3);
 }
 
-.table-wrapper {
-  overflow-x: auto;
+.table-region {
+  position: relative;
+  min-width: 0;
 }
 
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c7d2fe #f8f8ff;
+}
+
+.table-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: #f8f8ff;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #c7d2fe;
+  border-radius: 999px;
+  border: 2px solid #f8f8ff;
+}
+
+.mobile-table-hint {
+  display: none;
+}
 table {
   width: 100%;
-  border-collapse: collapse;
+  min-width: 820px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
 }
 
 thead tr {
@@ -638,6 +682,7 @@ tbody tr:last-child td {
   visibility: visible;
 }
 .content {
+  min-width: 0;
   flex: 1;
   padding: 28px 32px;
 }
@@ -672,5 +717,130 @@ tbody tr:last-child td {
 
   font-size: 14px;
   font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .page {
+    flex-direction: column;
+  }
+
+  .content {
+    padding: 20px 16px 28px;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px;
+  }
+
+  .toolbar input,
+  .toolbar select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .export {
+    width: 100%;
+  }
+
+  .export-actions {
+    width: 100%;
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn-export {
+    flex: 1;
+  }
+
+  .mobile-table-hint {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+    padding: 10px 16px;
+    border-bottom: 1px solid #edf0f4;
+    background: #fafaff;
+    color: #6b7280;
+    font-size: 11px;
+  }
+
+  .mobile-table-hint::before {
+    content: "↔";
+    color: #4f46e5;
+  }
+
+  .table-wrapper {
+    scroll-snap-type: x proximity;
+  }
+
+  .footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .pagination {
+    width: 100%;
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .content {
+    padding: 16px 12px 24px;
+  }
+
+  .table-card {
+    border-radius: 14px;
+  }
+
+  .toolbar {
+    padding: 16px;
+  }
+
+  .close-btn {
+    align-self: flex-start;
+  }
+
+  .btn-export {
+    width: 100%;
+  }
+
+  .export-actions {
+    flex-direction: column;
+  }
+
+  .footer {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 360px) {
+  .content {
+    padding-inline: 10px;
+  }
+
+  .toolbar {
+    padding: 12px;
+  }
+
+  .header h1 {
+    font-size: 22px;
+  }
+
+  .header p {
+    font-size: 12px;
+  }
+
+  .footer p {
+    font-size: 12px;
+  }
 }
 </style>

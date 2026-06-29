@@ -531,69 +531,97 @@ onMounted(async () => {
           </div>
         </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Nama Karyawan</th>
-              <th>Divisi</th>
-              <th>Jenis Cuti</th>
-              <th>Tanggal</th>
-              <th>Hari</th>
-              <th>Alasan</th>
-              <th>Status</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
+        <div class="table-region">
+          <p class="mobile-table-hint" aria-hidden="true">
+            Geser tabel ke samping untuk melihat kolom lainnya
+          </p>
 
-          <tbody>
-            <tr v-for="item in filteredLeaves" :key="item.id">
-              <td>{{ item.employee_name }}</td>
+          <div
+            class="table-scroll"
+            tabindex="0"
+            role="region"
+            aria-label="Daftar pengajuan cuti"
+          >
+            <table>
+              <caption class="sr-only">
+                Daftar pengajuan cuti karyawan
+              </caption>
 
-              <td>{{ item.division_name }}</td>
+              <colgroup>
+                <col class="col-name" />
+                <col class="col-division" />
+                <col class="col-type" />
+                <col class="col-date" />
+                <col class="col-day" />
+                <col class="col-reason" />
+                <col class="col-status" />
+                <col class="col-action" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th scope="col">Nama Karyawan</th>
+                  <th scope="col">Divisi</th>
+                  <th scope="col">Jenis Cuti</th>
+                  <th scope="col">Tanggal</th>
+                  <th scope="col">Hari</th>
+                  <th scope="col">Alasan</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Aksi</th>
+                </tr>
+              </thead>
 
-              <td>{{ item.leave_type }}</td>
+              <tbody>
+                <tr v-for="item in filteredLeaves" :key="item.id">
+                  <th scope="row" class="employee-name">
+                    {{ item.employee_name }}
+                  </th>
+                  <td>{{ item.division_name }}</td>
 
-              <td>
-                {{ formatDate(item.start_date) }}
-                -
-                {{ formatDate(item.end_date) }}
-              </td>
+                  <td>{{ item.leave_type }}</td>
 
-              <td>{{ item.total_days }}</td>
+                  <td>
+                    {{ formatDate(item.start_date) }}
+                    -
+                    {{ formatDate(item.end_date) }}
+                  </td>
 
-              <td class="reason">
-                {{ item.reason }}
-              </td>
+                  <td>{{ item.total_days }}</td>
 
-              <td>
-                <span class="status" :class="item.status">
-                  {{
-                    item.status === "approved"
-                      ? "Disetujui"
-                      : item.status === "rejected"
-                        ? "Ditolak"
-                        : "Menunggu"
-                  }}
-                </span>
-              </td>
+                  <td class="reason">
+                    {{ item.reason }}
+                  </td>
 
-              <td>
-                <div class="actions">
-                  <button class="view-btn" @click="openLeaveDetail(item)">
-                    Detail
-                  </button>
-                  <button
-                    v-if="item.status === 'pending'"
-                    class="approve-btn"
-                    @click="approveLeave(item.id)"
-                  >
-                    Setujui
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                  <td>
+                    <span class="status" :class="item.status">
+                      {{
+                        item.status === "approved"
+                          ? "Disetujui"
+                          : item.status === "rejected"
+                            ? "Ditolak"
+                            : "Menunggu"
+                      }}
+                    </span>
+                  </td>
+
+                  <td>
+                    <div class="actions">
+                      <button class="view-btn" @click="openLeaveDetail(item)">
+                        Detail
+                      </button>
+                      <button
+                        v-if="item.status === 'pending'"
+                        class="approve-btn"
+                        @click="approveLeave(item.id)"
+                      >
+                        Setujui
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
         <div v-if="showCalendarModal" class="modal-overlay">
           <div class="calendar-modal">
             <div class="modal-header">
@@ -840,10 +868,11 @@ onMounted(async () => {
 }
 
 .main {
+  min-width: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 28px 52px;
+  padding: 28px 32px;
   gap: 24px;
   overflow-y: auto;
 }
@@ -852,6 +881,10 @@ onMounted(async () => {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+}
+
+.header > div:first-child {
+  min-width: 0;
 }
 
 .header h1 {
@@ -960,6 +993,14 @@ onMounted(async () => {
   background: #fee2e2;
 } */
 
+.table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
 .stats-card h2 {
   font-size: 30px;
   font-weight: 700;
@@ -990,6 +1031,100 @@ onMounted(async () => {
   border-radius: 16px;
   border: 1px solid #e8e8f0;
   overflow: hidden;
+}
+
+.table-region {
+  position: relative;
+  min-width: 0;
+}
+
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c7d2fe #f8f8ff;
+}
+
+.table-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+  background: #f8f8ff;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  background: #c7d2fe;
+  border-radius: 999px;
+  border: 2px solid #f8f8ff;
+}
+
+.mobile-table-hint {
+  display: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.col-name {
+  width: 180px;
+}
+
+.col-division {
+  width: 150px;
+}
+
+.col-type {
+  width: 150px;
+}
+
+.col-date {
+  width: 170px;
+}
+
+.col-day {
+  width: 90px;
+}
+
+.col-reason {
+  width: 240px;
+}
+
+.col-status {
+  width: 130px;
+}
+
+.col-action {
+  width: 150px;
+}
+
+tbody .employee-name {
+  overflow: hidden;
+  padding: 16px 22px;
+  border-bottom: 1px solid #f0f2f5;
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+th:nth-child(5),
+td:nth-child(5) {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .calendar-card {
@@ -1691,5 +1826,188 @@ tbody tr:hover {
 
 .activity-icon.rejected {
   background: #d18282;
+}
+
+@media (max-width: 768px) {
+  .mobile-table-hint {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+    padding: 10px 16px;
+    border-bottom: 1px solid #edf0f4;
+    background: #fafaff;
+    color: #6b7280;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  .mobile-table-hint::before {
+    content: "↔";
+    color: #4f46e5;
+    font-size: 15px;
+  }
+
+  .table-scroll {
+    scroll-snap-type: x proximity;
+  }
+
+  tbody .employee-name {
+    padding-inline: 14px;
+  }
+  .layout {
+    flex-direction: column;
+  }
+
+  .main {
+    gap: 18px;
+    padding: 20px 16px 28px;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .calendar-section {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-card,
+  .activity-card,
+  .table-card {
+    width: 100%;
+  }
+
+  .table-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .table-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .table-actions input,
+  .table-actions select {
+    width: 100%;
+  }
+
+  .legend {
+    flex-wrap: wrap;
+  }
+
+  .detail-actions,
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  .detail-close-btn,
+  .detail-reject-btn,
+  .detail-approve-btn,
+  .save-btn,
+  .cancel-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .main {
+    padding: 16px 12px 24px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .card {
+    min-width: 0;
+    min-height: 108px;
+    padding: 16px;
+  }
+
+  .card h2 {
+    margin: 0 0 9px;
+    font-size: 26px;
+  }
+
+  .card p {
+    font-size: 10.5px;
+    line-height: 1.4;
+  }
+
+  .calendar-card,
+  .activity-card,
+  .table-card {
+    border-radius: 14px;
+  }
+
+  .calendar-card {
+    padding: 16px;
+  }
+
+  .calendar-header h2 {
+    font-size: 18px;
+  }
+
+  .weekdays span,
+  .day {
+    font-size: 11px;
+  }
+
+  .calendar-modal,
+  .holiday-modal,
+  .leave-detail-modal {
+    width: 100%;
+    max-height: calc(100dvh - 24px);
+    border-radius: 16px;
+  }
+
+  .modal-overlay {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 360px) {
+  .main {
+    padding-inline: 10px;
+  }
+
+  .stats-grid {
+    gap: 8px;
+  }
+
+  .card {
+    min-height: 102px;
+    padding: 14px;
+  }
+
+  .card h2 {
+    font-size: 24px;
+  }
+
+  .card p {
+    font-size: 10px;
+  }
+
+  .calendar-header h2 {
+    font-size: 16px;
+  }
+
+  .header h1 {
+    font-size: 22px;
+  }
+
+  .subtitle {
+    font-size: 12px;
+  }
 }
 </style>

@@ -365,62 +365,75 @@ async function confirmDelete() {
           <button class="btn-add" @click="openAdd">+ Tambah Karyawan</button>
         </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Username</th>
-              <th>Nama Lengkap</th>
-              <th>Divisi</th>
-              <th>Status</th>
-              <th>Tanggal Dibuat</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
+        <div class="table-region">
+          <p class="mobile-table-hint" aria-hidden="true">
+            Geser tabel ke samping untuk melihat kolom lainnya
+          </p>
 
-          <tbody>
-            <!-- <tr v-for="emp in employees" :key="emp.id"> -->
-            <tr
-              v-for="emp in employees"
-              :key="emp.id"
-              class="employee-row"
-              @click="openDetail(emp.id)"
-            >
-              <td>{{ empCode(emp.id) }}</td>
-              <td class="bold">{{ emp.username || "-" }}</td>
-              <!-- <td>
+          <div
+            class="table-scroll"
+            tabindex="0"
+            role="region"
+            aria-label="Data karyawan, dapat digeser secara horizontal"
+          >
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Username</th>
+                  <th>Nama Lengkap</th>
+                  <th>Divisi</th>
+                  <th>Status</th>
+                  <th>Tanggal Dibuat</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <!-- <tr v-for="emp in employees" :key="emp.id"> -->
+                <tr
+                  v-for="emp in employees"
+                  :key="emp.id"
+                  class="employee-row"
+                  @click="openDetail(emp.id)"
+                >
+                  <td>{{ empCode(emp.id) }}</td>
+                  <td class="bold">{{ emp.username || "-" }}</td>
+                  <!-- <td>
                 <span class="employee-name" @click="openDetail(emp.id)">
               </td> -->
 
-              <td>{{ emp.full_name || "-" }}</td>
+                  <td>{{ emp.full_name || "-" }}</td>
 
-              <!-- <span class="employee-tooltip">
+                  <!-- <span class="employee-tooltip">
                     Klik untuk melihat detail karyawan
                   </span> -->
-              <!-- </span> -->
-              <!-- </td> -->
-              <td class="highlight">{{ emp.division_name || "-" }}</td>
+                  <!-- </span> -->
+                  <!-- </td> -->
+                  <td class="highlight">{{ emp.division_name || "-" }}</td>
 
-              <td>
-                <span :class="['badge', emp.status?.toLowerCase()]">
-                  {{ emp.status === "active" ? "Aktif" : "Nonaktif" }}
-                </span>
-              </td>
+                  <td>
+                    <span :class="['badge', emp.status?.toLowerCase()]">
+                      {{ emp.status === "active" ? "Aktif" : "Nonaktif" }}
+                    </span>
+                  </td>
 
-              <td>{{ formatDate(emp.created_at) }}</td>
+                  <td>{{ formatDate(emp.created_at) }}</td>
 
-              <td class="actions">
-                <button @click.stop="openEdit(emp)">
-                  <img src="/edit.png" class="action-icon" />
-                </button>
+                  <td class="actions">
+                    <button @click.stop="openEdit(emp)">
+                      <img src="/edit.png" class="action-icon" />
+                    </button>
 
-                <button @click.stop="handleDelete(emp.id)">
-                  <img src="/delete.png" class="action-icon" />
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                    <button @click.stop="handleDelete(emp.id)">
+                      <img src="/delete.png" class="action-icon" />
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
 
         <div class="pagination">
           <span class="pagination-info">
@@ -688,6 +701,7 @@ async function confirmDelete() {
 }
 
 .main {
+  min-width: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -821,9 +835,43 @@ async function confirmDelete() {
   box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
 }
 
+.table-region {
+  position: relative;
+  min-width: 0;
+}
+
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c7d2fe #f8f8ff;
+}
+
+.table-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+  background: #f8f8ff;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  background: #c7d2fe;
+  border-radius: 999px;
+  border: 2px solid #f8f8ff;
+}
+
+.mobile-table-hint {
+  display: none;
+}
+
 table {
   width: 100%;
-  border-collapse: collapse;
+  min-width: 930px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
 }
 
 thead tr {
@@ -1596,6 +1644,142 @@ td.actions button:hover:nth-child(3) {
   font-size: 13px;
 
   color: #6b7280;
+}
+.header > div:first-child {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .mobile-table-hint {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+    padding: 10px 16px;
+    border-bottom: 1px solid #edf0f4;
+    background: #fafaff;
+    color: #6b7280;
+    font-size: 11px;
+  }
+
+  .mobile-table-hint::before {
+    content: "↔";
+    color: #4f46e5;
+  }
+
+  .table-scroll {
+    scroll-snap-type: x proximity;
+  }
+  .layout {
+    flex-direction: column;
+  }
+
+  .main {
+    gap: 18px;
+    padding: 20px 16px 28px;
+  }
+
+  .header {
+    gap: 16px;
+  }
+
+  .header .subtitle {
+    font-size: 13px;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding-inline: 16px;
+  }
+
+  .search-wrap {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .toolbar input,
+  .toolbar select,
+  .btn-add {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .pagination {
+    flex-direction: column;
+    align-items: flex-start;
+    padding-inline: 16px;
+  }
+  .pagination-controls {
+    display: flex;
+    flex-wrap: nowrap;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 3px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main {
+    padding: 16px 12px 24px;
+  }
+
+  .panel {
+    border-radius: 14px;
+  }
+
+  .toolbar {
+    padding-inline: 16px;
+  }
+
+  .modal-overlay {
+    padding: 12px;
+  }
+
+  .modal-box,
+  .credential-modal,
+  .detail-modal {
+    width: 100%;
+    max-height: calc(100dvh - 24px);
+    border-radius: 16px;
+  }
+
+  .modal-body,
+  .detail-body {
+    padding: 18px;
+  }
+
+  .modal-footer {
+    flex-direction: column;
+  }
+
+  .btn-submit,
+  .btn-cancel,
+  .btn-delete {
+    width: 100%;
+  }
+}
+
+@media (max-width: 360px) {
+  .main {
+    padding-inline: 10px;
+  }
+
+  .toolbar {
+    padding-inline: 12px;
+  }
+
+  .header h2 {
+    font-size: 22px;
+  }
+
+  .pagination-info {
+    font-size: 12px;
+  }
 }
 
 @media (max-width: 640px) {

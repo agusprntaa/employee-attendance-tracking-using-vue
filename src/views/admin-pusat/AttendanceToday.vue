@@ -84,7 +84,7 @@ onMounted(() => {
           <p>Monitoring kehadiran seluruh cabang secara realtime</p>
         </div>
 
-        <button class="back-btn" @click="goBack">×</button>
+        <!-- <button class="back-btn" @click="goBack">×</button> -->
       </div>
 
       <div v-if="errorMessage" class="error-box">
@@ -137,67 +137,87 @@ onMounted(() => {
       <div v-if="loading" class="loading-state">Memuat kehadiran...</div>
 
       <div v-else class="table-card">
-        <table>
-          <thead>
-            <tr>
-              <th>Nama Cabang</th>
-              <th>Total Karyawan</th>
-              <th>Hadir</th>
-              <th>Tidak Hadir</th>
-              <th>Persentase</th>
-              <th>Progres</th>
-              <th>Status</th>
-            </tr>
-          </thead>
+        <div class="table-region">
+          <p class="mobile-table-hint" aria-hidden="true">
+            Geser tabel ke samping untuk melihat kolom lainnya
+          </p>
 
-          <tbody>
-            <tr v-for="branch in filteredBranches" :key="branch.branch_name">
-              <td>
-                {{ branch.branch_name }}
-              </td>
+          <div
+            class="table-wrapper"
+            tabindex="0"
+            role="region"
+            aria-label="Data kehadiran cabang"
+          >
+            <table>
+              <caption class="sr-only">
+                Data kehadiran seluruh cabang hari ini
+              </caption>
+              <thead>
+                <tr>
+                  <th>Nama Cabang</th>
+                  <th>Total Karyawan</th>
+                  <th>Hadir</th>
+                  <th>Tidak Hadir</th>
+                  <th>Persentase</th>
+                  <th>Progres</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
 
-              <td>
-                {{ branch.total_employees }}
-              </td>
-
-              <td>
-                {{ branch.present_today }}
-              </td>
-
-              <td>
-                {{ branch.absent }}
-              </td>
-
-              <td>{{ Math.round(branch.attendance_rate || 0) }}%</td>
-
-              <td width="35%">
-                <div class="progress-bar">
-                  <div
-                    class="progress-fill"
-                    :style="{
-                      width: Math.min(branch.attendance_rate || 0, 100) + '%',
-                    }"
-                  ></div>
-                </div>
-              </td>
-
-              <td>
-                <span
-                  class="status-badge"
-                  :class="getStatusClass(branch.attendance_rate)"
+              <tbody>
+                <tr
+                  v-for="branch in filteredBranches"
+                  :key="branch.branch_name"
                 >
-                  {{ getStatus(branch.attendance_rate) }}
-                </span>
-              </td>
-            </tr>
+                  <td>
+                    {{ branch.branch_name }}
+                  </td>
 
-            <tr v-if="!filteredBranches.length">
-              <td colspan="7" class="empty-table">
-                Tidak ada data kehadiran ditemukan
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                  <td>
+                    {{ branch.total_employees }}
+                  </td>
+
+                  <td>
+                    {{ branch.present_today }}
+                  </td>
+
+                  <td>
+                    {{ branch.absent }}
+                  </td>
+
+                  <td>{{ Math.round(branch.attendance_rate || 0) }}%</td>
+
+                  <td width="35%">
+                    <div class="progress-bar">
+                      <div
+                        class="progress-fill"
+                        :style="{
+                          width:
+                            Math.min(branch.attendance_rate || 0, 100) + '%',
+                        }"
+                      ></div>
+                    </div>
+                  </td>
+
+                  <td>
+                    <span
+                      class="status-badge"
+                      :class="getStatusClass(branch.attendance_rate)"
+                    >
+                      {{ getStatus(branch.attendance_rate) }}
+                    </span>
+                  </td>
+                </tr>
+
+                <tr v-if="!filteredBranches.length">
+                  <td colspan="7" class="empty-table">
+                    Tidak ada data kehadiran ditemukan
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -213,28 +233,27 @@ onMounted(() => {
 }
 
 .content {
+  min-width: 0;
   flex: 1;
-
-  padding: 32px;
-
-  overflow-x: auto;
+  padding: 28px 32px;
 }
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-
-  gap: 20px;
-
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
   margin-bottom: 28px;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-
+  align-items: flex-start;
   margin-bottom: 28px;
+}
+
+.page-header > div:first-child {
+  min-width: 0;
 }
 
 .page-header h1 {
@@ -345,10 +364,52 @@ onMounted(() => {
   border: 1px solid #eef2ff;
 }
 
+.table-region {
+  position: relative;
+  min-width: 0;
+}
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c7d2fe #f8f8ff;
+}
+
+.table-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: #f8f8ff;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #c7d2fe;
+  border-radius: 999px;
+  border: 2px solid #f8f8ff;
+}
+
+.mobile-table-hint {
+  display: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
 table {
   width: 100%;
-
-  border-collapse: collapse;
+  min-width: 900px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
 }
 
 thead {
@@ -460,5 +521,126 @@ td {
 
 tr.critical-row {
   background: #fef2f2;
+}
+
+@media (max-width: 768px) {
+  .attendance-page {
+    flex-direction: column;
+  }
+
+  .content {
+    padding: 20px 16px 28px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .summary-card {
+    min-width: 0;
+  }
+
+  .toolbar {
+    margin-bottom: 18px;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .mobile-table-hint {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+    padding: 10px 16px;
+    border-bottom: 1px solid #edf0f4;
+    background: #fafaff;
+    color: #6b7280;
+    font-size: 11px;
+  }
+
+  .mobile-table-hint::before {
+    content: "↔";
+    color: #4f46e5;
+  }
+
+  .table-wrapper {
+    scroll-snap-type: x proximity;
+  }
+}
+
+@media (max-width: 480px) {
+  .content {
+    padding: 16px 12px 24px;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .summary-card {
+    min-height: 108px;
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .summary-card h2 {
+    margin-top: 10px;
+    font-size: 28px;
+  }
+
+  .summary-card span {
+    font-size: 11px;
+  }
+
+  .table-card {
+    border-radius: 14px;
+  }
+
+  .page-header h1 {
+    font-size: 24px;
+  }
+
+  .page-header p {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 360px) {
+  .content {
+    padding-inline: 10px;
+  }
+
+  .summary-grid {
+    gap: 8px;
+  }
+
+  .summary-card {
+    min-height: 102px;
+    padding: 14px;
+  }
+
+  .summary-card h2 {
+    font-size: 24px;
+  }
+
+  .summary-card span {
+    font-size: 10px;
+  }
+
+  .page-header h1 {
+    font-size: 22px;
+  }
+
+  .page-header p {
+    font-size: 12px;
+  }
 }
 </style>

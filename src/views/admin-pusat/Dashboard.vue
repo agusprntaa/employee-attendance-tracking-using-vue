@@ -338,44 +338,59 @@ onUnmounted(() => {
           <h3>Performa Cabang</h3>
           <p>Detail metrik kehadiran tiap cabang</p>
         </div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Branch</th>
-                <th>Total Karyawan</th>
-                <th>Hadir</th>
-                <th>Tidak Hadir</th>
-                <th>Persentase</th>
-                <th>WFO</th>
-                <th>WFA</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="branch in paginatedBranches" :key="branch.branch">
-                <td>{{ branch.branch }}</td>
+        <div class="table-region">
+          <p class="mobile-table-hint" aria-hidden="true">
+            Geser tabel ke samping untuk melihat kolom lainnya
+          </p>
 
-                <td>{{ branch.total_employees }}</td>
+          <div
+            class="table-wrapper"
+            tabindex="0"
+            role="region"
+            aria-label="Performa cabang"
+          >
+            <table>
+              <caption class="sr-only">
+                Performa cabang
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Branch</th>
+                  <th scope="col">Total Karyawan</th>
+                  <th scope="col">Hadir</th>
+                  <th scope="col">Tidak Hadir</th>
+                  <th scope="col">Persentase</th>
+                  <th scope="col">WFO</th>
+                  <th scope="col">WFA</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="branch in paginatedBranches" :key="branch.branch">
+                  <th scope="row" class="branch-name">
+                    {{ branch.branch }}
+                  </th>
+                  <td>{{ branch.total_employees }}</td>
 
-                <td>{{ branch.present }}</td>
+                  <td>{{ branch.present }}</td>
 
-                <td>{{ branch.absent }}</td>
+                  <td>{{ branch.absent }}</td>
 
-                <td>{{ Number(branch.rate).toFixed(1) }}%</td>
+                  <td>{{ Number(branch.rate).toFixed(1) }}%</td>
 
-                <td>{{ branch.wfo }}</td>
+                  <td>{{ branch.wfo }}</td>
 
-                <td>{{ branch.wfa }}</td>
+                  <td>{{ branch.wfa }}</td>
 
-                <td>
-                  <span class="status" :class="branch.status.toLowerCase()">
-                    {{ branch.status }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  <td>
+                    <span class="status" :class="branch.status.toLowerCase()">
+                      {{ branch.status }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div class="pagination">
@@ -492,12 +507,12 @@ onUnmounted(() => {
 }
 
 .main {
+  min-width: 0;
   flex: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   padding: 28px 32px;
-  max-width: 100%;
   gap: 20px;
 }
 
@@ -505,6 +520,10 @@ onUnmounted(() => {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+}
+
+.header > div:first-child {
+  min-width: 0;
 }
 
 .header h2 {
@@ -661,13 +680,53 @@ onUnmounted(() => {
 
 table {
   width: 100%;
-  min-width: 950px;
-  border-collapse: collapse;
+  min-width: 960px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.table-region {
+  position: relative;
+  min-width: 0;
 }
 
 .table-wrapper {
   width: 100%;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c7d2fe #f8f8ff;
+}
+
+.table-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: #f8f8ff;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #c7d2fe;
+  border-radius: 999px;
+  border: 2px solid #f8f8ff;
+}
+
+.mobile-table-hint {
+  display: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 thead tr {
@@ -702,6 +761,18 @@ tbody tr:hover {
 
 tbody tr:last-child td {
   border-bottom: none;
+}
+
+tbody .branch-name {
+  overflow: hidden;
+  padding: 13px 22px;
+  border-bottom: 1px solid #f0f2f5;
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .status {
@@ -1144,5 +1215,160 @@ tbody tr:last-child td {
   opacity: 0.4;
 
   cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .layout {
+    flex-direction: column;
+  }
+
+  .main {
+    gap: 18px;
+    padding: 20px 16px 28px;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .panels {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .mobile-table-hint {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+    padding: 10px 16px;
+    border-bottom: 1px solid #edf0f4;
+    background: #fafaff;
+    color: #6b7280;
+    font-size: 11px;
+  }
+
+  .mobile-table-hint::before {
+    content: "↔";
+    color: #4f46e5;
+  }
+
+  .table-wrapper {
+    scroll-snap-type: x proximity;
+  }
+
+  .pagination {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .pagination-controls {
+    width: 100%;
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .main {
+    padding: 16px 12px 24px;
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .card,
+  .card1 {
+    min-width: 0;
+    min-height: 108px;
+    display: block;
+    padding: 16px;
+  }
+
+  .card h2,
+  .card1 h2 {
+    margin: 0 0 9px;
+    font-size: 26px;
+  }
+
+  .card p,
+  .card1 p {
+    font-size: 10.5px;
+    line-height: 1.4;
+  }
+
+  .panel {
+    border-radius: 14px;
+  }
+
+  .modal-overlay {
+    padding: 12px;
+  }
+
+  .modal-box {
+    width: 100%;
+    max-height: calc(100dvh - 24px);
+    border-radius: 16px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-group.full {
+    grid-column: span 1;
+  }
+
+  .modal-footer {
+    flex-direction: column;
+  }
+
+  .btn-submit,
+  .btn-cancel {
+    width: 100%;
+  }
+}
+
+@media (max-width: 360px) {
+  .main {
+    padding-inline: 10px;
+  }
+
+  .stats {
+    gap: 8px;
+  }
+
+  .card,
+  .card1 {
+    min-height: 102px;
+    padding: 14px;
+  }
+
+  .card h2,
+  .card1 h2 {
+    font-size: 24px;
+  }
+
+  .card p,
+  .card1 p {
+    font-size: 10px;
+  }
+
+  .header h2 {
+    font-size: 22px;
+  }
 }
 </style>
