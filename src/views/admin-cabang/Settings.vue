@@ -258,7 +258,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <div class="section">
+        <!-- <div class="section">
           <div class="section-header">
             <h3>Keamanan & QR</h3>
           </div>
@@ -328,7 +328,7 @@ onMounted(() => {
               </label>
             </div>
           </div>
-        </div>
+        </div> -->
       </template>
 
       <div class="save-bar">

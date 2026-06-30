@@ -95,6 +95,12 @@ const routes = [
     component: () => import('../views/admin-cabang/AbsenKantor.vue')
   },
 
+   {
+    path: '/admin-cabang/event-detail/:id',    
+    name: 'AdminCabangEventDetail',
+    component: () => import('../views/admin-cabang/EventDetail.vue')
+  },
+
   // EMPLOYEE
   {
     path: '/employee/dashboard',

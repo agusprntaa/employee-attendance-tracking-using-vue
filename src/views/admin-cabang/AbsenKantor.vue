@@ -437,7 +437,7 @@ const paginatedEmployees = computed(() => {
     <main class="main">
       <div class="header">
         <div>
-          <h2>Dashboard Cabang</h2>
+          <h2>Absensi Karyawan Cabang</h2>
           <p class="subtitle">
             {{
               settings.branch_information?.branch_name ||
@@ -1258,19 +1258,18 @@ td .badge {
 
 .tooltip {
   position: absolute;
-  top: -8px;
+  top: calc(100% + 8px);
   left: 50%;
-  transform: translate(-50%, -100%);
-  background: #111827;
-  color: white;
+  transform: translateX(-50%);
   padding: 6px 10px;
   border-radius: 8px;
+  background: #111827;
+  color: #fff;
   font-size: 11px;
   white-space: nowrap;
   opacity: 0;
   visibility: hidden;
-  transition: 0.18s ease;
-  pointer-events: none;
+  transition: 0.2s;
   z-index: 9999;
 }
 
