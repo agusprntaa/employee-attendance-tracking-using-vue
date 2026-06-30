@@ -119,6 +119,7 @@ API.interceptors.response.use(
     // ACCESS TOKEN EXPIRED
     if (
       status === 401 &&
+      errorCode !== 'FACE_MISMATCH' &&
       !originalRequest._retry &&
       !originalRequest.url.includes('/login') &&
       !originalRequest.url.includes('/refresh')

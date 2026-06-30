@@ -1,548 +1,362 @@
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-
-import { useFaceRecognition } from "../../composables/ useFaceRecognition";
-
-import { requestFaceTokenAPI, verifyFaceAPI } from "@/services/attendance";
-
-import { initFaceLandmarker, detectFace } from "@/services/faceLandmarker";
-
-import { estimateYaw } from "@/utils/headPose";
-
 import {
-  initImageEmbedder,
-  getEmbedding,
-  cosineSimilarity,
-} from "@/services/imageEmbedder";
+  faceCheckInAPI,
+  requestFaceTokenAPI,
+  verifyFaceAPI,
+} from "@/services/attendance";
+import {
+  destroyFaceLandmarker,
+  detectFace,
+  initFaceLandmarker,
+} from "@/services/faceLandmarker";
+import { captureVideoFrame, evaluateFaceFrame } from "@/utils/faceQuality";
+import { useLocation } from "@/composables/useLocation";
 
 const router = useRouter();
-
-function goBack() {
-  router.back();
-}
-
-const token = ref("");
-const frontendSimilarity = ref(null);
+const { latitude, longitude, getCurrentLocation } = useLocation();
 
 const videoRef = ref(null);
-
-const yawValue = ref(0);
-
-const loading = ref(false);
-
+const streamRef = ref(null);
+const faceToken = ref("");
+const expiresAt = ref(0);
+const remainingSeconds = ref(0);
 const verificationStarted = ref(false);
+const faceVerified = ref(false);
+const stable = ref(false);
+const quality = ref({ ready: false, message: "Menyiapkan kamera..." });
+const loading = ref(false);
+const blocked = ref(false);
+const message = ref("");
+const messageType = ref("info");
+const previewUrl = ref("");
 
-const showPopup = ref(false);
+let animationFrame = null;
+let countdownTimer = null;
+let readySince = 0;
+let lastAnalysisAt = 0;
 
-const popupMessage = ref("");
-
-const popupType = ref("success");
-
-// let timer = null;
-
-const {
-  faceDetected,
-  capturedImage,
-  currentStep,
-  isCompleted,
-  instructions,
-  nextStep,
-  resetLiveness,
-  setCapturedImage,
-} = useFaceRecognition();
-
-onMounted(async () => {
-  await startCamera();
-
-  await initFaceLandmarker();
-
-  detectLoop();
-});
-watch(isCompleted, async (value) => {
-  if (!value) return;
-
-  captureFace();
-
-  const passed = await verifyFaceFrontend();
-
-  if (!passed) {
-    openPopup(
-      `Wajah tidak sesuai. Similarity: ${(
-        frontendSimilarity.value * 100
-      ).toFixed(5)}%`,
-    );
-    resetLiveness();
-
-    return;
-  }
-
-  await new Promise((resolve) => setTimeout(resolve, 2000));
-
-  await verifyFace();
+const formattedCountdown = computed(() => {
+  const minutes = Math.floor(remainingSeconds.value / 60);
+  const seconds = remainingSeconds.value % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 });
 
-async function startCamera() {
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: true,
-  });
-
-  videoRef.value.srcObject = stream;
+function showMessage(text, type = "error") {
+  message.value = text;
+  messageType.value = type;
 }
 
-async function startCheckIn() {
+async function startCamera() {
+  streamRef.value = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+    audio: false,
+  });
+  await nextTick();
+  videoRef.value.srcObject = streamRef.value;
+  await videoRef.value.play();
+}
+
+function stopCamera() {
+  streamRef.value?.getTracks().forEach((track) => track.stop());
+  streamRef.value = null;
+}
+
+function resetQuality() {
+  readySince = 0;
+  stable.value = false;
+  quality.value = { ready: false, message: "Posisikan wajah di dalam bingkai" };
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
+  previewUrl.value = "";
+}
+
+function detectionLoop(timestamp = 0) {
+  const video = videoRef.value;
+  if (!previewUrl.value && video?.readyState >= 2 && timestamp - lastAnalysisAt > 120) {
+    lastAnalysisAt = timestamp;
+    quality.value = evaluateFaceFrame(video, detectFace(video), "front");
+
+    if (quality.value.ready) {
+      if (!readySince) readySince = performance.now();
+      stable.value = performance.now() - readySince >= 800;
+      if (!stable.value) quality.value = { ...quality.value, message: "Tahan posisi sebentar..." };
+    } else {
+      readySince = 0;
+      stable.value = false;
+    }
+  }
+  animationFrame = requestAnimationFrame(detectionLoop);
+}
+
+function startCountdown(expiresIn) {
+  clearInterval(countdownTimer);
+  expiresAt.value = Date.now() + expiresIn * 1000;
+
+  const update = () => {
+    remainingSeconds.value = Math.max(0, Math.ceil((expiresAt.value - Date.now()) / 1000));
+    if (remainingSeconds.value === 0) {
+      clearInterval(countdownTimer);
+      faceToken.value = "";
+      verificationStarted.value = false;
+      faceVerified.value = false;
+      resetQuality();
+      showMessage("Waktu verifikasi habis. Tekan Coba Lagi untuk membuat token baru.");
+    }
+  };
+
+  update();
+  countdownTimer = setInterval(update, 1000);
+}
+
+async function beginVerification() {
+  if (loading.value || blocked.value) return;
   loading.value = true;
+  message.value = "";
+  resetQuality();
 
   try {
     const response = await requestFaceTokenAPI();
-
-    console.log("FACE TOKEN RESPONSE:", response.data);
-
-    token.value = response.data.data.face_token;
-
-    console.log("GENERATED TOKEN:", token.value);
-
+    faceToken.value = response.data.data.face_token;
     verificationStarted.value = true;
+    faceVerified.value = false;
+    startCountdown(Number(response.data.data.expires_in || 120));
   } catch (error) {
-    console.log("TOKEN ERROR:", error.response?.data);
-
-    alert(error.response?.data?.message || "Gagal membuat token");
+    handleError(error, "token");
   } finally {
     loading.value = false;
   }
 }
-function detectLoop() {
-  const video = videoRef.value;
 
-  if (!video) {
-    requestAnimationFrame(detectLoop);
-    return;
-  }
+async function captureAndVerify() {
+  if (!stable.value || !faceToken.value || loading.value) return;
+  loading.value = true;
+  message.value = "";
 
-  if (video.videoWidth === 0 || video.videoHeight === 0) {
-    requestAnimationFrame(detectLoop);
-    return;
-  }
-
-  const result = detectFace(video);
-
-  if (result?.faceLandmarks && result.faceLandmarks.length > 0) {
-    faceDetected.value = true;
-
-    const landmarks = result.faceLandmarks[0];
-
-    yawValue.value = estimateYaw(landmarks);
-
-    if (verificationStarted.value) {
-      checkLiveness(yawValue.value);
-    }
-  } else {
-    faceDetected.value = false;
-  }
-
-  requestAnimationFrame(detectLoop);
-}
-
-function checkLiveness(yaw) {
-  if (currentStep.value === 0 && Math.abs(yaw) < 0.04) {
-    nextStep();
-    return;
-  }
-
-  if (currentStep.value === 1 && yaw < -0.08) {
-    nextStep();
-    return;
-  }
-
-  if (currentStep.value === 2 && yaw > 0.08) {
-    nextStep();
-    return;
-  }
-
-  if (currentStep.value === 3 && Math.abs(yaw) < 0.04) {
-    nextStep();
-  }
-}
-
-function captureFace() {
-  const video = videoRef.value;
-
-  const canvas = document.createElement("canvas");
-
-  canvas.width = video.videoWidth;
-
-  canvas.height = video.videoHeight;
-
-  const ctx = canvas.getContext("2d");
-
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-  setCapturedImage(canvas.toDataURL("image/jpeg"));
-}
-
-function dataUrlToBlob(dataUrl) {
-  const arr = dataUrl.split(",");
-
-  const mime = arr[0].match(/:(.*?);/)[1];
-
-  const bstr = atob(arr[1]);
-
-  let n = bstr.length;
-
-  const u8arr = new Uint8Array(n);
-
-  while (n--) {
-    u8arr[n] = bstr.charCodeAt(n);
-  }
-
-  return new Blob([u8arr], {
-    type: mime,
-  });
-}
-
-async function dataUrlToImage(dataUrl) {
-  const img = new Image();
-
-  img.src = dataUrl;
-
-  await new Promise((resolve) => {
-    img.onload = resolve;
-  });
-
-  return img;
-}
-
-async function verifyFaceFrontend() {
-  const saved = localStorage.getItem("face_embedding");
-
-  if (!saved) {
-    return true;
-  }
-
-  const img = await dataUrlToImage(capturedImage.value);
-
-  await initImageEmbedder();
-
-  const currentEmbedding = await getEmbedding(img);
-
-  const similarity = cosineSimilarity(
-    {
-      floatEmbedding: JSON.parse(saved),
-    },
-    currentEmbedding,
-  );
-
-  frontendSimilarity.value = similarity;
-
-  console.log("FRONTEND SIMILARITY:", similarity);
-
-  return similarity > 0.75;
-}
-
-function openPopup(message, type = "success") {
-  popupMessage.value = message;
-
-  popupType.value = type;
-
-  showPopup.value = true;
-
-  setTimeout(() => {
-    showPopup.value = false;
-    popupMessage.value = "";
-  }, 3000);
-}
-
-//verify
-async function verifyFace() {
-  const formData = new FormData();
-
-  formData.append("face_token", token.value);
-
-  const blob = dataUrlToBlob(capturedImage.value);
-
-  const file = new File([blob], "face.jpg", {
-    type: "image/jpeg",
-  });
-
-  console.log("VERIFY FILE:", file);
-  console.log("VERIFY FILE NAME:", file.name);
-  console.log("VERIFY FILE SIZE:", file.size);
-  console.log("VERIFY FILE TYPE:", file.type);
-
-  formData.append("face_image", file);
   try {
+    const file = await captureVideoFrame(videoRef.value, "face-checkin.jpg");
+    previewUrl.value = URL.createObjectURL(file);
+    const formData = new FormData();
+    formData.append("face_token", faceToken.value);
+    formData.append("face_image", file);
+
     const response = await verifyFaceAPI(formData);
+    if (!response.data.data.verified) throw new Error("Wajah belum terverifikasi");
 
-    if (response.data.data.verified) {
-      localStorage.setItem("face_token", token.value);
-
-      openPopup(
-        `Wajah berhasil diverifikasi (${Math.round(
-          response.data.data.confidence_score * 100,
-        )}%)`,
-        "success",
-      );
-
-      setTimeout(() => {
-        router.push("/employee/scan");
-      }, 1500);
-    }
+    faceToken.value = response.data.data.face_token;
+    faceVerified.value = true;
+    showMessage("Wajah terverifikasi. Mengambil lokasi...", "success");
+    await finishCheckIn();
   } catch (error) {
-    const code = error.response?.data?.code;
-
-    const message = error.response?.data?.message;
-
-    if (error.response?.data?.code === "FACE_MISMATCH") {
-      openPopup("Wajah tidak dikenali, coba lagi", "error");
-    } else {
-      openPopup(message || "Verifikasi gagal", "error");
-    }
-
-    resetLiveness();
+    handleError(error, "verify");
+  } finally {
+    loading.value = false;
   }
 }
+
+async function finishCheckIn() {
+  if (!faceVerified.value || !faceToken.value) return;
+  loading.value = true;
+
+  try {
+    const locationAvailable = await getCurrentLocation();
+    if (!locationAvailable || latitude.value == null || longitude.value == null) {
+      throw new Error("Lokasi tidak tersedia. Aktifkan GPS lalu coba lagi.");
+    }
+
+    const response = await faceCheckInAPI({
+      face_token: faceToken.value,
+      latitude: latitude.value,
+      longitude: longitude.value,
+    });
+    const result = response.data.data;
+    clearInterval(countdownTimer);
+
+    router.replace({
+      path: "/employee/success",
+      query: {
+        type: "face",
+        time: result.check_in,
+        date: result.date,
+        status: result.status,
+        lateMinutes: result.late_minutes,
+      },
+    });
+  } catch (error) {
+    handleError(error, "checkin");
+  } finally {
+    loading.value = false;
+  }
+}
+
+function handleError(error, stage) {
+  const code = error.response?.data?.code;
+  const fallback = error.response?.data?.message || error.message || "Proses check-in gagal";
+
+  if (code === "FACE_NOT_REGISTERED") {
+    const status = JSON.parse(localStorage.getItem("onboarding_status") || "{}");
+    localStorage.setItem("onboarding_status", JSON.stringify({ ...status, face_registered: false }));
+    router.replace("/employee/register-face");
+    return;
+  }
+
+  if (["TOKEN_INVALID", "TOKEN_EXPIRED", "TOKEN_USED"].includes(code)) {
+    clearInterval(countdownTimer);
+    faceToken.value = "";
+    verificationStarted.value = false;
+    faceVerified.value = false;
+    resetQuality();
+    showMessage("Token sudah tidak berlaku. Tekan Coba Lagi.");
+    return;
+  }
+
+  if (code === "FACE_MISMATCH") {
+    resetQuality();
+    showMessage("Wajah tidak dikenali. Ambil foto ulang sebelum waktu habis.");
+    return;
+  }
+
+  if (["NO_FACE_DETECTED", "MULTIPLE_FACES"].includes(code)) {
+    resetQuality();
+    showMessage(code === "MULTIPLE_FACES" ? "Pastikan hanya satu wajah di kamera." : "Wajah tidak terdeteksi. Foto ulang.");
+    return;
+  }
+
+  if (code === "MAX_ATTEMPT_EXCEEDED") {
+    blocked.value = true;
+    verificationStarted.value = false;
+    showMessage("Terlalu banyak percobaan gagal. Hubungi HR.");
+    return;
+  }
+
+  if (code === "ALREADY_CHECKED_IN") {
+    blocked.value = true;
+    verificationStarted.value = false;
+    showMessage("Kamu sudah check-in hari ini.", "info");
+    return;
+  }
+
+  if (code === "TOKEN_NOT_VERIFIED") {
+    faceVerified.value = false;
+    resetQuality();
+    showMessage("Verifikasi wajah perlu diulang.");
+    return;
+  }
+
+  if (code === "OUTSIDE_RADIUS") {
+    showMessage("Kamu berada di luar area kantor yang diizinkan.");
+    return;
+  }
+
+  showMessage(fallback);
+  if (stage === "verify") resetQuality();
+}
+
+onMounted(async () => {
+  localStorage.removeItem("face_embedding");
+  localStorage.removeItem("face_token");
+  try {
+    await initFaceLandmarker();
+    await startCamera();
+    detectionLoop();
+  } catch (error) {
+    showMessage(
+      error.name === "NotAllowedError"
+        ? "Izin kamera ditolak. Aktifkan izin kamera untuk check-in."
+        : "Kamera atau pendeteksi wajah gagal dimuat.",
+    );
+  }
+});
+
+onBeforeUnmount(() => {
+  clearInterval(countdownTimer);
+  if (animationFrame) cancelAnimationFrame(animationFrame);
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
+  stopCamera();
+  destroyFaceLandmarker();
+});
 </script>
 
 <template>
-  <div class="wrapper">
-    <div class="header">
-      <button type="button" class="back-btn" @click="goBack">
-        <img src="/goBack.png" alt="" />
-      </button>
-      <p>Face Verification</p>
-      <h1>Verifikasi Wajah</h1>
-    </div>
+  <main class="page">
+    <section class="card">
+      <header>
+        <button class="back" type="button" @click="router.back()">← Kembali</button>
+        <p class="eyebrow">Absensi kantor</p>
+        <h1>Verifikasi Wajah</h1>
+        <p>Foto dikirim ke server untuk verifikasi. Frontend tidak menyimpan embedding wajah.</p>
+      </header>
 
-    <div class="camera-box">
-      <video ref="videoRef" autoplay muted playsinline></video>
+      <div v-if="verificationStarted" class="timer" :class="{ urgent: remainingSeconds <= 20 }">
+        Sisa waktu <strong>{{ formattedCountdown }}</strong>
+      </div>
 
-      <div class="frame"></div>
-    </div>
+      <div class="camera-box">
+        <video ref="videoRef" v-show="!previewUrl" autoplay muted playsinline></video>
+        <img v-if="previewUrl" :src="previewUrl" alt="Foto wajah untuk verifikasi" />
+        <div v-if="!previewUrl" class="face-guide"></div>
+      </div>
 
-    <div class="status-card">
-      <p v-if="faceDetected">✓ Wajah Terdeteksi</p>
-
-      <p v-else>✗ Wajah Tidak Terdeteksi</p>
-
-      <p v-if="verificationStarted">
-        {{ instructions[currentStep] }}
+      <p v-if="verificationStarted && !previewUrl" class="quality" :class="{ ready: stable }">
+        {{ stable ? "✓ Foto siap diverifikasi" : quality.message }}
       </p>
-    </div>
+      <p v-else-if="!verificationStarted" class="quality">Tekan Mulai untuk membuat token verifikasi.</p>
 
-    <div v-if="frontendSimilarity !== null" class="similarity-box">
-      Similarity:
-      {{ (frontendSimilarity * 100).toFixed(2) }}%
-    </div>
+      <p v-if="message" class="message" :class="messageType" role="alert">{{ message }}</p>
 
-    <button
-      v-if="!verificationStarted"
-      class="action-btn"
-      @click="startCheckIn"
-    >
-      {{ loading ? "Meminta Token..." : "Mulai Verifikasi" }}
-    </button>
+      <button
+        v-if="!verificationStarted && !blocked"
+        class="primary"
+        :disabled="loading"
+        @click="beginVerification"
+      >
+        {{ loading ? "Meminta Token..." : faceToken ? "Coba Lagi" : "Mulai Verifikasi" }}
+      </button>
 
-    <div v-if="showPopup" class="popup" :class="popupType">
-      {{ popupMessage }}
-    </div>
-    <img v-if="capturedImage" :src="capturedImage" class="preview" />
-  </div>
+      <button
+        v-else-if="verificationStarted && !faceVerified"
+        class="primary"
+        :disabled="!stable || loading"
+        @click="captureAndVerify"
+      >
+        {{ loading ? "Memverifikasi..." : "Ambil & Verifikasi Foto" }}
+      </button>
+
+      <button
+        v-else-if="faceVerified"
+        class="primary"
+        :disabled="loading"
+        @click="finishCheckIn"
+      >
+        {{ loading ? "Memeriksa Lokasi..." : "Coba Kirim Lokasi Lagi" }}
+      </button>
+
+      <button v-if="blocked" class="secondary" @click="router.replace('/employee/dashboard')">
+        Kembali ke Dashboard
+      </button>
+    </section>
+  </main>
 </template>
 
 <style scoped>
-.wrapper {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  padding-bottom: 40px;
-  background:
-    radial-gradient(
-      circle at top left,
-      rgba(37, 99, 235, 0.1),
-      transparent 32rem
-    ),
-    #f8fafc;
-  color: #0f172a;
-}
-
-.header {
-  width: calc(100% - 32px);
-  max-width: 520px;
-  margin: 28px auto 18px;
-}
-
-.header p {
-  margin: 0 0 6px;
-  color: #2563eb;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.header h1 {
-  margin: 0;
-  color: #0f172a;
-  font-size: 28px;
-  font-weight: 800;
-  line-height: 1.15;
-}
-
-.camera-box {
-  position: relative;
-  width: calc(100% - 32px);
-  max-width: 420px;
-  aspect-ratio: 3 / 4;
-  margin: 0 auto 18px;
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 28px;
-  overflow: hidden;
-  background: #020617;
-  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
-}
-
-video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.frame {
-  position: absolute;
-  width: 65%;
-  height: 75%;
-  border: 3px solid rgba(255, 255, 255, 0.92);
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  border-radius: 28px;
-  box-shadow: 0 0 0 999px rgba(15, 23, 42, 0.16);
-}
-
-.status-card {
-  width: calc(100% - 32px);
-  max-width: 420px;
-  margin: 0 auto;
-  padding: 18px;
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #0f172a;
-  text-align: center;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
-}
-
-.status-card p {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 800;
-  line-height: 1.5;
-}
-
-.status-card p + p {
-  margin-top: 8px;
-  color: #64748b;
-  font-weight: 700;
-}
-
-.action-btn {
-  width: calc(100% - 32px);
-  max-width: 420px;
-  min-height: 54px;
-  margin: 20px auto;
-  border: 1px solid transparent;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 800;
-  cursor: pointer;
-  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24);
-}
-
-.preview {
-  width: calc(100% - 32px);
-  max-width: 420px;
-  margin: 20px auto;
-  border-radius: 24px;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.1);
-}
-
-@media (min-width: 768px) {
-  .camera-box,
-  .status-card,
-  .action-btn,
-  .preview,
-  .header {
-    max-width: 520px;
-  }
-}
-
-.back-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 14px;
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #2563eb;
-  font-size: 14px;
-  font-weight: 800;
-  cursor: pointer;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
-  margin-bottom: 10px;
-}
-
-.back-btn img {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-  filter: invert(37%) sepia(89%) saturate(2342%) hue-rotate(213deg)
-    brightness(96%) contrast(92%);
-}
-
-.similarity-box {
-  margin-top: 12px;
-  padding: 12px;
-  border-radius: 12px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  text-align: center;
-  font-weight: 600;
-}
-
-.popup {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-
-  width: calc(100% - 32px);
-  max-width: 420px;
-
-  padding: 14px 18px;
-
-  border-radius: 16px;
-
-  color: #fff;
-
-  font-size: 14px;
-  font-weight: 700;
-
-  text-align: center;
-
-  z-index: 9999;
-
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
-}
-
-.popup.success {
-  background: #16a34a;
-}
-
-.popup.error {
-  background: #dc2626;
-}
+.page { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; background: #f1f5f9; color: #0f172a; }
+.card { width: min(100%, 520px); padding: 24px; border-radius: 28px; background: white; box-shadow: 0 20px 55px rgba(15,23,42,.12); }
+.back { min-height: auto; padding: 0; border: 0; background: transparent; color: #2563eb; cursor: pointer; font-weight: 700; }
+.eyebrow { margin: 20px 0 5px; color: #2563eb; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+h1 { margin: 0; font-size: 28px; }
+header p:last-child { color: #64748b; line-height: 1.5; }
+.timer { margin: 14px 0; padding: 10px 14px; border-radius: 12px; background: #dbeafe; color: #1d4ed8; text-align: center; }
+.timer.urgent { background: #fee2e2; color: #b91c1c; }
+.camera-box { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 22px; background: #020617; }
+.camera-box video, .camera-box img { width: 100%; height: 100%; object-fit: cover; }
+.face-guide { position: absolute; inset: 10% 23%; border: 3px solid rgba(255,255,255,.9); border-radius: 48%; box-shadow: 0 0 0 999px rgba(2,6,23,.18); }
+.quality { min-height: 24px; margin: 12px 0; color: #b45309; text-align: center; font-weight: 700; }
+.quality.ready { color: #15803d; }
+.message { padding: 12px; border-radius: 12px; background: #fee2e2; color: #b91c1c; }
+.message.success { background: #dcfce7; color: #15803d; }
+.message.info { background: #e0f2fe; color: #0369a1; }
+.primary, .secondary { width: 100%; min-height: 52px; border: 0; border-radius: 14px; font-weight: 800; cursor: pointer; }
+.primary { background: #2563eb; color: white; }
+.secondary { background: #e2e8f0; color: #0f172a; }
+button:disabled { cursor: not-allowed; opacity: .5; }
 </style>

@@ -121,8 +121,8 @@ const routes = [
   },
 
   {
-    path: '/employee/scan',
-    name: 'ScanQR',
+    path: '/employee/scan-event',
+    name: 'ScanEventQR',
     component: () => import('../views/employee/ScanQR.vue')
   },
 
@@ -204,28 +204,39 @@ router.beforeEach((to) => {
     user.role === "admin" &&
     user.tipe === "cabang";
 
+  let onboardingStatus = null;
+
+  try {
+    onboardingStatus = JSON.parse(localStorage.getItem("onboarding_status"));
+  } catch {
+    onboardingStatus = null;
+  }
+
+  const faceRegistered =
+    onboardingStatus?.face_registered ?? user.face_registered === true;
+
 // const faceRegistered =
 //   !!user.face_reference_path;
 
 // const profileCompleted =
 //   user.profile_completed === true;
 
-  // if (
-  //   isEmployee &&
-  //   mustChangePassword &&
-  //   to.path !== "/employee/change-password"
-  // ) {
-  //   return "/employee/change-password";
-  // }
+  if (
+    isEmployee &&
+    mustChangePassword &&
+    to.path !== "/employee/change-password"
+  ) {
+    return "/employee/change-password";
+  }
 
-  // if (
-  //   isEmployee &&
-  //   !mustChangePassword &&
-  //   !faceRegistered &&
-  //   to.path !== "/employee/register-face"
-  // ) {
-  //   return "/employee/register-face";
-  // }
+  if (
+    isEmployee &&
+    !mustChangePassword &&
+    faceRegistered === false &&
+    to.path !== "/employee/register-face"
+  ) {
+    return "/employee/register-face";
+  }
 
   // if (
   //   isEmployee &&

@@ -1,352 +1,281 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import { registerFaceAPI } from "@/services/employee";
+import {
+  destroyFaceLandmarker,
+  detectFace,
+  initFaceLandmarker,
+} from "@/services/faceLandmarker";
+import { captureVideoFrame, evaluateFaceFrame } from "@/utils/faceQuality";
 
-import { registerFaceAPI } from "@/services/attendance";
-
-import { initImageEmbedder, getEmbedding } from "@/services/imageEmbedder";
+const POSES = [
+  { key: "front", title: "Hadap lurus", instruction: "Hadapkan wajah lurus ke kamera" },
+  { key: "left", title: "Hadap kiri", instruction: "Putar kepala sekitar 30° ke kiri" },
+  { key: "right", title: "Hadap kanan", instruction: "Putar kepala sekitar 30° ke kanan" },
+  { key: "up", title: "Lihat atas", instruction: "Dongakkan kepala sedikit" },
+  { key: "down", title: "Lihat bawah", instruction: "Tundukkan kepala sedikit" },
+];
 
 const router = useRouter();
-
-const streamRef = ref(null);
-
 const videoRef = ref(null);
-
+const streamRef = ref(null);
+const currentIndex = ref(0);
+const photos = ref({});
+const previewUrl = ref("");
+const quality = ref({ ready: false, message: "Menyiapkan kamera..." });
+const stable = ref(false);
 const loading = ref(false);
+const errorMessage = ref("");
 
-const capturedImage = ref(null);
+let animationFrame = null;
+let readySince = 0;
+let lastAnalysisAt = 0;
+
+const currentPose = computed(() => POSES[currentIndex.value]);
+const isLastPose = computed(() => currentIndex.value === POSES.length - 1);
+const progress = computed(() => ((currentIndex.value + 1) / POSES.length) * 100);
 
 async function startCamera() {
-  try {
-    streamRef.value = await navigator.mediaDevices.getUserMedia({
-      video: true,
-    });
+  streamRef.value = await navigator.mediaDevices.getUserMedia({
+    video: {
+      facingMode: "user",
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+    },
+    audio: false,
+  });
 
-    if (!videoRef.value) {
-      return;
-    }
-
-    videoRef.value.srcObject = streamRef.value;
-
-    // videoRef.value.srcObject = stream;
-  } catch (error) {
-    console.error(error);
-    alert("Gagal mengakses kamera");
-  }
+  await nextTick();
+  videoRef.value.srcObject = streamRef.value;
+  await videoRef.value.play();
 }
 
 function stopCamera() {
-  if (!streamRef.value) return;
-
-  streamRef.value.getTracks().forEach((track) => track.stop());
-
+  streamRef.value?.getTracks().forEach((track) => track.stop());
   streamRef.value = null;
 }
 
-function captureFace() {
+function resetStability() {
+  readySince = 0;
+  stable.value = false;
+}
+
+function detectionLoop(timestamp = 0) {
   const video = videoRef.value;
 
-  const canvas = document.createElement("canvas");
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
+  if (!previewUrl.value && video?.readyState >= 2 && timestamp - lastAnalysisAt > 120) {
+    lastAnalysisAt = timestamp;
+    const detection = detectFace(video);
+    quality.value = evaluateFaceFrame(video, detection, currentPose.value.key);
 
-  const ctx = canvas.getContext("2d");
+    if (quality.value.ready) {
+      if (!readySince) readySince = performance.now();
+      stable.value = performance.now() - readySince >= 800;
+      if (!stable.value) quality.value = { ...quality.value, message: "Tahan posisi sebentar..." };
+    } else {
+      resetStability();
+    }
+  }
 
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  animationFrame = requestAnimationFrame(detectionLoop);
+}
 
-  capturedImage.value = canvas.toDataURL("image/jpeg");
+async function capturePhoto() {
+  if (!stable.value || loading.value) return;
+
+  try {
+    errorMessage.value = "";
+    const file = await captureVideoFrame(videoRef.value, `${currentPose.value.key}.jpg`);
+
+    if (file.size > 5 * 1024 * 1024) {
+      throw new Error("Ukuran foto melebihi 5MB");
+    }
+
+    photos.value = { ...photos.value, [currentPose.value.key]: file };
+    previewUrl.value = URL.createObjectURL(file);
+  } catch (error) {
+    errorMessage.value = error.message || "Gagal mengambil foto";
+  }
 }
 
 function retakePhoto() {
-  capturedImage.value = null;
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
+  previewUrl.value = "";
+  const nextPhotos = { ...photos.value };
+  delete nextPhotos[currentPose.value.key];
+  photos.value = nextPhotos;
+  quality.value = { ready: false, message: "Periksa kembali posisi wajah" };
+  resetStability();
 }
 
-function dataUrlToBlob(dataUrl) {
-  const arr = dataUrl.split(",");
-
-  const mime = arr[0].match(/:(.*?);/)[1];
-
-  const bstr = atob(arr[1]);
-
-  let n = bstr.length;
-
-  const u8arr = new Uint8Array(n);
-
-  while (n--) {
-    u8arr[n] = bstr.charCodeAt(n);
-  }
-
-  return new Blob([u8arr], {
-    type: mime,
-  });
+function nextPose() {
+  if (!photos.value[currentPose.value.key]) return;
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
+  previewUrl.value = "";
+  currentIndex.value += 1;
+  quality.value = { ready: false, message: currentPose.value.instruction };
+  resetStability();
 }
 
-async function dataUrlToImage(dataUrl) {
-  const img = new Image();
-
-  img.src = dataUrl;
-
-  await new Promise((resolve) => {
-    img.onload = resolve;
-  });
-
-  return img;
+function resetRegistration() {
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
+  previewUrl.value = "";
+  currentIndex.value = 0;
+  photos.value = {};
+  quality.value = { ready: false, message: POSES[0].instruction };
+  resetStability();
 }
 
-async function saveEmbedding() {
-  const img = await dataUrlToImage(capturedImage.value);
-
-  await initImageEmbedder();
-
-  const embedding = await getEmbedding(img);
-
-  localStorage.setItem(
-    "face_embedding",
-    JSON.stringify(embedding.floatEmbedding),
-  );
-}
-
-async function saveFace() {
-  if (!capturedImage.value) return;
+async function submitRegistration() {
+  if (POSES.some((pose) => !photos.value[pose.key]) || loading.value) return;
 
   loading.value = true;
+  errorMessage.value = "";
 
   try {
     const formData = new FormData();
+    POSES.forEach((pose) => formData.append(pose.key, photos.value[pose.key]));
+    await registerFaceAPI(formData);
 
-    const blob = dataUrlToBlob(capturedImage.value);
+    const storedStatus = JSON.parse(localStorage.getItem("onboarding_status") || "{}");
+    localStorage.setItem(
+      "onboarding_status",
+      JSON.stringify({ ...storedStatus, face_registered: true }),
+    );
 
-    const file = new File([blob], "face.jpg", {
-      type: "image/jpeg",
-    });
-
-    console.log("FILE:", file);
-    console.log("FILE SIZE:", file.size);
-    console.log("FILE TYPE:", file.type);
-    console.log("FILE:", file);
-    console.log("FILE NAME:", file.name);
-    console.log("FILE TYPE:", file.type);
-
-    formData.append("face_image", file);
-
-    for (const pair of formData.entries()) {
-      console.log("FORM DATA:", pair[0], pair[1]);
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    if (user) {
+      localStorage.setItem("user", JSON.stringify({ ...user, face_registered: true }));
     }
 
-    await saveEmbedding();
-
-    const response = await registerFaceAPI(formData);
-
-    console.log("REGISTER RESPONSE:", response.data);
-
-    // const user = JSON.parse(localStorage.getItem("user"));
-
-    // if (user) {
-    //   user.face_reference_path = "uploaded";
-
-    //   localStorage.setItem("user", JSON.stringify(user));
-    // }
-
-    stopCamera();
-
-    router.push("/employee/biodata");
+    router.replace("/employee/dashboard");
   } catch (error) {
-    console.log("REGISTER ERROR:", error.response?.data);
+    const code = error.response?.data?.code;
+    errorMessage.value =
+      code === "INVALID_FORMAT"
+        ? error.response?.data?.message
+        : "Gagal memproses foto. Pastikan wajah terlihat jelas di setiap foto, lalu ulangi semua pose.";
 
-    console.log("REGISTER STATUS:", error.response?.status);
-
-    alert(error.response?.data?.message || "Gagal menyimpan foto wajah");
+    if (code === "INCOMPLETE_POSES" || code === "INTERNAL_ERROR") {
+      resetRegistration();
+    }
   } finally {
     loading.value = false;
   }
 }
 
 onMounted(async () => {
-  await nextTick();
+  localStorage.removeItem("face_embedding");
+  localStorage.removeItem("face_token");
 
-  await startCamera();
+  try {
+    await initFaceLandmarker();
+    await startCamera();
+    detectionLoop();
+  } catch (error) {
+    errorMessage.value =
+      error.name === "NotAllowedError"
+        ? "Izin kamera ditolak. Aktifkan izin kamera untuk mendaftarkan wajah."
+        : "Kamera atau pendeteksi wajah gagal dimuat.";
+  }
 });
 
 onBeforeUnmount(() => {
+  if (animationFrame) cancelAnimationFrame(animationFrame);
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
   stopCamera();
+  destroyFaceLandmarker();
 });
 </script>
 
 <template>
-  <div class="wrapper">
-    <div class="header">
-      <!-- <p>Face Enrollment</p> -->
-      <h1>Upload Foto Wajah</h1>
-    </div>
+  <main class="page">
+    <section class="card">
+      <header>
+        <p class="eyebrow">Registrasi wajah</p>
+        <h1>Foto {{ currentIndex + 1 }} dari {{ POSES.length }}</h1>
+        <p class="subtitle">Kelima foto akan dikirim bersamaan dan diproses aman oleh server.</p>
+        <div class="progress"><span :style="{ width: `${progress}%` }"></span></div>
+      </header>
 
-    <div class="status-card">
-      <p>
-        Foto ini akan digunakan sebagai referensi untuk proses verifikasi wajah
-        saat check-in.
+      <div class="steps" aria-label="Progress pose wajah">
+        <span
+          v-for="(pose, index) in POSES"
+          :key="pose.key"
+          :class="{ active: index === currentIndex, done: Boolean(photos[pose.key]) }"
+        >
+          {{ index + 1 }}
+        </span>
+      </div>
+
+      <div class="instruction">
+        <strong>{{ currentPose.title }}</strong>
+        <span>{{ currentPose.instruction }}</span>
+      </div>
+
+      <div class="camera-box">
+        <video ref="videoRef" v-show="!previewUrl" autoplay muted playsinline></video>
+        <img v-if="previewUrl" :src="previewUrl" alt="Pratinjau foto wajah" />
+        <div v-if="!previewUrl" class="face-guide"></div>
+      </div>
+
+      <p v-if="!previewUrl" class="quality" :class="{ ready: stable }">
+        {{ stable ? "✓ Foto siap diambil" : quality.message }}
       </p>
-    </div>
+      <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
-    <div class="camera-box">
-      <video v-if="!capturedImage" ref="videoRef" autoplay muted playsinline />
-
-      <img v-else :src="capturedImage" class="preview-image" />
-
-      <div v-if="!capturedImage" class="frame" />
-    </div>
-
-    <button v-if="!capturedImage" class="action-btn" @click="captureFace">
-      Ambil Foto
-    </button>
-
-    <template v-else>
-      <button class="secondary-btn" @click="retakePhoto">Ambil Ulang</button>
-
-      <button class="action-btn" @click="saveFace">
-        {{ loading ? "Menyimpan..." : "Simpan Foto" }}
+      <button
+        v-if="!previewUrl"
+        class="primary"
+        :disabled="!stable || loading"
+        @click="capturePhoto"
+      >
+        Ambil Foto
       </button>
-    </template>
-  </div>
+
+      <div v-else class="actions">
+        <button class="secondary" :disabled="loading" @click="retakePhoto">Ambil Ulang</button>
+        <button
+          v-if="!isLastPose"
+          class="primary"
+          :disabled="loading"
+          @click="nextPose"
+        >
+          Pose Berikutnya
+        </button>
+        <button v-else class="primary" :disabled="loading" @click="submitRegistration">
+          {{ loading ? "Mengirim 5 Foto..." : "Daftarkan Wajah" }}
+        </button>
+      </div>
+    </section>
+  </main>
 </template>
 
 <style scoped>
-.wrapper {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  padding-bottom: 40px;
-  background:
-    radial-gradient(
-      circle at top left,
-      rgba(37, 99, 235, 0.1),
-      transparent 32rem
-    ),
-    #f8fafc;
-  color: #0f172a;
-}
-
-.header {
-  width: calc(100% - 32px);
-  max-width: 520px;
-  margin: 28px auto 18px;
-}
-
-.header p {
-  margin: 0 0 6px;
-  color: #2563eb;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.header h1 {
-  margin: 0;
-  color: #0f172a;
-  font-size: 28px;
-  font-weight: 800;
-  line-height: 1.15;
-}
-
-.camera-box {
-  position: relative;
-  width: calc(100% - 32px);
-  max-width: 420px;
-  aspect-ratio: 3 / 4;
-  margin: 0 auto 18px;
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 28px;
-  overflow: hidden;
-  background: #020617;
-  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
-}
-
-video {
-  width: 100%;
-  height: 100%;
-
-  object-fit: cover;
-}
-
-.frame {
-  position: absolute;
-  width: 65%;
-  height: 75%;
-  border: 3px solid rgba(255, 255, 255, 0.92);
-  border-radius: 28px;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  box-shadow: 0 0 0 999px rgba(15, 23, 42, 0.16);
-}
-
-.status-card {
-  width: calc(100% - 32px);
-  max-width: 420px;
-  margin: 0 auto;
-  padding: 18px;
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.92);
-  text-align: center;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
-}
-
-.status-card p {
-  margin: 0 0 8px;
-  color: #0f172a;
-  font-size: 14px;
-  font-weight: 800;
-  line-height: 1.5;
-}
-
-.action-btn {
-  width: calc(100% - 32px);
-  max-width: 420px;
-  margin: 24px auto;
-  height: 54px;
-  border: 1px solid transparent;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 800;
-  cursor: pointer;
-  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24);
-}
-
-@media (min-width: 768px) {
-  .camera-box,
-  .status-card,
-  .action-btn {
-    max-width: 520px;
-  }
-
-  .header h1 {
-    font-size: 32px;
-  }
-}
-
-.preview-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.secondary-btn {
-  width: calc(100% - 32px);
-  max-width: 420px;
-  margin: 16px auto 0;
-  height: 54px;
-  border: 1px solid #cbd5e1;
-  border-radius: 16px;
-  background: #ffffff;
-  color: #0f172a;
-  font-size: 15px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.status-card {
-  color: #475569;
-}
+.page { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; background: #f1f5f9; color: #0f172a; }
+.card { width: min(100%, 520px); padding: 24px; border-radius: 28px; background: white; box-shadow: 0 20px 55px rgba(15, 23, 42, .12); }
+.eyebrow { margin: 0 0 6px; color: #2563eb; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+h1 { margin: 0; font-size: 28px; }
+.subtitle { margin: 8px 0 16px; color: #64748b; line-height: 1.5; }
+.progress { height: 6px; overflow: hidden; border-radius: 999px; background: #e2e8f0; }
+.progress span { display: block; height: 100%; border-radius: inherit; background: #2563eb; transition: width .25s ease; }
+.steps { display: flex; justify-content: space-between; margin: 18px 0; }
+.steps span { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 50%; background: #e2e8f0; color: #64748b; font-weight: 800; }
+.steps .active { outline: 3px solid #bfdbfe; background: #2563eb; color: white; }
+.steps .done { background: #16a34a; color: white; }
+.instruction { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.instruction span { color: #64748b; text-align: right; }
+.camera-box { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 22px; background: #020617; }
+.camera-box video, .camera-box img { width: 100%; height: 100%; object-fit: cover; }
+.face-guide { position: absolute; inset: 10% 23%; border: 3px solid rgba(255,255,255,.9); border-radius: 48%; box-shadow: 0 0 0 999px rgba(2,6,23,.18); }
+.quality { min-height: 24px; margin: 12px 0; color: #b45309; text-align: center; font-weight: 700; }
+.quality.ready { color: #15803d; }
+.error { padding: 12px; border-radius: 12px; background: #fee2e2; color: #b91c1c; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+button { min-height: 50px; border: 0; border-radius: 14px; font-weight: 800; cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .5; }
+.primary { width: 100%; background: #2563eb; color: white; }
+.secondary { background: #e2e8f0; color: #0f172a; }
+@media (max-width: 480px) { .card { padding: 18px; } .instruction { flex-direction: column; gap: 4px; } .instruction span { text-align: left; } }
 </style>

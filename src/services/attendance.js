@@ -23,19 +23,6 @@ export function getTodayAttendanceEmployee() {
 export const checkoutAttendance = (data) =>
   API.patch("/attendance/checkout", data);
 
-// REGISTER FACE
-export function registerFaceAPI(formData) {
-  return API.post(
-    "/employee/face/register",
-    formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    }
-  );
-}
-
 // STEP 1 - GENERATE FACE TOKEN
 export function requestFaceTokenAPI() {
   return API.post("/attendance/face-token");
@@ -43,13 +30,15 @@ export function requestFaceTokenAPI() {
 
 // STEP 2 - VERIFY FACE
 export function verifyFaceAPI(formData) {
-  return API.post(
-    "/attendance/verify-face",
-    formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    }
-  );
+  return API.post("/attendance/verify-face", formData);
+}
+
+// STEP 3 - CHECK IN AFTER THE FACE TOKEN HAS BEEN VERIFIED
+export function faceCheckInAPI(data) {
+  return API.post("/attendance/checkin", data);
+}
+
+// EVENT ATTENDANCE - INDEPENDENT FROM DAILY FACE CHECK-IN
+export function checkInQrAPI(data) {
+  return API.post("/attendance/checkin-qr", data);
 }

@@ -1,8 +1,7 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useAuth } from "@/composables/useAuth";
 import AdminProfile from "@/components/AdminProfile.vue";
-import QRCode from "qrcode.vue";
 import AdminSidebar from "@/components/AdminSidebar.vue";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -11,13 +10,10 @@ import { getStatusLabel, getStatusClass } from "@/utils/attendanceStatus";
 
 import {
   getDashboardSummary,
-  getQRCode,
   getBranchSettings,
 } from "@/services/adminCabang";
 
 const { user, loadUser } = useAuth();
-
-const showQRModal = ref(false);
 
 const loading = ref(false);
 
@@ -35,11 +31,6 @@ const search = ref("");
 const status = ref("");
 // const period = ref("daily");
 const date = ref("");
-
-const qrToken = ref("");
-const qrExpire = ref("");
-let qrInterval = null;
-const qrCountdown = ref("--:--");
 
 const popupMessage = ref("");
 const showPopup = ref(false);
@@ -62,12 +53,8 @@ onMounted(async () => {
   // refresh tiap 2 menit 30 detik
 });
 
-onUnmounted(() => {
-  clearInterval(qrInterval);
-});
-
 async function fetchAll() {
-  await Promise.all([fetchDashboard(), fetchQR(), fetchSettings()]);
+  await Promise.all([fetchDashboard(), fetchSettings()]);
 }
 
 // async function fetchDashboard() {
@@ -160,81 +147,6 @@ async function fetchDashboard() {
   }
 }
 
-// async function fetchQR() {
-//   try {
-//     const res = await getQRCode();
-
-//     console.log("QR RESPONSE:", res.data);
-
-//     qrToken.value = res.data.data.token;
-//     qrExpire.value = res.data.data.expired_at;
-
-//     startQRCountdown(qrExpire.value);
-
-//     console.log("EXPIRE:", qrExpire.value);
-//   } catch (err) {
-//     console.error("QR ERROR:", err);
-
-//     openPopup(err.response?.data?.message || "Gagal memuat QR");
-//   }
-// }
-async function fetchQR() {
-  try {
-    const res = await getQRCode();
-
-    console.log("QR INNER DATA:", res.data.data);
-
-    qrToken.value = res.data.data.qr_content;
-
-    qrExpire.value = res.data.data.expires_at;
-
-    console.log("EXPIRE:", qrExpire.value);
-
-    startQRCountdown(qrExpire.value);
-  } catch (err) {
-    console.error("QR ERROR:", err.response?.data || err);
-
-    openPopup(err.response?.data?.message || "Gagal memuat QR");
-  }
-}
-
-function startQRCountdown(expiredAt) {
-  clearInterval(qrInterval);
-
-  if (!expiredAt) {
-    qrCountdown.value = "--:--";
-    return;
-  }
-
-  qrInterval = setInterval(() => {
-    const now = Date.now();
-
-    const expire = Date.parse(expiredAt);
-    if (isNaN(expire)) {
-      qrCountdown.value = "--:--";
-      return;
-    }
-
-    const distance = expire - now;
-
-    if (distance <= 0) {
-      qrCountdown.value = "00:00";
-
-      clearInterval(qrInterval);
-
-      fetchQR();
-
-      return;
-    }
-
-    const minutes = Math.floor(distance / 1000 / 60);
-
-    const seconds = Math.floor((distance / 1000) % 60);
-
-    qrCountdown.value = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-  }, 1000);
-}
-
 async function fetchSettings() {
   try {
     const res = await getBranchSettings();
@@ -249,43 +161,12 @@ async function fetchSettings() {
   }
 }
 
-async function handleRefreshQR() {
-  loading.value = true;
-
-  try {
-    const res = await refreshQRCode();
-
-    qrToken.value = res.data.data.qr_content;
-    qrExpire.value = res.data.data.expires_at;
-
-    openPopup("QR berhasil diperbarui");
-  } catch (err) {
-    console.error("REFRESH QR ERROR:", err);
-
-    openPopup(err.response?.data?.message || "Gagal refresh QR");
-  } finally {
-    loading.value = false;
-  }
-}
-
 function formatTime(dateString) {
   if (!dateString) return "-";
 
   return new Date(dateString).toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false,
-    timeZone: "Asia/Makassar",
-  });
-}
-
-function formatExpire(dateString) {
-  if (!dateString) return "-";
-
-  return new Date(dateString).toLocaleTimeString("id-ID", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
     hour12: false,
     timeZone: "Asia/Makassar",
   });
@@ -300,10 +181,6 @@ function formatDate(dateString) {
     year: "numeric",
     timeZone: "Asia/Makassar",
   });
-}
-
-function isExpired(utc) {
-  return utc && new Date(utc) < new Date();
 }
 
 function exportExcel() {
@@ -622,53 +499,6 @@ const paginatedEmployees = computed(() => {
           </div>
         </div>
 
-        <div class="panel">
-          <div class="panel-header">
-            <h3>QR Absensi</h3>
-          </div>
-
-          <div class="qr-body">
-            <div class="qr-box">
-              <QRCode
-                v-if="qrToken"
-                :value="qrToken"
-                :size="180"
-                level="H"
-                @click="showQRModal = true"
-              />
-              <p v-else class="qr-loading">Memuat QR...</p>
-            </div>
-
-            <div class="qr-expire" v-if="qrExpire">
-              <span :class="{ expired: isExpired(qrExpire) }">
-                {{ isExpired(qrExpire) ? "QR Kadaluwarsa" : "Berlaku sampai:" }}
-                {{ formatExpire(qrExpire) }}
-              </span>
-            </div>
-            <p class="qr-timer">
-              QR otomatis refresh dalam
-              <!-- <strong>{{ formatCountdown(countdown) }}</strong> -->
-              <strong>{{ qrCountdown }}</strong>
-            </p>
-          </div>
-        </div>
-      </div>
-      <div
-        v-if="showQRModal"
-        class="qr-modal-overlay"
-        @click="showQRModal = false"
-      >
-        <div class="qr-modal" @click.stop>
-          <button class="qr-close" @click="showQRModal = false">✕</button>
-
-          <!-- ganti ukuran qr modal -->
-          <QRCode :value="qrToken" :size="500" level="H" />
-
-          <p class="qr-modal-expire">
-            Berlaku sampai:
-            {{ formatExpire(qrExpire) }}
-          </p>
-        </div>
       </div>
 
       <div

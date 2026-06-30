@@ -2,6 +2,7 @@
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { loginAPI } from "@/services/auth";
+import { getOnboardingStatusAPI } from "@/services/employee";
 
 const router = useRouter();
 
@@ -133,6 +134,10 @@ async function login() {
 
     localStorage.setItem("must_change_password", must_change_password);
 
+    // Remove data left by the old, unsafe frontend-embedding implementation.
+    localStorage.removeItem("face_embedding");
+    localStorage.removeItem("face_token");
+
     // remember me
     if (remember.value) {
       localStorage.setItem(
@@ -157,12 +162,17 @@ async function login() {
     } else if (user.role === "admin" && user.tipe === "cabang") {
       router.push("/admin-cabang/dashboard");
     } else if (user.role === "karyawan") {
-      console.log("LOGIN USER:", user);
+      const onboardingResponse = await getOnboardingStatusAPI();
+      const onboardingStatus = onboardingResponse.data.data;
+      localStorage.setItem("onboarding_status", JSON.stringify(onboardingStatus));
 
-      const faceRegistered = user.face_registered === true;
-      console.log("FACE REGISTERED:", faceRegistered);
+      if (onboardingStatus.must_change_password) {
+        localStorage.setItem("must_change_password", "true");
+        router.push("/employee/change-password");
+        return;
+      }
 
-      if (!faceRegistered) {
+      if (!onboardingStatus.face_registered) {
         router.push("/employee/register-face");
         return;
       }

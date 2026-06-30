@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import API from "@/services/api";
+import { getOnboardingStatusAPI } from "@/services/employee";
 
 const router = useRouter();
 const route = useRoute();
@@ -57,13 +58,23 @@ async function handleSubmit() {
     successMessage.value = "Password berhasil diubah";
     showToast.value = true;
 
+    const user = JSON.parse(localStorage.getItem("user"));
+    let employeeDestination = "/employee/dashboard";
+
+    if (user.role === "karyawan") {
+      const onboardingResponse = await getOnboardingStatusAPI();
+      const onboardingStatus = onboardingResponse.data.data;
+      localStorage.setItem("onboarding_status", JSON.stringify(onboardingStatus));
+      employeeDestination = onboardingStatus.face_registered
+        ? "/employee/dashboard"
+        : "/employee/register-face";
+    }
+
     setTimeout(() => {
       showToast.value = false;
 
       // clear force change password
       localStorage.setItem("must_change_password", "false");
-
-      const user = JSON.parse(localStorage.getItem("user"));
 
       // redirect sesuai role
       if (user.role === "admin" && user.tipe === "pusat") {
@@ -80,7 +91,7 @@ async function handleSubmit() {
 
       //direct ke update biodata
       if (user.role === "karyawan") {
-        router.push("/employee/register-face");
+        router.push(employeeDestination);
         return;
       }
     }, 1500);

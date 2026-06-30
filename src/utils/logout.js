@@ -28,6 +28,10 @@ export async function logout() {
       "must_change_password"
     );
 
+    localStorage.removeItem("onboarding_status");
+    localStorage.removeItem("face_embedding");
+    localStorage.removeItem("face_token");
+
     window.location.href = "/";
   }
 }

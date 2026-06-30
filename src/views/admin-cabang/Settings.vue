@@ -35,7 +35,6 @@ const form = ref({
   work_days: "1,2,3,4,5",
 
   // security
-  auto_refresh_qr: true,
   require_admin_approval: false,
 
   // notifications
@@ -79,8 +78,6 @@ async function fetchSettings() {
       work_days: data.working_hours?.work_days || "1,2,3,4,5",
 
       // security
-      auto_refresh_qr: data.security?.auto_refresh_qr ?? false,
-
       require_admin_approval: data.security?.require_admin_approval ?? false,
 
       // notifications
@@ -130,8 +127,6 @@ async function saveSettings() {
       work_days: form.value.work_days,
 
       // security
-      auto_refresh_qr: form.value.auto_refresh_qr,
-
       require_admin_approval: form.value.require_admin_approval,
 
       // notifications
@@ -258,77 +253,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- <div class="section">
-          <div class="section-header">
-            <h3>Keamanan & QR</h3>
-          </div>
-
-          <div class="section-body">
-            <div class="toggle-row">
-              <div>
-                <p class="toggle-label">Refresh QR Otomatis</p>
-                <p class="toggle-desc">QR akan diperbarui otomatis</p>
-              </div>
-
-              <label class="switch">
-                <input type="checkbox" v-model="form.auto_refresh_qr" />
-                <span></span>
-              </label>
-            </div>
-
-            <div class="toggle-row">
-              <div>
-                <p class="toggle-label">Perlu Persetujuan Admin</p>
-                <p class="toggle-desc">
-                  Perubahan memerlukan persetujuan admin
-                </p>
-              </div>
-
-              <label class="switch">
-                <input type="checkbox" v-model="form.require_admin_approval" />
-                <span></span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div class="section">
-          <div class="section-header">
-            <h3>Notifikasi</h3>
-          </div>
-
-          <div class="section-body">
-            <div class="field">
-              <label>Email Admin</label>
-
-              <input type="email" v-model="form.admin_email" />
-            </div>
-
-            <div class="toggle-row">
-              <span>Notifikasi Email</span>
-              <label class="switch">
-                <input type="checkbox" v-model="form.email_notifications" />
-                <span></span>
-              </label>
-            </div>
-
-            <div class="toggle-row">
-              <span>Peringatan Keterlambatan</span>
-              <label class="switch">
-                <input type="checkbox" v-model="form.late_arrival_alerts" />
-                <span></span>
-              </label>
-            </div>
-
-            <div class="toggle-row">
-              <span>Laporan Mingguan</span>
-              <label class="switch">
-                <input type="checkbox" v-model="form.weekly_reports" />
-                <span></span>
-              </label>
-            </div>
-          </div>
-        </div> -->
       </template>
 
       <div class="save-bar">

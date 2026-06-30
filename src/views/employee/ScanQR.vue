@@ -3,11 +3,9 @@ import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import { useLocation } from "@/composables/useLocation";
-import { checkInAPI } from "@/services/attendance";
-import { useAuth } from "@/composables/useAuth";
+import { checkInQrAPI } from "@/services/attendance";
 
 const router = useRouter();
-const { user, loadUser } = useAuth();
 
 const loading = ref(false);
 const error = ref("");
@@ -18,7 +16,7 @@ const showPopup = ref(false);
 
 const scannerActive = ref(false);
 
-const { latitude, longitude, accuracy, getCurrentLocation } = useLocation();
+const { latitude, longitude, getCurrentLocation } = useLocation();
 
 let codeReader = null;
 let restartTimeout = null;
@@ -26,7 +24,6 @@ let videoElement = null;
 
 onMounted(async () => {
   videoElement = document.getElementById("video");
-  await loadUser();
   const ok = await getCurrentLocation();
   if (!ok) {
     error.value = "Gagal mengambil lokasi";
@@ -117,57 +114,21 @@ async function handleScan(decodedText) {
 
   stopScanner();
 
-  console.log("QR RESULT:", decodedText);
-
-  const parsedQR = JSON.parse(decodedText);
-
-  console.log("PARSED QR:", parsedQR);
   try {
-    // const parsedQR = JSON.parse(decodedText);
-
-    // console.log("PARSED QR:", parsedQR);
-
-    console.log("FACE TOKEN:", localStorage.getItem("face_token"));
-
     const payload = {
-      work_type: "WFO",
-
-      lat: latitude.value,
-      lon: longitude.value,
-      accuracy: accuracy.value,
-
-      qr_token: parsedQR.token,
-      branch_id: parsedQR.branch_id,
-
-      face_token: localStorage.getItem("face_token"),
+      qr_token: decodedText.trim(),
+      latitude: latitude.value,
+      longitude: longitude.value,
     };
-
-    console.log("PAYLOAD:", payload);
-
-    // const res = await checkInAPI(payload);
-    const res = await checkInAPI(payload);
-
-    console.log("LATITUDE:", latitude.value);
-    console.log("LONGITUDE:", longitude.value);
-    console.log("PARSED QR:", parsedQR);
-    console.log("FACE TOKEN:", localStorage.getItem("face_token"));
-    console.log("CHECKIN PAYLOAD:", payload);
-
-    console.log("FULL RESPONSE:", res);
-
-    console.log("RESPONSE DATA:", res.data);
-
-    console.log("RESPONSE INNER DATA:", res.data?.data);
-
-    console.log("RESPONSE STATUS:", res.status);
-
-    localStorage.removeItem("face_token");
+    const res = await checkInQrAPI(payload);
 
     router.push({
       path: "/employee/success",
       query: {
-        type: "wfo",
+        type: "event",
         time: res.data.data.check_in,
+        date: res.data.data.date,
+        eventName: res.data.data.event_name,
       },
     });
   } catch (err) {
@@ -185,16 +146,12 @@ async function handleScan(decodedText) {
 
     const code = err.response?.data?.code;
 
-    if (code === "FACE_NOT_VERIFIED") {
-      openPopup("Verifikasi wajah belum dilakukan");
-    } else if (code === "QR_INVALID") {
-      openPopup("QR tidak valid");
-    } else if (code === "LOCATION_OUT_OF_RANGE") {
-      openPopup("Anda berada di luar radius kantor");
-    } else if (message === "TOKEN_INVALID") {
-      openPopup("Token check in sudah expired");
-    } else if (message === "Sudah check-in hari ini") {
-      openPopup("Anda sudah check-in hari ini");
+    if (code === "QR_TOKEN_INVALID" || code === "QR_NOT_EVENT_TYPE") {
+      openPopup("QR event tidak valid atau sudah kedaluwarsa");
+    } else if (code === "OUTSIDE_RADIUS") {
+      openPopup("Anda berada di luar radius event");
+    } else if (code === "ALREADY_ATTENDED_EVENT") {
+      openPopup("Anda sudah absen di event ini");
     } else {
       openPopup(message || "Check in gagal");
     }
@@ -223,7 +180,7 @@ function goBack() {
 
     <section class="page-heading">
       <!-- <p>Check In WFO</p> -->
-      <h1>Scan QR Kantor</h1>
+      <h1>Scan QR Event</h1>
     </section>
 
     <div v-if="error" class="error">

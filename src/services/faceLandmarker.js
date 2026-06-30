@@ -8,7 +8,7 @@ export async function initFaceLandmarker() {
   }
 
   const vision = await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm"
   );
 
   faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
@@ -19,7 +19,7 @@ export async function initFaceLandmarker() {
 
     runningMode: "VIDEO",
 
-    numFaces: 1,
+    numFaces: 2,
 
     outputFaceBlendshapes: true,
 

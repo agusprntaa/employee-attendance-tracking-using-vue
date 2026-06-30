@@ -48,7 +48,7 @@ const alreadyCheckedIn = computed(() => {
 });
 
 const canCheckIn = computed(() => {
-  return isInRadius.value && !alreadyCheckedIn.value && !loading.value;
+  return !alreadyCheckedIn.value && !loading.value;
 });
 
 function parseLocalDate(dateString) {
@@ -388,9 +388,7 @@ async function handleLogout() {
               {{
                 alreadyCheckedIn
                   ? "Sudah Absen"
-                  : !isInRadius
-                    ? "Di Luar Radius"
-                    : "Check In"
+                  : "Check In"
               }}
             </button>
 

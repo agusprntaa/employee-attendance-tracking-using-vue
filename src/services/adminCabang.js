@@ -5,15 +5,6 @@ export function getDashboardSummary(params) {
   return API.get('/admin-cabang/dashboard', { params })
 }
 
-// qrcode
-export function getQRCode() {
-  return API.get('/qr/today')
-}
-
-export function refreshQRCode() {
-  return API.post('/qr/regenerate')
-}
-
 // employees
 export function getEmployees(params) {
   return API.get('/admin-cabang/employees', { params })
