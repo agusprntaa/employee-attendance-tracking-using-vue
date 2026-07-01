@@ -5,7 +5,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useRouter } from "vue-router";
 import { useAuth } from "@/composables/useAuth";
-import { createEvent, getEvents } from "@/services/adminCabangEvent";
+import { createEvent, deleteEvent, getEvents } from "@/services/adminCabangEvent";
 import AdminSidebar from "@/components/AdminSidebar.vue";
 import AdminProfile from "@/components/AdminProfile.vue";
 
@@ -32,7 +32,8 @@ const eventForm = ref({
   latitude: "",
   longitude: "",
   radius: "",
-  date: "",
+  start_date: "",
+  end_date: "",
   start_time: "",
   end_time: "",
 });
@@ -49,12 +50,24 @@ const errors = ref({
   latitude: "",
   longitude: "",
   radius_meter: "",
-  date: "",
+  start_date: "",
+  end_date: "",
   start_time: "",
   end_time: "",
 });
 
 const events = ref([]);
+
+function resolveEventStatus(event) {
+  if (event.status) return event.status;
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const startDate = event.start_date || event.date;
+  const endDate = event.end_date || event.date;
+  if (startDate && today < startDate) return "Belum Dimulai";
+  if (endDate && today > endDate) return "Selesai";
+  return "Berlangsung";
+}
 
 const summary = computed(() => ({
   total_event: events.value.length,
@@ -91,7 +104,8 @@ function openAdd() {
     latitude: "",
     longitude: "",
     radius: "",
-    date: "",
+    start_date: "",
+    end_date: "",
     start_time: "",
     end_time: "",
   };
@@ -103,7 +117,8 @@ function openAdd() {
     latitude: "",
     longitude: "",
     radius_meter: "",
-    date: "",
+    start_date: "",
+    end_date: "",
     start_time: "",
     end_time: "",
   };
@@ -119,7 +134,8 @@ function validateForm() {
     latitude: "",
     longitude: "",
     radius_meter: "",
-    date: "",
+    start_date: "",
+    end_date: "",
     start_time: "",
     end_time: "",
   };
@@ -156,8 +172,22 @@ function validateForm() {
     valid = false;
   }
 
-  if (!eventForm.value.date) {
-    errors.value.date = "Tanggal wajib diisi";
+  if (!eventForm.value.start_date) {
+    errors.value.start_date = "Tanggal mulai wajib diisi";
+    valid = false;
+  }
+
+  if (!eventForm.value.end_date) {
+    errors.value.end_date = "Tanggal selesai wajib diisi";
+    valid = false;
+  }
+
+  if (
+    eventForm.value.start_date &&
+    eventForm.value.end_date &&
+    eventForm.value.end_date < eventForm.value.start_date
+  ) {
+    errors.value.end_date = "Tanggal selesai tidak boleh sebelum tanggal mulai";
     valid = false;
   }
 
@@ -186,7 +216,8 @@ async function submitEvent() {
       latitude: Number(eventForm.value.latitude),
       longitude: Number(eventForm.value.longitude),
       radius_meter: Number(eventForm.value.radius),
-      date: eventForm.value.date,
+      start_date: eventForm.value.start_date,
+      end_date: eventForm.value.end_date,
       start_time: eventForm.value.start_time,
       end_time: eventForm.value.end_time,
     };
@@ -209,7 +240,10 @@ async function fetchEvents() {
 
     const res = await getEvents();
 
-    events.value = res.data.data;
+    events.value = (res.data.data || []).map((event) => ({
+      ...event,
+      status: resolveEventStatus(event),
+    }));
   } catch (err) {
     console.log(err);
   } finally {
@@ -223,8 +257,19 @@ function openDelete(item) {
   showDeleteModal.value = true;
 }
 
-function confirmDelete() {
-  showDeleteModal.value = false;
+async function confirmDelete() {
+  if (!selectedEvent.value || loading.value) return;
+  try {
+    loading.value = true;
+    await deleteEvent(selectedEvent.value.id);
+    showDeleteModal.value = false;
+    selectedEvent.value = null;
+    await fetchEvents();
+  } catch (err) {
+    console.error("DELETE EVENT ERROR:", err.response?.data || err);
+  } finally {
+    loading.value = false;
+  }
 }
 
 function goDetail(item) {
@@ -244,7 +289,8 @@ function exportExcel() {
     ID: item.id,
     Nama: item.name,
     Lokasi: item.location,
-    Tanggal: item.date,
+    "Tanggal Mulai": item.start_date || item.date,
+    "Tanggal Selesai": item.end_date || item.date,
     Mulai: item.start_time,
     Selesai: item.end_time,
   }));
@@ -267,13 +313,14 @@ function exportPDF() {
     item.id,
     item.name,
     item.location,
-    item.date,
+    item.start_date || item.date,
+    item.end_date || item.date,
     item.start_time,
     item.end_time,
   ]);
   autoTable(doc, {
     startY: 30,
-    head: [["ID", "Nama Event", "Lokasi", "Tanggal", "Mulai", "Selesai"]],
+    head: [["ID", "Nama Event", "Lokasi", "Mulai", "Selesai", "Jam Mulai", "Jam Selesai"]],
     body: rows,
     styles: {
       fontSize: 9,
@@ -389,13 +436,16 @@ onMounted(async () => {
                     {{ item.location }}
                   </td>
                   <td>
-                    {{ item.start_date }}
+                    {{ item.start_date || item.date }}
+                    <template v-if="item.end_date && item.end_date !== item.start_date">
+                      s/d {{ item.end_date }}
+                    </template>
                   </td>
                   <td>
-                    {{ item.total_employee }}
+                    {{ item.total_participants ?? item.total_employee ?? 0 }}
                   </td>
                   <td>
-                    {{ item.present }}
+                    {{ item.total_present ?? item.present ?? 0 }}
                   </td>
                   <td>
                     <span class="badge" :class="item.status">
@@ -598,46 +648,60 @@ onMounted(async () => {
 
         <div class="date-grid">
           <div class="form-group">
-            <label>Tanggal</label>
+            <label>Tanggal Mulai</label>
 
             <input
               type="date"
-              v-model="eventForm.date"
-              :class="{ 'input-error': errors.date }"
+              v-model="eventForm.start_date"
+              :class="{ 'input-error': errors.start_date }"
             />
 
-            <small v-if="errors.date" class="error-text">
-              {{ errors.date }}
+            <small v-if="errors.start_date" class="error-text">
+              {{ errors.start_date }}
             </small>
           </div>
 
           <div class="form-group">
-            <label>Jam Mulai</label>
+            <label>Tanggal Selesai</label>
 
             <input
-              type="time"
-              v-model="eventForm.start_time"
-              :class="{ 'input-error': errors.start_time }"
+              type="date"
+              v-model="eventForm.end_date"
+              :class="{ 'input-error': errors.end_date }"
             />
 
-            <small v-if="errors.start_time" class="error-text">
-              {{ errors.start_time }}
+            <small v-if="errors.end_date" class="error-text">
+              {{ errors.end_date }}
             </small>
           </div>
+        </div>
 
-          <div class="form-group">
-            <label>Jam Selesai</label>
+        <div class="form-group">
+          <label>Jam Mulai</label>
 
-            <input
-              type="time"
-              v-model="eventForm.end_time"
-              :class="{ 'input-error': errors.end_time }"
-            />
+          <input
+            type="time"
+            v-model="eventForm.start_time"
+            :class="{ 'input-error': errors.start_time }"
+          />
 
-            <small v-if="errors.end_time" class="error-text">
-              {{ errors.end_time }}
-            </small>
-          </div>
+          <small v-if="errors.start_time" class="error-text">
+            {{ errors.start_time }}
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label>Jam Selesai</label>
+
+          <input
+            type="time"
+            v-model="eventForm.end_time"
+            :class="{ 'input-error': errors.end_time }"
+          />
+
+          <small v-if="errors.end_time" class="error-text">
+            {{ errors.end_time }}
+          </small>
         </div>
       </div>
 
@@ -1356,5 +1420,11 @@ tbody tr:hover {
   color: #dc2626;
   font-size: 12px;
   font-weight: 500;
+}
+
+.date-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
 }
 </style>

@@ -8,10 +8,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { getStatusLabel, getStatusClass } from "@/utils/attendanceStatus";
 
-import {
-  getDashboardSummary,
-  getBranchSettings,
-} from "@/services/adminCabang";
+import { getDashboardSummary, getBranchSettings } from "@/services/adminCabang";
 
 const { user, loadUser } = useAuth();
 
@@ -498,7 +495,6 @@ const paginatedEmployees = computed(() => {
             </div>
           </div>
         </div>
-
       </div>
 
       <div
@@ -644,10 +640,7 @@ const paginatedEmployees = computed(() => {
 }
 
 .panels {
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 20px;
-  align-items: start;
+  display: block;
 }
 
 .panel {

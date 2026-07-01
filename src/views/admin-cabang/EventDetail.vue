@@ -1,5 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
+import * as XLSX from "xlsx";
+import autoTable from "jspdf-autotable";
 import { useRoute, useRouter } from "vue-router";
 import AdminSidebar from "@/components/AdminSidebar.vue";
 import AdminProfile from "@/components/AdminProfile.vue";
@@ -10,6 +12,8 @@ import {
   getEventDetail,
   getEventQR,
   getEventParticipants,
+  getEventAttendance,
+  getEventParticipantList,
   addParticipants,
   addAllParticipants,
   deleteParticipant,
@@ -25,6 +29,10 @@ const eventId = route.params.id;
 const event = ref({});
 
 const participants = ref([]);
+const attendanceRows = ref([]);
+const eventDates = ref([]);
+const selectedDate = ref("");
+const attendanceSummary = ref({ total: 0, total_hadir: 0, total_belum: 0 });
 const selectedEmployees = ref([]);
 const allSelected = computed(() => {
   const available = participants.value.filter((item) => !item.terdaftar);
@@ -42,6 +50,14 @@ const qrCountdown = ref("--:--");
 let qrInterval = null;
 
 const search = ref("");
+
+function formatDate(date) {
+  return new Date(date).toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
 
 function startQRCountdown() {
   clearInterval(qrInterval);
@@ -73,14 +89,60 @@ function startQRCountdown() {
 
 async function fetchEvent() {
   const res = await getEventDetail(eventId);
-
-  event.value = res.data.data;
+  const payload = res.data.data || {};
+  event.value = {
+    name: payload.event_name,
+    location: payload.location,
+    radius_meter: payload.radius_meter,
+    start_date: payload.start_date,
+    end_date: payload.end_date,
+    start_time: payload.start_time,
+    end_time: payload.end_time,
+    description: payload.description,
+  };
 }
 
 async function fetchParticipants() {
   const res = await getEventParticipants(eventId);
 
   participants.value = res.data.data;
+}
+
+async function fetchAttendance() {
+  const res = await getEventAttendance(eventId);
+  const payload = res.data.data || {};
+  attendanceSummary.value = {
+    total: payload.total || 0,
+    total_hadir: payload.total_hadir || 0,
+    total_belum: payload.total_belum || 0,
+  };
+  attendanceRows.value = Array.isArray(payload.data) ? payload.data : [];
+  eventDates.value = Array.isArray(payload.dates) ? payload.dates : [];
+  if (!selectedDate.value && eventDates.value.length) {
+    const today = new Date().toISOString().split("T")[0];
+
+    selectedDate.value = eventDates.value.includes(today)
+      ? today
+      : eventDates.value[0];
+  }
+}
+
+async function fetchParticipantAttendance() {
+  const res = await getEventParticipantList(
+    eventId,
+    selectedDate.value || undefined,
+  );
+  const rows = Array.isArray(res.data.data) ? res.data.data : [];
+  if (selectedDate.value) {
+    attendanceRows.value = rows;
+  }
+}
+
+async function changeAttendanceDate() {
+  page.value = 1;
+  if (!selectedDate.value) return;
+  await fetchParticipantAttendance();
+  page.value = 1;
 }
 
 async function fetchQR() {
@@ -94,6 +156,12 @@ onUnmounted(() => {
 });
 
 const filteredParticipants = computed(() => {
+  return attendanceRows.value.filter((item) =>
+    item.employee_name.toLowerCase().includes(search.value.toLowerCase()),
+  );
+});
+
+const filteredAvailableParticipants = computed(() => {
   return participants.value.filter((item) =>
     item.employee_name.toLowerCase().includes(search.value.toLowerCase()),
   );
@@ -142,21 +210,77 @@ async function removeParticipant(employeeId) {
   await deleteParticipant(eventId, employeeId);
 
   await fetchParticipants();
+  await fetchParticipantAttendance();
 }
 
 async function saveParticipants() {
   if (!selectedEmployees.value.length) return;
-  await addParticipants(eventId, selectedEmployees.value);
+  if (allSelected.value) {
+    await addAllParticipants(eventId);
+  } else {
+    await addParticipants(eventId, selectedEmployees.value);
+  }
   closeParticipantModal();
   await fetchParticipants();
+  await fetchParticipantAttendance();
 }
 
 function exportExcel() {
-  console.log("Export Excel");
+  if (!attendanceRows.value.length) {
+    alert("Tidak ada data absensi untuk diexport");
+    return;
+  }
+  const data = attendanceRows.value.map((item) => ({
+    ID: `EMP-${item.employee_id}`,
+    "Nama Karyawan": item.employee_name,
+    "Absen Masuk": item.check_in || "-",
+    Divisi: item.division_name || "-",
+    "Jarak (Meter)": item.distance_meter != null ? item.distance_meter : "-",
+    Status: item.status || (item.hadir ? "Hadir" : "Belum Hadir"),
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Absensi Event");
+  XLSX.writeFile(
+    wb,
+    `${event.value.name || "Absensi_Event"}_${selectedDate.value || ""}.xlsx`,
+  );
 }
 
 function exportPDF() {
-  console.log("Export PDF");
+  if (!attendanceRows.value.length) {
+    alert("Tidak ada data absensi untuk diexport");
+    return;
+  }
+  const doc = new jsPDF();
+  doc.setFontSize(16);
+  doc.text("Laporan Absensi Event", 14, 16);
+  doc.setFontSize(10);
+  doc.text(`Event : ${event.value.name || "-"}`, 14, 24);
+  doc.text(`Tanggal : ${selectedDate.value || "-"}`, 14, 30);
+  doc.text(`Lokasi : ${event.value.location || "-"}`, 14, 36);
+  const rows = attendanceRows.value.map((item) => [
+    `EMP-${item.employee_id}`,
+    item.employee_name,
+    item.check_in || "-",
+    item.division_name || "-",
+    item.distance_meter != null ? `${item.distance_meter} m` : "-",
+    item.status || (item.hadir ? "Hadir" : "Belum Hadir"),
+  ]);
+  autoTable(doc, {
+    startY: 44,
+    head: [["ID", "Nama Karyawan", "Absen Masuk", "Divisi", "Jarak", "Status"]],
+    body: rows,
+    styles: {
+      fontSize: 9,
+    },
+    headStyles: {
+      fillColor: [79, 70, 229],
+    },
+  });
+  doc.save(
+    `${event.value.name || "Absensi_Event"}_${selectedDate.value || ""}.pdf`,
+  );
 }
 
 function goBack() {
@@ -175,6 +299,7 @@ onMounted(async () => {
   loadUser();
   await fetchEvent();
   await fetchParticipants();
+  await fetchAttendance();
   await fetchQR();
 });
 </script>
@@ -193,7 +318,12 @@ onMounted(async () => {
           <p class="subtitle">
             {{ event.location }}
             •
-            {{ event.date }}
+            {{ event.start_date || event.date }}
+            <template
+              v-if="event.end_date && event.end_date !== event.start_date"
+            >
+              s/d {{ event.end_date }}
+            </template>
           </p>
         </div>
 
@@ -224,7 +354,14 @@ onMounted(async () => {
 
             <div class="detail-item">
               <label>Tanggal</label>
-              <span>{{ event.date }}</span>
+              <span>
+                {{ event.start_date || event.date }}
+                <template
+                  v-if="event.end_date && event.end_date !== event.start_date"
+                >
+                  s/d {{ event.end_date }}
+                </template>
+              </span>
             </div>
 
             <div class="detail-item">
@@ -274,6 +411,21 @@ onMounted(async () => {
         </section>
       </section>
 
+      <section class="stats attendance-stats">
+        <div class="card">
+          <h2>{{ attendanceSummary.total }}</h2>
+          <p>Total Peserta</p>
+        </div>
+        <div class="card">
+          <h2>{{ attendanceSummary.total_hadir }}</h2>
+          <p>Sudah Hadir</p>
+        </div>
+        <div class="card">
+          <h2>{{ attendanceSummary.total_belum }}</h2>
+          <p>Belum Hadir</p>
+        </div>
+      </section>
+
       <section class="panel participant-panel">
         <div class="panel-header">
           <div>
@@ -287,13 +439,39 @@ onMounted(async () => {
         </div>
 
         <div class="toolbar">
-          <div class="search-wrap">
-            <input v-model="search" type="text" placeholder="Cari peserta..." />
+          <div class="filter-wrap">
+            <select
+              v-if="eventDates.length"
+              v-model="selectedDate"
+              @change="changeAttendanceDate"
+            >
+              <option v-for="date in eventDates" :key="date" :value="date">
+                {{ formatDate(date) }}
+              </option>
+            </select>
           </div>
 
-          <button @click="exportExcel">Export Excel</button>
+          <div class="search-wrap">
+            <input
+              v-model="search"
+              type="text"
+              placeholder="Cari karyawan..."
+            />
+          </div>
 
-          <button @click="exportPDF">Export PDF</button>
+          <div class="export-actions">
+            <button class="btn-export excel" @click="exportExcel">
+              Excel
+
+              <span class="tooltip"> Export ke Excel </span>
+            </button>
+
+            <button class="btn-export pdf" @click="exportPDF">
+              PDF
+
+              <span class="tooltip"> Export ke PDF </span>
+            </button>
+          </div>
         </div>
 
         <div class="table-region">
@@ -313,37 +491,60 @@ onMounted(async () => {
                   <th>ID</th>
                   <th>Nama Karyawan</th>
                   <th>Absen Masuk</th>
-                  <th>Absen Pulang</th>
+                  <th>Divisi</th>
+                  <th>Jarak</th>
                   <th>Status</th>
                 </tr>
               </thead>
 
               <tbody>
-                <tr v-for="item in paginatedParticipants" :key="item.id">
-                  <td>EMP- {{ item.employee_name }}</td>
+                <tr
+                  v-for="item in paginatedParticipants"
+                  :key="item.employee_id"
+                >
+                  <td>EMP-{{ item.employee_id }}</td>
 
                   <td class="bold">
                     {{ item.employee_name }}
                   </td>
 
                   <td>
-                    {{ item.checkin }}
+                    {{ item.check_in || "--:--" }}
                   </td>
 
                   <td>
-                    {{ item.checkout }}
+                    {{ item.division_name || "-" }}
                   </td>
 
                   <td>
-                    <span class="badge" :class="item.status">
-                      {{ item.status }}
+                    {{
+                      item.distance_meter !== undefined &&
+                      item.distance_meter !== null
+                        ? `${Number(item.distance_meter).toFixed(0)} m`
+                        : "-"
+                    }}
+                  </td>
+                  <td>
+                    <span
+                      class="badge"
+                      :class="
+                        item.status || (item.hadir ? 'Hadir' : 'Belum Hadir')
+                      "
+                    >
+                      {{
+                        item.status
+                          ? item.status
+                          : item.hadir
+                            ? "Hadir"
+                            : "Belum Hadir"
+                      }}
                     </span>
                   </td>
                 </tr>
 
                 <tr v-if="!paginatedParticipants.length">
-                  <td colspan="5" class="empty-table">
-                    Belum ada peserta event.
+                  <td colspan="6" class="empty-table">
+                    Belum ada data absensi pada tanggal yang dipilih.
                   </td>
                 </tr>
               </tbody>
@@ -372,7 +573,12 @@ onMounted(async () => {
               {{ p }}
             </button>
 
-            <button :disabled="page >= totalPages" @click="page++">›</button>
+            <button
+              :disabled="page >= totalPages || totalPages === 0"
+              @click="page++"
+            >
+              ›
+            </button>
           </div>
         </div>
       </section>
@@ -407,7 +613,7 @@ onMounted(async () => {
 
         <div class="participant-list">
           <label
-            v-for="item in filteredParticipants"
+            v-for="item in filteredAvailableParticipants"
             :key="item.employee_id"
             class="participant-card"
             :class="{ disabled: item.terdaftar }"
@@ -565,6 +771,33 @@ onMounted(async () => {
   border-bottom: 1px solid #edf0f4;
 }
 
+.filter-wrap {
+  width: 180px;
+  flex-shrink: 0;
+}
+
+.filter-wrap select {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #d8deea;
+  border-radius: 10px;
+  background: white;
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.filter-wrap select:focus {
+  border-color: #4f46e5;
+}
+
+.export-actions {
+  display: flex;
+  gap: 10px;
+}
+
 .search-wrap {
   flex: 1;
   min-width: 220px;
@@ -572,18 +805,63 @@ onMounted(async () => {
 
 .toolbar input {
   width: 100%;
-  padding: 10px 14px;
+  height: 40px;
+  padding: 0 14px;
   border: 1px solid #d8deea;
   border-radius: 10px;
   font-size: 13px;
   outline: none;
+  transition: 0.2s;
 }
 
 .toolbar input:focus {
   border-color: #4f46e5;
 }
 
-.toolbar button,
+.btn-export {
+  position: relative;
+
+  height: 40px;
+
+  padding: 0 16px;
+
+  border-radius: 10px;
+
+  border: 1.5px solid #4f46e5;
+
+  background: transparent;
+
+  color: #4f46e5;
+
+  font-size: 12px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.btn-export.excel {
+  border-color: #16a34a;
+  color: #16a34a;
+}
+
+.btn-export.excel:hover {
+  background: #16a34a;
+  color: white;
+}
+
+.btn-export.pdf {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.btn-export.pdf:hover {
+  background: #dc2626;
+  color: white;
+}
+
 .btn-add {
   height: 40px;
   padding: 0 18px;
@@ -594,12 +872,33 @@ onMounted(async () => {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: 0.18s;
+  transition: 0.2s;
 }
 
-.toolbar button:hover,
 .btn-add:hover {
   background: #4338ca;
+}
+
+.tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #111827;
+  color: white;
+  font-size: 11px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: 0.2s;
+  z-index: 9999;
+}
+
+.btn-export:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
 }
 
 .qr-wrapper {
@@ -660,6 +959,39 @@ onMounted(async () => {
 .qr-loading {
   color: #9ca3af;
   font-size: 14px;
+}
+
+.attendance-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.attendance-stats .card {
+  padding: 24px;
+  border: 1px solid #e8e8f0;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+  transition: 0.2s;
+}
+
+.attendance-stats .card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+.attendance-stats .card h2 {
+  margin-bottom: 8px;
+  color: #4f46e5;
+  font-size: 34px;
+  font-weight: 700;
+}
+
+.attendance-stats .card p {
+  color: #6b7280;
+  font-size: 13px;
 }
 
 .detail-grid {
@@ -770,6 +1102,7 @@ td {
 
 tbody tr:hover {
   background: #fafbff;
+  transition: 0.2s;
 }
 
 .bold {
@@ -778,11 +1111,11 @@ tbody tr:hover {
 }
 
 .empty-table {
-  padding: 60px;
-
+  padding: 60px 20px;
   text-align: center;
-
   color: #9ca3af;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .badge {
@@ -1040,6 +1373,19 @@ tbody tr:hover {
   .toolbar {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .attendance-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .export-actions {
+    width: 100%;
+    display: flex;
+  }
+
+  .export-actions button {
+    flex: 1;
   }
 
   .search-wrap {

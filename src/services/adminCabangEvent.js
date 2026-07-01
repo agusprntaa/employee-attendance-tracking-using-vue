@@ -37,6 +37,18 @@ export function getEventParticipants(id) {
   return API.get(`/admin-cabang/events/${id}/participants`);
 }
 
+// RINGKASAN ABSENSI EVENT
+export function getEventAttendance(id) {
+  return API.get(`/admin-cabang/events/${id}/attendance`);
+}
+
+// DAFTAR KEHADIRAN PESERTA, OPSIONAL PER TANGGAL
+export function getEventParticipantList(id, date) {
+  return API.get(`/admin-cabang/events/${id}/participants/list`, {
+    params: date ? { date } : undefined,
+  });
+}
+
 // TAMBAH PESERTA EVENT
 export function addParticipants(id, employeeIds) {
   return API.post(
