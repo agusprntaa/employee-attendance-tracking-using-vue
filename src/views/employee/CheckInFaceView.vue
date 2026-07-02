@@ -1,9 +1,10 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import {
   faceCheckInAPI,
   requestFaceTokenAPI,
+  requestEventFaceTokenAPI,
   verifyFaceAPI,
 } from "@/services/attendance";
 import {
@@ -15,6 +16,9 @@ import { captureVideoFrame, evaluateFaceFrame } from "@/utils/faceQuality";
 import { useLocation } from "@/composables/useLocation";
 
 const router = useRouter();
+const route = useRoute();
+const eventId = computed(() => Number(route.query.eventId) || null);
+const isEventAttendance = computed(() => eventId.value !== null);
 const { latitude, longitude, getCurrentLocation } = useLocation();
 
 const videoRef = ref(null);
@@ -145,7 +149,9 @@ async function beginVerification() {
   resetQuality();
 
   try {
-    const response = await requestFaceTokenAPI();
+    const response = isEventAttendance.value
+      ? await requestEventFaceTokenAPI(eventId.value)
+      : await requestFaceTokenAPI();
     faceToken.value = response.data.data.face_token;
     verificationStarted.value = true;
     faceVerified.value = false;
@@ -189,6 +195,22 @@ async function finishCheckIn() {
   loading.value = true;
 
   try {
+    if (isEventAttendance.value) {
+      sessionStorage.setItem(
+        "event_attendance_flow",
+        JSON.stringify({
+          eventId: eventId.value,
+          eventName: route.query.eventName || "Event",
+          faceToken: faceToken.value,
+          expiresAt: expiresAt.value,
+        }),
+      );
+      clearInterval(countdownTimer);
+      stopCamera();
+      router.replace("/employee/scan-event");
+      return;
+    }
+
     const locationAvailable = await getCurrentLocation();
     if (
       !locationAvailable ||
@@ -301,6 +323,24 @@ function handleError(error, stage) {
     return;
   }
 
+  if (code === "NOT_EVENT_PARTICIPANT") {
+    blocked.value = true;
+    showMessage("Kamu tidak terdaftar sebagai peserta event.");
+    return;
+  }
+
+  if (code === "EVENT_EXPIRED") {
+    blocked.value = true;
+    showMessage("Event sudah selesai atau belum berlangsung.");
+    return;
+  }
+
+  if (code === "ALREADY_ATTENDED_EVENT") {
+    blocked.value = true;
+    showMessage("Kamu sudah melakukan absensi pada event ini.");
+    return;
+  }
+
   showMessage(fallback);
   if (stage === "verify") resetQuality();
 }
@@ -337,8 +377,13 @@ onBeforeUnmount(() => {
         <button class="back" type="button" @click="router.back()">
           ← Kembali
         </button>
-        <p class="eyebrow">Absensi kantor</p>
+        <p class="eyebrow">
+          {{ isEventAttendance ? "Absensi event" : "Absensi kantor" }}
+        </p>
         <h1>Verifikasi Wajah</h1>
+        <p v-if="isEventAttendance" class="event-name">
+          {{ route.query.eventName || "Event" }}
+        </p>
       </header>
 
       <div

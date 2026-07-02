@@ -6,6 +6,7 @@ import { useAuth } from "@/composables/useAuth";
 import {
   getAttendanceHistory,
   checkoutAttendance,
+  getActiveEventsTodayAPI,
 } from "@/services/attendance";
 import { logout } from "@/utils/logout";
 import { LayoutDashboard, CalendarDays, User, LogOut } from "lucide-vue-next";
@@ -33,6 +34,8 @@ const showLogoutConfirm = ref(false);
 
 const showEarlyLeaveModal = ref(false);
 const earlyLeaveReason = ref("");
+const activeEvents = ref([]);
+const showEventList = ref(false);
 
 const { isInRadius, getCurrentLocation, distance, nearestOffice } =
   useLocation();
@@ -111,6 +114,7 @@ onMounted(async () => {
     await getCurrentLocation();
     await fetchToday();
     await fetchHistory();
+    await fetchActiveEvents();
   } catch (err) {
     console.error(err);
     openPopup("Gagal memuat data");
@@ -165,6 +169,16 @@ async function fetchHistory() {
   }
 }
 
+async function fetchActiveEvents() {
+  try {
+    const res = await getActiveEventsTodayAPI();
+    activeEvents.value = Array.isArray(res.data?.data) ? res.data.data : [];
+  } catch (err) {
+    console.error("ACTIVE EVENTS ERROR:", err);
+    activeEvents.value = [];
+  }
+}
+
 // NAVIGATION
 function goToScan() {
   if (!canCheckIn.value) return;
@@ -177,6 +191,28 @@ function goToScan() {
 function goToWFA() {
   if (loading.value) return;
   router.push("/employee/wfa");
+}
+
+function goToEvents() {
+  if (loading.value || activeEvents.value.length === 0) return;
+  showEventList.value = !showEventList.value;
+}
+
+function startEventAttendance(event) {
+  if (event.already_checked_in) return;
+  router.push({
+    path: "/employee/checkin-face",
+    query: {
+      eventId: event.event_id,
+      eventName: event.name,
+    },
+  });
+}
+
+function formatEventTime(event) {
+  const start = event.start_time?.slice(0, 5) || "-";
+  const end = event.end_time?.slice(0, 5) || "selesai";
+  return `${start} - ${end}`;
 }
 
 async function onClickCheckout() {
@@ -400,6 +436,36 @@ async function handleLogout() {
             >
               {{ alreadyCheckedIn ? "Sudah Absen" : "WFA" }}
             </button>
+
+            <button
+              v-if="activeEvents.length > 0"
+              type="button"
+              class="btn btn-event"
+              @click="goToEvents"
+              :disabled="loading"
+            >
+              {{ showEventList ? "Tutup Daftar Event" : "Absen Event" }}
+            </button>
+          </div>
+
+          <div v-if="showEventList" class="event-list">
+            <article
+              v-for="event in activeEvents"
+              :key="event.event_id"
+              class="event-item"
+            >
+              <div>
+                <strong>{{ event.name }}</strong>
+                <span>{{ formatEventTime(event) }} · {{ event.location }}</span>
+              </div>
+              <button
+                type="button"
+                :disabled="event.already_checked_in"
+                @click="startEventAttendance(event)"
+              >
+                {{ event.already_checked_in ? "Sudah absen" : "Pilih" }}
+              </button>
+            </article>
           </div>
 
           <div
@@ -699,6 +765,36 @@ async function handleLogout() {
   border-color: rgba(37, 99, 235, 0.28);
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
 }
+
+.btn-event {
+  grid-column: 1 / -1;
+  background: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.18);
+}
+
+.event-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.event-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #f8fafc;
+}
+
+.event-item div { display: grid; gap: 4px; min-width: 0; }
+.event-item strong { font-size: 14px; }
+.event-item span { color: #64748b; font-size: 12px; line-height: 1.4; }
+.event-item button { flex: 0 0 auto; min-height: 38px; padding: 0 14px; border: 0; border-radius: 12px; background: #2563eb; color: #fff; font-size: 12px; font-weight: 800; cursor: pointer; }
+.event-item button:disabled { background: #e2e8f0; color: #64748b; cursor: not-allowed; }
 
 .btn:hover {
   transform: translateY(-1px);

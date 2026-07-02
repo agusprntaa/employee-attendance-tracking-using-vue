@@ -3,8 +3,7 @@ import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import { useLocation } from "@/composables/useLocation";
-import { checkInQrAPI } from "@/services/attendance";
-
+import { checkInEventAPI } from "@/services/attendance";
 const router = useRouter();
 
 const loading = ref(false);
@@ -15,6 +14,9 @@ const popupMessage = ref("");
 const showPopup = ref(false);
 
 const scannerActive = ref(false);
+const attendanceFlow = ref(null);
+const eventId = ref(null);
+const eventName = ref("");
 
 const { latitude, longitude, getCurrentLocation } = useLocation();
 
@@ -24,6 +26,20 @@ let videoElement = null;
 
 onMounted(async () => {
   videoElement = document.getElementById("video");
+  const flow = JSON.parse(sessionStorage.getItem("event_attendance_flow"));
+  if (!flow) {
+    router.replace("/employee/dashboard");
+    return;
+  }
+
+  if (Date.now() > flow.expiresAt) {
+    sessionStorage.removeItem("event_attendance_flow");
+    router.replace("/employee/checkin-face");
+    return;
+  }
+  attendanceFlow.value = flow;
+  eventId.value = flow.eventId;
+  eventName.value = flow.eventName;
   const ok = await getCurrentLocation();
   if (!ok) {
     error.value = "Gagal mengambil lokasi";
@@ -37,6 +53,24 @@ onUnmounted(() => {
   stopScanner();
 });
 
+async function getBackCameraId() {
+  const devices = await BrowserMultiFormatReader.listVideoInputDevices();
+
+  if (!devices.length) return undefined;
+
+  const backCamera = devices.find((device) => {
+    const label = device.label.toLowerCase();
+
+    return (
+      label.includes("back") ||
+      label.includes("rear") ||
+      label.includes("environment")
+    );
+  });
+
+  return backCamera?.deviceId || devices[0].deviceId;
+}
+
 // START SCAN
 async function startScanner() {
   if (scannerActive.value) return;
@@ -46,18 +80,35 @@ async function startScanner() {
   codeReader = new BrowserMultiFormatReader();
 
   try {
-    await codeReader.decodeFromVideoDevice(
-      undefined,
-      videoElement,
-      (result) => {
-        if (result && scannerActive.value && !loading.value && !scanned.value) {
-          handleScan(result.getText());
-        }
-      },
-    );
+    const cameraId = await getBackCameraId();
+
+    await codeReader.decodeFromVideoDevice(cameraId, videoElement, (result) => {
+      if (result && scannerActive.value && !loading.value && !scanned.value) {
+        handleScan(result.getText());
+      }
+    });
   } catch (err) {
-    console.error(err);
-    error.value = "Gagal mengakses kamera";
+    console.warn("Back camera gagal, mencoba kamera default...", err);
+
+    try {
+      await codeReader.decodeFromVideoDevice(
+        undefined,
+        videoElement,
+        (result) => {
+          if (
+            result &&
+            scannerActive.value &&
+            !loading.value &&
+            !scanned.value
+          ) {
+            handleScan(result.getText());
+          }
+        },
+      );
+    } catch (e) {
+      console.error(e);
+      error.value = "Gagal mengakses kamera";
+    }
   }
 }
 
@@ -81,6 +132,7 @@ function stopScanner() {
       videoElement.srcObject = null;
     }
 
+    codeReader?.reset();
     codeReader = null;
   } catch (e) {
     console.warn("Scanner stop error", e);
@@ -99,12 +151,20 @@ function openPopup(message) {
 }
 
 function retryScanner() {
-  stopScanner();
+  const flow = JSON.parse(sessionStorage.getItem("event_attendance_flow"));
 
+  if (!flow) {
+    router.replace("/employee/dashboard");
+    return;
+  }
+  attendanceFlow.value = flow;
   scanned.value = false;
-
+  loading.value = false;
+  error.value = "";
+  stopScanner();
   startScanner();
 }
+
 // HANDLE SCAN
 async function handleScan(decodedText) {
   if (scanned.value) return;
@@ -116,12 +176,12 @@ async function handleScan(decodedText) {
 
   try {
     const payload = {
+      face_token: attendanceFlow.value.faceToken,
       qr_token: decodedText.trim(),
       latitude: latitude.value,
       longitude: longitude.value,
     };
-    const res = await checkInQrAPI(payload);
-
+    const res = await checkInEventAPI(payload);
     router.push({
       path: "/employee/success",
       query: {
@@ -131,31 +191,60 @@ async function handleScan(decodedText) {
         eventName: res.data.data.event_name,
       },
     });
+
+    sessionStorage.removeItem("event_attendance_flow");
   } catch (err) {
     console.log("FULL ERROR:", err);
-
     console.log("ERROR RESPONSE:", err.response);
-
     console.log("ERROR DATA:", err.response?.data);
-
     console.log("ERROR CODE:", err.response?.data?.code);
-
     console.log("ERROR MESSAGE:", err.response?.data?.message);
-
     const message = err.response?.data?.message;
-
     const code = err.response?.data?.code;
-
-    if (code === "QR_TOKEN_INVALID" || code === "QR_NOT_EVENT_TYPE") {
-      openPopup("QR event tidak valid atau sudah kedaluwarsa");
-    } else if (code === "OUTSIDE_RADIUS") {
-      openPopup("Anda berada di luar radius event");
-    } else if (code === "ALREADY_ATTENDED_EVENT") {
-      openPopup("Anda sudah absen di event ini");
-    } else {
-      openPopup(message || "Check in gagal");
+    if (code === "TOKEN_NOT_VERIFIED") {
+      openPopup("Verifikasi wajah harus dilakukan kembali.");
+      sessionStorage.removeItem("event_attendance_flow");
+      router.replace("/employee/checkin-face");
+      return;
+    }
+    if (code === "TOKEN_EXPIRED") {
+      openPopup("Sesi verifikasi wajah sudah habis.");
+      sessionStorage.removeItem("event_attendance_flow");
+      router.replace("/employee/checkin-face");
+      return;
+    }
+    if (code === "TOKEN_INVALID") {
+      openPopup("Token verifikasi tidak valid.");
+      sessionStorage.removeItem("event_attendance_flow");
+      router.replace("/employee/checkin-face");
+      return;
     }
 
+    if (code === "QR_TOKEN_INVALID" || code === "QR_NOT_EVENT_TYPE") {
+      openPopup("QR Event tidak valid atau sudah kedaluwarsa.");
+      scanned.value = false;
+      return;
+    }
+
+    if (code === "TOKEN_USED") {
+      openPopup("Token verifikasi sudah digunakan.");
+      sessionStorage.removeItem("event_attendance_flow");
+      router.replace("/employee/checkin-face");
+      return;
+    }
+
+    if (code === "OUTSIDE_RADIUS") {
+      openPopup("Anda berada di luar radius event.");
+      scanned.value = false;
+      return;
+    }
+
+    if (code === "ALREADY_ATTENDED_EVENT") {
+      openPopup("Anda sudah melakukan absensi pada event ini.");
+      scanned.value = false;
+      return;
+    }
+    openPopup(message || "Check in gagal.");
     scanned.value = false;
   } finally {
     loading.value = false;

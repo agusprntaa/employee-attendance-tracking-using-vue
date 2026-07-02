@@ -42,3 +42,18 @@ export function faceCheckInAPI(data) {
 export function checkInQrAPI(data) {
   return API.post("/attendance/checkin-qr", data);
 }
+
+// EVENT ATTENDANCE V2
+export function getActiveEventsTodayAPI() {
+  return API.get("/attendance/events/active-today");
+}
+
+export function requestEventFaceTokenAPI(eventId) {
+  return API.post("/attendance/event/face-token", {
+    event_id: eventId,
+  });
+}
+
+export function checkInEventAPI(data) {
+  return API.post("/attendance/checkin-qr", data);
+}
