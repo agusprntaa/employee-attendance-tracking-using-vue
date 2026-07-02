@@ -147,7 +147,6 @@ async function fetchDashboard() {
 async function fetchSettings() {
   try {
     const res = await getBranchSettings();
-
     console.log("SETTINGS:", res.data);
 
     settings.value = res.data.data || {};

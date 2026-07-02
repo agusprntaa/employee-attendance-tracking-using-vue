@@ -1,24 +1,24 @@
 const SAMPLE_WIDTH = 160;
 
-function getFaceBounds(landmarks) {
-  const xs = landmarks.map((point) => point.x);
-  const ys = landmarks.map((point) => point.y);
-  const minX = Math.min(...xs);
-  const maxX = Math.max(...xs);
-  const minY = Math.min(...ys);
-  const maxY = Math.max(...ys);
+// function getFaceBounds(landmarks) {
+//   const xs = landmarks.map((point) => point.x);
+//   const ys = landmarks.map((point) => point.y);
+//   const minX = Math.min(...xs);
+//   const maxX = Math.max(...xs);
+//   const minY = Math.min(...ys);
+//   const maxY = Math.max(...ys);
 
-  return {
-    minX,
-    maxX,
-    minY,
-    maxY,
-    width: maxX - minX,
-    height: maxY - minY,
-    centerX: (minX + maxX) / 2,
-    centerY: (minY + maxY) / 2,
-  };
-}
+//   return {
+//     minX,
+//     maxX,
+//     minY,
+//     maxY,
+//     width: maxX - minX,
+//     height: maxY - minY,
+//     centerX: (minX + maxX) / 2,
+//     centerY: (minY + maxY) / 2,
+//   };
+// }
 
 function getLightAndSharpness(video) {
   const canvas = document.createElement("canvas");
@@ -91,16 +91,20 @@ export function estimateHeadPose(landmarks) {
 function matchesPose(pose, headPose) {
   const { yaw, pitch } = headPose;
 
-  if (pose === "left") return yaw < -0.08;
-  if (pose === "right") return yaw > 0.08;
-  if (pose === "up") return pitch < -0.055;
-  if (pose === "down") return pitch > 0.075;
+  if (pose === "left") return yaw < -0.04;
+  if (pose === "right") return yaw > 0.04;
+  if (pose === "up") return pitch < -0.03;
+  if (pose === "down") return pitch > 0.03;
 
-  return Math.abs(yaw) < 0.08 && Math.abs(pitch) < 0.09;
+  return Math.abs(yaw) < 0.20 && Math.abs(pitch) < 0.20;
 }
 
-export function evaluateFaceFrame(video, detection, requiredPose = "front") {
-  const faces = detection?.faceLandmarks || [];
+export function evaluateFaceFrame(
+  video,
+  detection,
+  requiredPose = null,
+  strict = true
+) {  const faces = detection?.faceLandmarks || [];
 
   if (faces.length === 0) {
     return { ready: false, code: "NO_FACE", message: "Posisikan wajah di dalam bingkai" };
@@ -111,24 +115,50 @@ export function evaluateFaceFrame(video, detection, requiredPose = "front") {
   }
 
   const landmarks = faces[0];
-  const bounds = getFaceBounds(landmarks);
+  // const bounds = getFaceBounds(landmarks);
   const headPose = estimateHeadPose(landmarks);
 
-  if (bounds.width < 0.22 || bounds.height < 0.3) {
-    return { ready: false, code: "TOO_FAR", message: "Dekatkan wajah ke kamera" };
+if (strict) {
+
+  // if (bounds.width < 0.22 || bounds.height < 0.3) {
+  //   return {
+  //     ready: false,
+  //     code: "TOO_FAR",
+  //     message: "Dekatkan wajah ke kamera",
+  //   };
+  // }
+
+  // if (bounds.width > 0.72 || bounds.height > 0.86) {
+  //   return {
+  //     ready: false,
+  //     code: "TOO_CLOSE",
+  //     message: "Jauhkan wajah sedikit",
+  //   };
+  // }
+
+  // if (
+  //   Math.abs(bounds.centerX - 0.5) > 0.13 ||
+  //   Math.abs(bounds.centerY - 0.5) > 0.16
+  // ) {
+  //   return {
+  //     ready: false,
+  //     code: "NOT_CENTERED",
+  //     message: "Posisikan wajah di tengah bingkai",
+  //   };
+  // }
+
+  if (
+    requiredPose &&
+    !matchesPose(requiredPose, headPose)
+  ) {
+    return {
+      ready: false,
+      code: "WRONG_POSE",
+      message: "Sesuaikan arah wajah dengan petunjuk",
+    };
   }
 
-  if (bounds.width > 0.72 || bounds.height > 0.86) {
-    return { ready: false, code: "TOO_CLOSE", message: "Jauhkan wajah sedikit" };
-  }
-
-  if (Math.abs(bounds.centerX - 0.5) > 0.13 || Math.abs(bounds.centerY - 0.5) > 0.16) {
-    return { ready: false, code: "NOT_CENTERED", message: "Posisikan wajah di tengah bingkai" };
-  }
-
-  if (!matchesPose(requiredPose, headPose)) {
-    return { ready: false, code: "WRONG_POSE", message: "Sesuaikan arah wajah dengan petunjuk" };
-  }
+}
 
   const imageQuality = getLightAndSharpness(video);
 
@@ -144,12 +174,15 @@ export function evaluateFaceFrame(video, detection, requiredPose = "front") {
     return { ready: false, code: "BLURRY", message: "Kamera belum fokus, tahan posisi sebentar" };
   }
 
-  return {
-    ready: true,
-    code: "READY",
-    message: "Foto siap diambil",
-    metrics: { ...imageQuality, ...bounds, ...headPose },
-  };
+return {
+  ready: true,
+  code: "READY",
+  message: "Foto siap diambil",
+  metrics: {
+    ...imageQuality,
+    ...headPose,
+  },
+};
 }
 
 export function captureVideoFrame(video, filename = "face.jpg") {

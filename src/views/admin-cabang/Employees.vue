@@ -111,7 +111,7 @@ function formatDate(iso) {
     day: "numeric",
     month: "long",
     year: "numeric",
-    timeZone: "Asia/Makassar",
+    // timeZone: "Asia/Makassar",
   });
 }
 
