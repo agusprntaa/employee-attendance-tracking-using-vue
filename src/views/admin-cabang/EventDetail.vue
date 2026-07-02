@@ -13,7 +13,6 @@ import {
   getEventQR,
   getEventParticipants,
   getEventAttendance,
-  getEventParticipantList,
   addParticipants,
   addAllParticipants,
   deleteParticipant,
@@ -90,33 +89,12 @@ function startQRCountdown() {
 async function fetchEvent() {
   const res = await getEventDetail(eventId);
   const payload = res.data.data || {};
-  event.value = {
-    name: payload.event_name,
-    location: payload.location,
-    radius_meter: payload.radius_meter,
-    start_date: payload.start_date,
-    end_date: payload.end_date,
-    start_time: payload.start_time,
-    end_time: payload.end_time,
-    description: payload.description,
-  };
-}
-
-async function fetchParticipants() {
-  const res = await getEventParticipants(eventId);
-
-  participants.value = res.data.data;
-}
-
-async function fetchAttendance() {
-  const res = await getEventAttendance(eventId);
-  const payload = res.data.data || {};
+  event.value = payload;
   attendanceSummary.value = {
-    total: payload.total || 0,
+    total: payload.total_participants || 0,
     total_hadir: payload.total_hadir || 0,
     total_belum: payload.total_belum || 0,
   };
-  attendanceRows.value = Array.isArray(payload.data) ? payload.data : [];
   eventDates.value = Array.isArray(payload.dates) ? payload.dates : [];
   if (!selectedDate.value && eventDates.value.length) {
     const today = new Date().toISOString().split("T")[0];
@@ -127,22 +105,24 @@ async function fetchAttendance() {
   }
 }
 
-async function fetchParticipantAttendance() {
-  const res = await getEventParticipantList(
+async function fetchParticipants() {
+  const res = await getEventParticipants(eventId);
+
+  participants.value = res.data.data;
+}
+
+async function fetchAttendance() {
+  const res = await getEventAttendance(
     eventId,
     selectedDate.value || undefined,
   );
-  const rows = Array.isArray(res.data.data) ? res.data.data : [];
-  if (selectedDate.value) {
-    attendanceRows.value = rows;
-  }
+  attendanceRows.value = Array.isArray(res.data.data) ? res.data.data : [];
 }
 
 async function changeAttendanceDate() {
   page.value = 1;
   if (!selectedDate.value) return;
-  await fetchParticipantAttendance();
-  page.value = 1;
+  await fetchAttendance();
 }
 
 async function fetchQR() {
@@ -208,9 +188,9 @@ function toggleSelectAll() {
 
 async function removeParticipant(employeeId) {
   await deleteParticipant(eventId, employeeId);
-
+  await fetchEvent();
   await fetchParticipants();
-  await fetchParticipantAttendance();
+  await fetchAttendance();
 }
 
 async function saveParticipants() {
@@ -221,8 +201,9 @@ async function saveParticipants() {
     await addParticipants(eventId, selectedEmployees.value);
   }
   closeParticipantModal();
+  await fetchEvent();
   await fetchParticipants();
-  await fetchParticipantAttendance();
+  await fetchAttendance();
 }
 
 function exportExcel() {
@@ -299,7 +280,9 @@ onMounted(async () => {
   loadUser();
   await fetchEvent();
   await fetchParticipants();
-  await fetchAttendance();
+  if (selectedDate.value) {
+    await fetchAttendance();
+  }
   await fetchQR();
 });
 </script>

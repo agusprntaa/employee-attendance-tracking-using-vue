@@ -37,14 +37,9 @@ export function getEventParticipants(id) {
   return API.get(`/admin-cabang/events/${id}/participants`);
 }
 
-// RINGKASAN ABSENSI EVENT
-export function getEventAttendance(id) {
-  return API.get(`/admin-cabang/events/${id}/attendance`);
-}
-
-// DAFTAR KEHADIRAN PESERTA, OPSIONAL PER TANGGAL
-export function getEventParticipantList(id, date) {
-  return API.get(`/admin-cabang/events/${id}/participants/list`, {
+// DATA ABSENSI EVENT BERDASARKAN TANGGAL
+export function getEventAttendance(id, date) {
+  return API.get(`/admin-cabang/events/${id}/attendance`, {
     params: date ? { date } : undefined,
   });
 }

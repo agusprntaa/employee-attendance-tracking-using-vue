@@ -74,18 +74,17 @@ const filteredAdmins = computed(() => {
   });
 });
 
-const paginatedAdmins = computed(() => {
-  const start = (page.value - 1) * limit.value;
-  const end = start + limit.value;
-
-  return filteredAdmins.value.slice(start, end);
-});
-
 async function fetchAdmins() {
   try {
     loading.value = true;
 
-    const res = await getBranchAdmins(page.value, limit.value);
+    const res = await getBranchAdmins({
+      page: page.value,
+      limit: limit.value,
+      search: search.value,
+      status: status.value,
+      branch: branchFilter.value,
+    });
     console.log("%cFULL ADMIN RESPONSE", "color:cyan;font-weight:bold");
 
     console.log(res);
@@ -193,10 +192,10 @@ watch(page, () => {
   fetchAdmins();
 });
 
-// watch([search, status], () => {
-//   page.value = 1;
-//   fetchAdmins();
-// });
+watch([search, status], () => {
+  page.value = 1;
+  fetchAdmins();
+});
 
 function formatDate(date) {
   if (!date) return "-";
@@ -437,7 +436,7 @@ async function handleDelete(id) {
           </thead>
 
           <tbody>
-            <tr v-for="admin in paginatedAdmins" :key="admin.id">
+            <tr v-for="admin in filteredAdmins" :key="admin.id">
               <td>{{ adminCode(admin.id) }}</td>
 
               <td class="bold">
