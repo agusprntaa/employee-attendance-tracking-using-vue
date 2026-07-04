@@ -96,7 +96,7 @@ function detectionLoop(timestamp = 0) {
     if (quality.value.ready) {
       if (!readySince) readySince = performance.now();
 
-      stable.value = performance.now() - readySince >= 500;
+      stable.value = performance.now() - readySince >= 300;
 
       if (!stable.value) {
         quality.value = {
@@ -553,10 +553,13 @@ header p:last-child {
   color: #15803d;
 }
 .message {
+  text-align: center;
   padding: 12px;
   border-radius: 12px;
   background: #fee2e2;
   color: #b91c1c;
+  margin-bottom: 8px;
+  padding-bottom: 18px;
 }
 .message.success {
   background: #dcfce7;

@@ -108,11 +108,11 @@ const routes = [
     component: () => import('../views/employee/Dashboard.vue')
   },
 
-  {
-    path: '/employee/change-password',
-    name: 'ChangePassword',
-    component: () => import('../views/employee/ChangePassword.vue')
-  },
+  // {
+  //   path: '/employee/change-password',
+  //   name: 'ChangePassword',
+  //   component: () => import('../views/employee/ChangePassword.vue')
+  // },
 
   {
     path: '/employee/wfa',

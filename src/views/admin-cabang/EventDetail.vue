@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import * as XLSX from "xlsx";
 import autoTable from "jspdf-autotable";
+import jsPDF from "jspdf";
 import { useRoute, useRouter } from "vue-router";
 import AdminSidebar from "@/components/AdminSidebar.vue";
 import AdminProfile from "@/components/AdminProfile.vue";
@@ -48,7 +49,8 @@ const qrCountdown = ref("--:--");
 
 let qrInterval = null;
 
-const search = ref("");
+const attendanceSearch = ref("");
+const participantSearch = ref("");
 
 function formatDate(date) {
   return new Date(date).toLocaleDateString("id-ID", {
@@ -116,7 +118,7 @@ async function fetchAttendance() {
     eventId,
     selectedDate.value || undefined,
   );
-  attendanceRows.value = Array.isArray(res.data.data) ? res.data.data : [];
+  attendanceRows.value = res.data.data || [];
 }
 
 async function changeAttendanceDate() {
@@ -137,13 +139,17 @@ onUnmounted(() => {
 
 const filteredParticipants = computed(() => {
   return attendanceRows.value.filter((item) =>
-    item.employee_name.toLowerCase().includes(search.value.toLowerCase()),
+    item.employee_name
+      .toLowerCase()
+      .includes(attendanceSearch.value.toLowerCase()),
   );
 });
 
 const filteredAvailableParticipants = computed(() => {
   return participants.value.filter((item) =>
-    item.employee_name.toLowerCase().includes(search.value.toLowerCase()),
+    item.employee_name
+      .toLowerCase()
+      .includes(participantSearch.value.toLowerCase()),
   );
 });
 
@@ -212,12 +218,13 @@ function exportExcel() {
     return;
   }
   const data = attendanceRows.value.map((item) => ({
+    Tanggal: item.date,
     ID: `EMP-${item.employee_id}`,
-    "Nama Karyawan": item.employee_name,
-    "Absen Masuk": item.check_in || "-",
-    Divisi: item.division_name || "-",
-    "Jarak (Meter)": item.distance_meter != null ? item.distance_meter : "-",
-    Status: item.status || (item.hadir ? "Hadir" : "Belum Hadir"),
+    Nama: item.employee_name,
+    "Check In": item.check_in || "-",
+    "Check Out": item.check_out || "-",
+    Divisi: item.division_name,
+    Status: item.status,
   }));
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
@@ -241,16 +248,19 @@ function exportPDF() {
   doc.text(`Tanggal : ${selectedDate.value || "-"}`, 14, 30);
   doc.text(`Lokasi : ${event.value.location || "-"}`, 14, 36);
   const rows = attendanceRows.value.map((item) => [
+    item.date,
     `EMP-${item.employee_id}`,
     item.employee_name,
     item.check_in || "-",
-    item.division_name || "-",
-    item.distance_meter != null ? `${item.distance_meter} m` : "-",
-    item.status || (item.hadir ? "Hadir" : "Belum Hadir"),
+    item.check_out || "-",
+    item.division_name,
+    item.status,
   ]);
   autoTable(doc, {
     startY: 44,
-    head: [["ID", "Nama Karyawan", "Absen Masuk", "Divisi", "Jarak", "Status"]],
+    head: [
+      ["Tanggal", "ID", "Nama", "Check In", "Check Out", "Divisi", "Status"],
+    ],
     body: rows,
     styles: {
       fontSize: 9,
@@ -470,14 +480,13 @@ onMounted(async () => {
           >
             <table>
               <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Nama Karyawan</th>
-                  <th>Absen Masuk</th>
-                  <th>Divisi</th>
-                  <th>Jarak</th>
-                  <th>Status</th>
-                </tr>
+                <th>Tanggal</th>
+                <th>ID</th>
+                <th>Nama Karyawan</th>
+                <th>Check In</th>
+                <th>Check Out</th>
+                <th>Divisi</th>
+                <th>Status</th>
               </thead>
 
               <tbody>
@@ -485,6 +494,8 @@ onMounted(async () => {
                   v-for="item in paginatedParticipants"
                   :key="item.employee_id"
                 >
+                  <td>{{ formatDate(item.date) }}</td>
+
                   <td>EMP-{{ item.employee_id }}</td>
 
                   <td class="bold">
@@ -496,37 +507,22 @@ onMounted(async () => {
                   </td>
 
                   <td>
-                    {{ item.division_name || "-" }}
+                    {{ item.check_out || "--:--" }}
                   </td>
 
                   <td>
-                    {{
-                      item.distance_meter !== undefined &&
-                      item.distance_meter !== null
-                        ? `${Number(item.distance_meter).toFixed(0)} m`
-                        : "-"
-                    }}
+                    {{ item.division_name }}
                   </td>
+
                   <td>
-                    <span
-                      class="badge"
-                      :class="
-                        item.status || (item.hadir ? 'Hadir' : 'Belum Hadir')
-                      "
-                    >
-                      {{
-                        item.status
-                          ? item.status
-                          : item.hadir
-                            ? "Hadir"
-                            : "Belum Hadir"
-                      }}
+                    <span class="badge" :class="item.status">
+                      {{ item.status }}
                     </span>
                   </td>
                 </tr>
 
                 <tr v-if="!paginatedParticipants.length">
-                  <td colspan="6" class="empty-table">
+                  <td colspan="7" class="empty-table">
                     Belum ada data absensi pada tanggal yang dipilih.
                   </td>
                 </tr>
@@ -637,7 +633,7 @@ onMounted(async () => {
 
   <div v-if="showQRModal" class="qr-modal-overlay" @click.self="closeQRModal">
     <div class="qr-modal">
-      <button class="qr-modal-close" @click="closeQRModal">✕</button>
+      <!-- <button class="qr-modal-close" @click="closeQRModal">✕</button> -->
 
       <QRCode v-if="qr" :value="qr.token" :size="520" level="H" />
 

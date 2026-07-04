@@ -1,13 +1,30 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useRouter } from "vue-router";
 import { useAuth } from "@/composables/useAuth";
-import { createEvent, deleteEvent, getEvents } from "@/services/adminCabangEvent";
+import {
+  createEvent,
+  updateEvent,
+  deleteEvent,
+  getEvents,
+} from "@/services/adminCabangEvent";
 import AdminSidebar from "@/components/AdminSidebar.vue";
 import AdminProfile from "@/components/AdminProfile.vue";
+import { LMap, LTileLayer, LMarker, LCircle } from "@vue-leaflet/vue-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+
+delete L.Icon.Default.prototype._getIconUrl;
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+});
 
 const { user, loadUser } = useAuth();
 const router = useRouter();
@@ -42,6 +59,7 @@ const showAddModal = ref(false);
 const showDeleteModal = ref(false);
 
 const selectedEvent = ref(null);
+const isEdit = ref(false);
 
 const errors = ref({
   name: "",
@@ -57,6 +75,19 @@ const errors = ref({
 });
 
 const events = ref([]);
+const mapZoom = ref(15);
+
+const mapCenter = ref([-8.670458, 115.212629]);
+const markerPosition = computed(() => [
+  Number(eventForm.value.latitude || -8.670458),
+  Number(eventForm.value.longitude || 115.212629),
+]);
+function updateLocation(lat, lng) {
+  eventForm.value.latitude = lat.toFixed(6);
+  eventForm.value.longitude = lng.toFixed(6);
+
+  mapCenter.value = [lat, lng];
+}
 
 function resolveEventStatus(event) {
   if (event.status) return event.status;
@@ -97,6 +128,7 @@ const paginatedEvents = computed(() => {
 });
 
 function openAdd() {
+  isEdit.value = false;
   eventForm.value = {
     name: "",
     description: "",
@@ -122,6 +154,10 @@ function openAdd() {
     start_time: "",
     end_time: "",
   };
+
+  mapCenter.value = [-8.670458, 115.212629];
+
+  mapZoom.value = 15;
 
   showEventModal.value = true;
 }
@@ -222,11 +258,15 @@ async function submitEvent() {
       end_time: eventForm.value.end_time,
     };
 
-    await createEvent(payload);
-
+    if (isEdit.value) {
+      await updateEvent(selectedEvent.value.id, payload);
+    } else {
+      await createEvent(payload);
+    }
     await fetchEvents();
-
     showEventModal.value = false;
+    isEdit.value = false;
+    selectedEvent.value = null;
   } catch (err) {
     console.error(err);
   } finally {
@@ -277,7 +317,27 @@ function goDetail(item) {
 }
 
 function editEvent(item) {
-  console.log("EDIT EVENT", item);
+  isEdit.value = true;
+
+  selectedEvent.value = item;
+
+  eventForm.value = {
+    name: item.name,
+    description: item.description,
+    location: item.location,
+    latitude: item.latitude,
+    longitude: item.longitude,
+    radius: item.radius_meter,
+    start_date: item.start_date,
+    end_date: item.end_date,
+    start_time: item.start_time,
+    end_time: item.end_time,
+  };
+  mapCenter.value = [Number(item.latitude), Number(item.longitude)];
+
+  mapZoom.value = 17;
+
+  showEventModal.value = true;
 }
 
 function exportExcel() {
@@ -320,7 +380,17 @@ function exportPDF() {
   ]);
   autoTable(doc, {
     startY: 30,
-    head: [["ID", "Nama Event", "Lokasi", "Mulai", "Selesai", "Jam Mulai", "Jam Selesai"]],
+    head: [
+      [
+        "ID",
+        "Nama Event",
+        "Lokasi",
+        "Mulai",
+        "Selesai",
+        "Jam Mulai",
+        "Jam Selesai",
+      ],
+    ],
     body: rows,
     styles: {
       fontSize: 9,
@@ -331,6 +401,15 @@ function exportPDF() {
   });
   doc.save("event.pdf");
 }
+
+watch(
+  () => [eventForm.value.latitude, eventForm.value.longitude],
+  ([lat, lng]) => {
+    if (!lat || !lng) return;
+
+    mapCenter.value = [Number(lat), Number(lng)];
+  },
+);
 
 onMounted(async () => {
   loadUser();
@@ -437,7 +516,9 @@ onMounted(async () => {
                   </td>
                   <td>
                     {{ item.start_date || item.date }}
-                    <template v-if="item.end_date && item.end_date !== item.start_date">
+                    <template
+                      v-if="item.end_date && item.end_date !== item.start_date"
+                    >
                       s/d {{ item.end_date }}
                     </template>
                   </td>
@@ -547,9 +628,16 @@ onMounted(async () => {
     <div class="modal-box event-modal">
       <div class="modal-header">
         <div class="modal-title">
-          <h3>Tambah Event</h3>
-
-          <p>Lengkapi informasi event sebelum disimpan.</p>
+          <h3>
+            {{ isEdit ? "Edit Event" : "Tambah Event" }}
+          </h3>
+          <p>
+            {{
+              isEdit
+                ? "Perbarui informasi event."
+                : "Lengkapi informasi event sebelum disimpan."
+            }}
+          </p>
         </div>
 
         <button
@@ -601,11 +689,50 @@ onMounted(async () => {
             {{ errors.location }}
           </small>
         </div>
+        <div class="form-group">
+          <label>Preview Lokasi Event</label>
+
+          <div class="map-wrapper">
+            <LMap
+              :zoom="mapZoom"
+              :center="mapCenter"
+              style="height: 320px"
+              @click="(e) => updateLocation(e.latlng.lat, e.latlng.lng)"
+            >
+              <LTileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+
+              <LMarker
+                :lat-lng="markerPosition"
+                :draggable="true"
+                @moveend="
+                  (e) =>
+                    updateLocation(
+                      e.target.getLatLng().lat,
+                      e.target.getLatLng().lng,
+                    )
+                "
+              />
+
+              <LCircle
+                :lat-lng="markerPosition"
+                :radius="Number(eventForm.radius || 100)"
+              />
+            </LMap>
+          </div>
+
+          <small class="helper-text">
+            Klik peta atau geser marker untuk menentukan lokasi absensi.
+          </small>
+        </div>
         <div class="coordinate-grid">
           <div class="form-group">
             <label>Latitude</label>
 
             <input
+              type="number"
+              step="0.000001"
               v-model="eventForm.latitude"
               :class="{ 'input-error': errors.latitude }"
               placeholder="-8.670458"
@@ -620,6 +747,8 @@ onMounted(async () => {
             <label>Longitude</label>
 
             <input
+              type="number"
+              step="0.000001"
               v-model="eventForm.longitude"
               :class="{ 'input-error': errors.longitude }"
               placeholder="115.212629"
@@ -711,7 +840,7 @@ onMounted(async () => {
         </button>
 
         <button class="btn-submit" :disabled="loading" @click="submitEvent">
-          {{ loading ? "Menyimpan..." : "Simpan Event" }}
+          {{ loading ? "Menyimpan..." : isEdit ? "Simpan" : "Simpan Event" }}
         </button>
       </div>
     </div>
@@ -1306,6 +1435,7 @@ tbody tr:hover {
   }
 
   .event-modal {
+    width: min(92vw, 760px);
     max-width: 760px;
     max-height: calc(100vh - 48px);
   }
@@ -1426,5 +1556,17 @@ tbody tr:hover {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
+}
+
+.map-wrapper {
+  overflow: hidden;
+  border: 1px solid #dbe3f0;
+  border-radius: 14px;
+}
+
+.helper-text {
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 12px;
 }
 </style>

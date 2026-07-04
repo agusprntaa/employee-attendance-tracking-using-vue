@@ -7,6 +7,7 @@ import {
   getAttendanceHistory,
   checkoutAttendance,
   getActiveEventsTodayAPI,
+  requestEventFaceTokenAPI,
 } from "@/services/attendance";
 import { logout } from "@/utils/logout";
 import { LayoutDashboard, CalendarDays, User, LogOut } from "lucide-vue-next";
@@ -35,7 +36,9 @@ const showLogoutConfirm = ref(false);
 const showEarlyLeaveModal = ref(false);
 const earlyLeaveReason = ref("");
 const activeEvents = ref([]);
-const showEventList = ref(false);
+const showEventModal = ref(false);
+
+const eventError = ref("");
 
 const { isInRadius, getCurrentLocation, distance, nearestOffice } =
   useLocation();
@@ -172,13 +175,16 @@ async function fetchHistory() {
 async function fetchActiveEvents() {
   try {
     const res = await getActiveEventsTodayAPI();
+
     activeEvents.value = Array.isArray(res.data?.data) ? res.data.data : [];
+    console.log("EVENT DATA:", activeEvents.value);
+
+    console.log("ACTIVE EVENTS:", activeEvents.value);
   } catch (err) {
     console.error("ACTIVE EVENTS ERROR:", err);
     activeEvents.value = [];
   }
 }
-
 // NAVIGATION
 function goToScan() {
   if (!canCheckIn.value) return;
@@ -194,19 +200,57 @@ function goToWFA() {
 }
 
 function goToEvents() {
-  if (loading.value || activeEvents.value.length === 0) return;
-  showEventList.value = !showEventList.value;
+  if (loading.value) return;
+  eventError.value = "";
+  showEventModal.value = true;
 }
 
-function startEventAttendance(event) {
+async function startEventAttendance(event) {
   if (event.already_checked_in) return;
-  router.push({
-    path: "/employee/checkin-face",
-    query: {
-      eventId: event.event_id,
-      eventName: event.name,
-    },
-  });
+  eventError.value = "";
+
+  try {
+    await requestEventFaceTokenAPI(event.event_id);
+
+    showEventModal.value = false;
+
+    router.push({
+      path: "/employee/checkin-face",
+      query: {
+        eventId: event.event_id,
+        eventName: event.name,
+      },
+    });
+  } catch (err) {
+    const code = err.response?.data?.code;
+
+    if (code === "NOT_EVENT_PARTICIPANT") {
+      eventError.value = "Kamu tidak terdaftar sebagai peserta event.";
+      return;
+    }
+
+    if (code === "EVENT_EXPIRED") {
+      eventError.value = "Event sudah selesai atau belum berlangsung.";
+      return;
+    }
+
+    if (code === "ALREADY_ATTENDED_EVENT") {
+      eventError.value = "Kamu sudah melakukan absensi pada event ini.";
+      return;
+    }
+
+    eventError.value =
+      err.response?.data?.message || "Gagal memulai absensi event.";
+  }
+}
+
+function canStartEventAttendance(event) {
+  if (!event.start_date || !event.start_time) return true;
+
+  const start = new Date(`${event.start_date}T${event.start_time}:00`);
+  const now = new Date();
+
+  return now >= start;
 }
 
 function formatEventTime(event) {
@@ -421,11 +465,7 @@ async function handleLogout() {
               @click="goToScan"
               :disabled="!canCheckIn"
             >
-              {{
-                alreadyCheckedIn
-                  ? "Sudah Absen"
-                  : "Check In"
-              }}
+              {{ alreadyCheckedIn ? "Sudah Absen" : "Check In" }}
             </button>
 
             <button
@@ -438,34 +478,13 @@ async function handleLogout() {
             </button>
 
             <button
-              v-if="activeEvents.length > 0"
               type="button"
               class="btn btn-event"
               @click="goToEvents"
               :disabled="loading"
             >
-              {{ showEventList ? "Tutup Daftar Event" : "Absen Event" }}
+              {{ showEventModal ? "Tutup Daftar Event" : "Absen Event" }}
             </button>
-          </div>
-
-          <div v-if="showEventList" class="event-list">
-            <article
-              v-for="event in activeEvents"
-              :key="event.event_id"
-              class="event-item"
-            >
-              <div>
-                <strong>{{ event.name }}</strong>
-                <span>{{ formatEventTime(event) }} · {{ event.location }}</span>
-              </div>
-              <button
-                type="button"
-                :disabled="event.already_checked_in"
-                @click="startEventAttendance(event)"
-              >
-                {{ event.already_checked_in ? "Sudah absen" : "Pilih" }}
-              </button>
-            </article>
           </div>
 
           <div
@@ -598,6 +617,66 @@ async function handleLogout() {
           >
             Kirim
           </button>
+        </div>
+      </div>
+    </div>
+    <div v-if="showEventModal" class="modal">
+      <div class="modal-box event-modal">
+        <h3 class="modal-title">Pilih Event</h3>
+
+        <div v-if="activeEvents.length === 0" class="empty-event">
+          <h4>Tidak Ada Event</h4>
+
+          <p>Saat ini belum ada event absensi yang sedang berlangsung.</p>
+        </div>
+
+        <div v-else class="event-list">
+          <article
+            v-for="event in activeEvents"
+            :key="event.event_id"
+            class="event-item"
+          >
+            <div>
+              <strong>{{ event.name }}</strong>
+
+              <span>
+                {{ formatEventTime(event) }}
+                •
+                {{ event.location }}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              :disabled="
+                event.already_checked_in || !canStartEventAttendance(event)
+              "
+              :title="
+                !canStartEventAttendance(event)
+                  ? 'Belum waktu absensi event'
+                  : event.already_checked_in
+                    ? 'Anda sudah melakukan absensi'
+                    : 'Masuk ke absensi event'
+              "
+              @click="startEventAttendance(event)"
+            >
+              {{
+                event.already_checked_in
+                  ? "Sudah Absen"
+                  : canStartEventAttendance(event)
+                    ? "Pilih"
+                    : "Belum Dimulai"
+              }}
+            </button>
+          </article>
+        </div>
+
+        <p v-if="eventError" class="event-error">
+          {{ eventError }}
+        </p>
+
+        <div class="actions">
+          <button class="cancel" @click="showEventModal = false">Tutup</button>
         </div>
       </div>
     </div>
@@ -779,6 +858,27 @@ async function handleLogout() {
   margin-top: 14px;
 }
 
+.empty-event {
+  padding: 24px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  background: #f8fafc;
+  text-align: center;
+}
+
+.empty-event h4 {
+  margin-bottom: 6px;
+  color: #334155;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.empty-event p {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .event-item {
   display: flex;
   align-items: center;
@@ -790,11 +890,37 @@ async function handleLogout() {
   background: #f8fafc;
 }
 
-.event-item div { display: grid; gap: 4px; min-width: 0; }
-.event-item strong { font-size: 14px; }
-.event-item span { color: #64748b; font-size: 12px; line-height: 1.4; }
-.event-item button { flex: 0 0 auto; min-height: 38px; padding: 0 14px; border: 0; border-radius: 12px; background: #2563eb; color: #fff; font-size: 12px; font-weight: 800; cursor: pointer; }
-.event-item button:disabled { background: #e2e8f0; color: #64748b; cursor: not-allowed; }
+.event-item div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.event-item strong {
+  font-size: 14px;
+}
+.event-item span {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.event-item button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.event-item button:disabled {
+  background: #e2e8f0;
+  color: #64748b;
+  cursor: not-allowed;
+  opacity: 0.9;
+}
 
 .btn:hover {
   transform: translateY(-1px);
@@ -961,12 +1087,21 @@ async function handleLogout() {
 .modal-box {
   width: 100%;
   max-width: 380px;
+  max-height: 80vh;
+  overflow-y: auto;
   padding: 24px;
   background: #ffffff;
   border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: 24px;
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2);
   animation: slideUp 0.24s ease;
+}
+
+.event-modal {
+  max-width: 680px;
+  width: min(92vw, 680px);
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 .modal-title {
@@ -1013,6 +1148,12 @@ async function handleLogout() {
 .actions {
   display: flex;
   gap: 10px;
+}
+
+.event-modal .actions {
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid #e2e8f0;
 }
 
 .cancel,
@@ -1166,5 +1307,16 @@ async function handleLogout() {
   .actions {
     flex-direction: column;
   }
+}
+
+.event-error {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  font-size: 13px;
+  font-weight: 600;
 }
 </style>
