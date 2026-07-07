@@ -323,24 +323,6 @@ function handleError(error, stage) {
     return;
   }
 
-  if (code === "NOT_EVENT_PARTICIPANT") {
-    blocked.value = true;
-    showMessage("Kamu tidak terdaftar sebagai peserta event.");
-    return;
-  }
-
-  if (code === "EVENT_EXPIRED") {
-    blocked.value = true;
-    showMessage("Event sudah selesai atau belum berlangsung.");
-    return;
-  }
-
-  if (code === "ALREADY_ATTENDED_EVENT") {
-    blocked.value = true;
-    showMessage("Kamu sudah melakukan absensi pada event ini.");
-    return;
-  }
-
   showMessage(fallback);
   if (stage === "verify") resetQuality();
 }

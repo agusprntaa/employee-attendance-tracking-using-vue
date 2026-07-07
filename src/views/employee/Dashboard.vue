@@ -245,9 +245,9 @@ async function startEventAttendance(event) {
 }
 
 function canStartEventAttendance(event) {
-  if (!event.start_date || !event.start_time) return true;
+  if (!event.date || !event.start_time) return true;
 
-  const start = new Date(`${event.start_date}T${event.start_time}:00`);
+  const start = new Date(`${event.date}T${event.start_time}`);
   const now = new Date();
 
   return now >= start;
