@@ -177,10 +177,6 @@ async function fetchLeaveQuota() {
 
     leaveStats.value = response.data.data;
   } catch (error) {
-    console.error("[FE ERROR] FETCH LEAVE QUOTA FAILED");
-
-    console.error(error);
-
     leaveStats.value = {
       total: 0,
       used: 0,
@@ -194,9 +190,7 @@ async function fetchLeaveTypes() {
     const response = await getLeaveTypesAPI();
 
     leaveTypes.value = response.data.data;
-  } catch (error) {
-    console.error(error);
-  }
+  } catch (error) {}
 }
 
 async function fetchHolidays() {
@@ -214,9 +208,7 @@ async function fetchHolidays() {
     }));
 
     calendarEvents.value = mappedHolidays;
-  } catch (error) {
-    console.error(error);
-  }
+  } catch (error) {}
 }
 
 async function fetchLeaveHistory() {
@@ -248,18 +240,12 @@ async function fetchLeaveHistory() {
 
       ...mappedLeaves,
     ];
-  } catch (error) {
-    console.error(error);
-  }
+  } catch (error) {}
 }
 
 async function fetchNotifications() {
   try {
-    console.log("[FE] FETCH LEAVE NOTIFICATIONS");
-
     const response = await getLeaveNotificationsAPI();
-
-    console.log("[BE SUCCESS] NOTIFICATIONS:", response.data);
 
     notifications.value = response.data.data.data;
 
@@ -271,10 +257,6 @@ async function fetchNotifications() {
       unread: response.data.data.unread_count,
     };
   } catch (error) {
-    console.error("[BE ERROR] FETCH NOTIFICATIONS FAILED");
-
-    console.error(error);
-
     notifications.value = [];
   }
 }
@@ -298,9 +280,7 @@ async function markNotificationRead(id) {
       0,
       notificationPagination.value.unread - 1,
     );
-  } catch (error) {
-    console.error(error);
-  }
+  } catch (error) {}
 }
 
 async function markAllNotificationsRead() {
@@ -313,9 +293,7 @@ async function markAllNotificationsRead() {
     }));
 
     notificationPagination.value.unread = 0;
-  } catch (error) {
-    console.error(error);
-  }
+  } catch (error) {}
 }
 
 async function submitLeave() {
@@ -351,8 +329,6 @@ async function submitLeave() {
     await fetchLeaveHistory();
     await fetchLeaveQuota();
   } catch (error) {
-    console.error(error);
-
     const code = error?.response?.data?.code;
 
     if (code === "NO_QUOTA") {
@@ -368,28 +344,14 @@ async function submitLeave() {
     }
 
     if (code === "INVALID_ATTACHMENT") {
-      console.error("[BE ERROR] INVALID ATTACHMENT FORMAT");
-
       submitError.value = "Format lampiran tidak valid";
     }
 
     if (code === "ATTACHMENT_TOO_LARGE") {
-      console.error("[BE ERROR] ATTACHMENT TOO LARGE");
-
       submitError.value = "Ukuran lampiran melebihi 5MB";
     }
 
     if (code === "UPLOAD_FAILED") {
-      console.error("[BE ERROR] FAILED UPLOAD ATTACHMENT");
-
-      console.error("CHECK BACKEND:");
-
-      console.error("- uploads folder");
-
-      console.error("- storage permission");
-
-      console.error("- multer config");
-
       submitError.value = "Gagal mengupload lampiran";
     }
   }
@@ -397,67 +359,29 @@ async function submitLeave() {
 
 function handleFileUpload(event) {
   try {
-    console.log("[FE] SELECT ATTACHMENT FILE");
-
     const file = event.target.files[0];
 
     // user cancel pilih file
     if (!file) {
-      console.warn("[FE WARNING] USER CANCEL FILE PICKER");
-
       return;
     }
-
-    console.log("[FE] FILE SELECTED:", file.name);
-
-    console.log("[FE] FILE TYPE:", file.type);
-
-    console.log("[FE] FILE SIZE:", file.size);
 
     const allowedTypes = ["application/pdf", "image/png", "image/jpeg"];
 
     // validasi format
     if (!allowedTypes.includes(file.type)) {
-      console.error("[FE ERROR] INVALID FILE TYPE");
-
-      console.error("ALLOWED: PDF/JPG/PNG");
-
-      console.error("RECEIVED:", file.type);
-
       uploadError.value = "Format file harus PDF/JPG/PNG";
       return;
     }
 
     // validasi ukuran
     if (file.size > 5 * 1024 * 1024) {
-      console.error("[FE ERROR] FILE TOO LARGE");
-
-      console.error("MAX SIZE: 5MB");
-
-      console.error("RECEIVED:", file.size);
-
       uploadError.value = "Ukuran file maksimal 5MB";
       return;
     }
 
     leaveForm.value.attachment = file;
-
-    console.log("[FE SUCCESS] ATTACHMENT READY TO UPLOAD");
   } catch (error) {
-    console.error("[FE ERROR] FAILED PROCESS ATTACHMENT");
-
-    console.error(error);
-
-    console.error("CHECK:");
-
-    console.error("- browser file permission");
-
-    console.error("- safari compatibility");
-
-    console.error("- corrupted file");
-
-    console.error("- unsupported mime type");
-
     uploadError.value = "Gagal memproses lampiran";
   }
 }

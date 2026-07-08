@@ -7,6 +7,7 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { getStatusLabel, getStatusClass } from "@/utils/attendanceStatus";
+import { getSafeErrorMessage } from "@/utils/errorMessage";
 
 import { getDashboardSummary, getBranchSettings } from "@/services/adminCabang";
 
@@ -60,8 +61,6 @@ async function fetchAll() {
 //     status: status.value || undefined,
 //   });
 
-//   console.log("[BE] Dashboard response success:", res.data);
-
 //   summary.value = res.data.data.stats;
 //   employees.value = res.data.data.attendance;
 // }
@@ -78,13 +77,8 @@ function openReason(item) {
     selectedReason.value = "Tidak ada alasan";
   }
 
-  console.log("ITEM:", item);
-  console.log("SELECTED REASON:", selectedReason.value);
-
   showReasonModal.value = true;
 }
-
-// console.log(item);
 
 function openPopup(message) {
   popupMessage.value = message;
@@ -106,15 +100,6 @@ async function fetchDashboard() {
       status: status.value || undefined,
     });
 
-    console.log(res.data.data.attendance);
-
-    console.log(
-      "RAW CHECKIN:",
-      res.data.data.attendance.map((i) => i.check_in),
-    );
-
-    console.log("DASHBOARD:", res.data);
-
     if (!res.data?.data) {
       openPopup("Data dashboard tidak valid");
       return;
@@ -123,22 +108,13 @@ async function fetchDashboard() {
     summary.value = res.data.data.stats || {};
 
     employees.value = res.data.data.attendance || [];
-
-    console.log("TOTAL EMPLOYEE:", summary.value.total_employee);
-
-    console.log("TOTAL ROW TABLE:", employees.value.length);
   } catch (err) {
-    console.error("DASHBOARD ERROR:", err);
-
     if (err.message === "Network Error") {
       openPopup("Tidak dapat terhubung ke server");
       return;
     }
 
-    openPopup(
-      err.response?.data?.message ||
-        "Server dashboard sedang bermasalah cek backend",
-    );
+    openPopup(getSafeErrorMessage(err, "Gagal memuat dashboard"));
   } finally {
     loading.value = false;
   }
@@ -147,13 +123,9 @@ async function fetchDashboard() {
 async function fetchSettings() {
   try {
     const res = await getBranchSettings();
-    console.log("SETTINGS:", res.data);
-
     settings.value = res.data.data || {};
   } catch (err) {
-    console.error("SETTINGS ERROR:", err);
-
-    openPopup(err.response?.data?.message || "Gagal memuat settings");
+    openPopup(getSafeErrorMessage(err, "Gagal memuat settings"));
   }
 }
 
@@ -397,77 +369,95 @@ const paginatedEmployees = computed(() => {
             <!-- <button @click="fetchDashboard">Filter</button> -->
           </div>
 
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Nama</th>
-                <th>Masuk</th>
-                <th>Pulang</th>
-                <th>Status</th>
-                <th>Mode Kerja</th>
-              </tr>
-            </thead>
+          <div class="table-region">
+            <p class="mobile-table-hint" aria-hidden="true">
+              Geser tabel ke samping untuk melihat data lebih lengkap
+            </p>
 
-            <tbody>
-              <tr v-for="item in paginatedEmployees" :key="item.id">
-                <!-- <tr v-for="item in filteredEmployees" :key="item.id"> -->
-                <td>#{{ item.employee_id }}</td>
-                <td>{{ item.employee_username }}</td>
-                <td>{{ formatTime(item.check_in) }}</td>
-                <td>
-                  {{ item.check_out ? formatTime(item.check_out) : "-" }}
-                </td>
-                <td>
-                  <div class="badge-wrapper">
-                    <span
-                      :class="[
-                        'badge',
-                        getStatusClass(item.status),
-                        item.status === 'EARLY_LEAVE' ? 'clickable' : '',
-                      ]"
-                      @click="
-                        item.status === 'EARLY_LEAVE' ? openReason(item) : null
-                      "
-                    >
-                      {{ getStatusLabel(item.status) }}
+            <div
+              class="table-scroll"
+              tabindex="0"
+              role="region"
+              aria-label="Tabel absensi hari ini"
+            >
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nama</th>
+                    <th>Masuk</th>
+                    <th>Pulang</th>
+                    <th>Status</th>
+                    <th>Mode Kerja</th>
+                  </tr>
+                </thead>
 
-                      {{ item.status === "EARLY_LEAVE" ? " ⓘ" : "" }}
-                    </span>
+                <tbody>
+                  <tr v-for="item in paginatedEmployees" :key="item.id">
+                    <!-- <tr v-for="item in filteredEmployees" :key="item.id"> -->
+                    <td>#{{ item.employee_id }}</td>
+                    <td>{{ item.employee_username }}</td>
+                    <td>{{ formatTime(item.check_in) }}</td>
+                    <td>
+                      {{ item.check_out ? formatTime(item.check_out) : "-" }}
+                    </td>
+                    <td>
+                      <div class="badge-wrapper">
+                        <span
+                          :class="[
+                            'badge',
+                            getStatusClass(item.status),
+                            item.status === 'EARLY_LEAVE' ? 'clickable' : '',
+                          ]"
+                          @click="
+                            item.status === 'EARLY_LEAVE'
+                              ? openReason(item)
+                              : null
+                          "
+                        >
+                          {{ getStatusLabel(item.status) }}
 
-                    <span
-                      v-if="item.status === 'EARLY_LEAVE'"
-                      class="badge-tooltip"
-                    >
-                      Cek alasan pulang cepat
-                    </span>
-                  </div>
-                </td>
-                <td>
-                  <div class="badge-wrapper">
-                    <span
-                      :class="[
-                        'mode-badge',
-                        item.work_type?.toLowerCase(),
-                        item.work_type === 'WFA' ? 'clickable' : '',
-                      ]"
-                      @click="
-                        item.work_type === 'WFA' ? openReason(item) : null
-                      "
-                    >
-                      {{ item.work_type || "-" }}
+                          {{ item.status === "EARLY_LEAVE" ? " ⓘ" : "" }}
+                        </span>
 
-                      {{ item.work_type === "WFA" ? " ⓘ" : "" }}
-                    </span>
+                        <span
+                          v-if="item.status === 'EARLY_LEAVE'"
+                          class="badge-tooltip"
+                        >
+                          Cek alasan pulang cepat
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="badge-wrapper">
+                        <span
+                          :class="[
+                            'mode-badge',
+                            item.work_type?.toLowerCase(),
+                            item.work_type === 'WFA' ? 'clickable' : '',
+                          ]"
+                          @click="
+                            item.work_type === 'WFA' ? openReason(item) : null
+                          "
+                        >
+                          {{ item.work_type || "-" }}
 
-                    <span v-if="item.work_type === 'WFA'" class="badge-tooltip">
-                      Cek alasan WFA
-                    </span>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                          {{ item.work_type === "WFA" ? " ⓘ" : "" }}
+                        </span>
+
+                        <span
+                          v-if="item.work_type === 'WFA'"
+                          class="badge-tooltip"
+                        >
+                          Cek alasan WFA
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
 
           <div class="pagination">
             <span class="pagination-info">
@@ -1323,5 +1313,24 @@ td .badge {
   color: #ef4444;
 
   text-align: center;
+}
+
+.table-region {
+  min-width: 0;
+  position: relative;
+}
+
+.mobile-table-hint {
+  display: none;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.table-scroll table {
+  width: 100%;
+  min-width: 900px;
 }
 </style>

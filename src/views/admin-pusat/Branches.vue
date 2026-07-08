@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import adminPusatSidebar from "@/components/AdminPusatSidebar.vue";
 
 import { getAllBranches, createBranch } from "@/services/adminPusat";
+import { getSafeErrorMessage } from "@/utils/errorMessage";
 
 const router = useRouter();
 
@@ -35,16 +36,9 @@ async function fetchBranches() {
   try {
     const res = await getAllBranches();
 
-    console.log("BRANCHES:", res.data);
-
     branches.value = res.data.data.data || [];
   } catch (err) {
-    console.error("BRANCH ERROR:", err);
-
-    console.log("DETAIL ERROR:", err.response?.data);
-
-    pageError.value =
-      err.response?.data?.message || "Gagal mengambil data branch, cek backend";
+    pageError.value = getSafeErrorMessage(err, "Gagal mengambil data cabang");
   } finally {
     loading.value = false;
   }
@@ -74,14 +68,6 @@ function formatDate(date) {
 }
 
 async function handleAddBranch() {
-  console.log("ADD BRANCH PAYLOAD:", {
-    branch_name: form.value.branch_name,
-    address: form.value.address,
-    latitude: Number(form.value.latitude),
-    longitude: Number(form.value.longitude),
-    radius_meter: Number(form.value.radius_meter),
-    status: form.value.status,
-  });
   try {
     await createBranch({
       branch_name: form.value.branch_name,
@@ -107,12 +93,7 @@ async function handleAddBranch() {
 
     fetchBranches();
   } catch (err) {
-    console.error("ADD BRANCH ERROR:", err);
-
-    console.log("DETAIL ERROR:", err.response?.data);
-
-    formError.value =
-      err.response?.data?.message || "Gagal menambahkan branch, cek backend";
+    formError.value = getSafeErrorMessage(err, "Gagal menambahkan cabang");
   }
 }
 
@@ -148,7 +129,7 @@ onMounted(() => {
             + Tambah Cabang
           </button>
 
-          <button class="back-btn" @click="goBack">×</button>
+          <!-- <button class="back-btn" @click="goBack">×</button> -->
         </div>
       </div>
 

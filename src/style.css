@@ -5,6 +5,510 @@
   font-family: 'Inter', sans-serif;
 }
 
+html,
+body,
+#app {
+  min-width: 0;
+  min-height: 100%;
+}
+
+body {
+  overflow-x: hidden;
+}
+
 button {
   font-family: inherit;
+}
+
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(79, 70, 229, 0.32);
+  outline-offset: 2px;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+.table-card,
+.table-wrapper,
+.table-panel {
+  max-width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .layout {
+    min-width: 0;
+  }
+
+  .layout > .main {
+    padding-top: 76px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .table-card,
+  .table-wrapper,
+  .table-region,
+  .table-scroll,
+  .table-panel {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-card::before,
+  .table-wrapper::before,
+  .panel:has(table)::before,
+  .table-panel::before {
+    /* content: "Geser ke kanan untuk melihat data lebih lengkap."; */
+    display: block;
+    padding: 10px 12px;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .table-card table,
+  .table-wrapper table,
+  .panel:has(table) table,
+  .table-region table,
+  .table-scroll table,
+  .table-panel table {
+    min-width: 720px;
+  }
+}
+
+/* Admin responsive system */
+.layout,
+.branches-page,
+.attendance-page,
+.page:has(> .content) {
+  min-width: 0;
+}
+
+.layout > .main,
+.branches-page > .content,
+.attendance-page > .content,
+.page:has(> .content) > .content {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.layout .header,
+.branches-page .page-header,
+.attendance-page .page-header,
+.page:has(> .content) .header {
+  min-width: 0;
+  gap: 16px;
+}
+
+.layout .header > div,
+.branches-page .page-header > div,
+.attendance-page .page-header > div,
+.page:has(> .content) .header > div {
+  min-width: 0;
+}
+
+.layout .header h1,
+.layout .header h2,
+.branches-page .page-header h1,
+.attendance-page .page-header h1,
+.page:has(> .content) .header h1,
+.page:has(> .content) .header h2 {
+  overflow-wrap: anywhere;
+  line-height: 1.18;
+}
+
+.layout .subtitle,
+.branches-page .page-header p,
+.attendance-page .page-header p,
+.page:has(> .content) .header p {
+  overflow-wrap: anywhere;
+}
+
+.layout .stats,
+.layout .stats-grid,
+.layout .cards,
+.branches-page .summary-grid,
+.attendance-page .summary-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+.layout .card,
+.branches-page .summary-card,
+.attendance-page .summary-card {
+  min-width: 0;
+  min-height: 124px;
+  height: 100%;
+}
+
+.layout .card h2,
+.branches-page .summary-card h2,
+.attendance-page .summary-card h2 {
+  overflow-wrap: anywhere;
+}
+
+.layout .toolbar,
+.layout .filter-bar,
+.branches-page .toolbar,
+.attendance-page .toolbar,
+.page:has(> .content) .toolbar {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.layout input,
+.layout select,
+.layout textarea,
+.branches-page input,
+.branches-page select,
+.branches-page textarea,
+.attendance-page input,
+.attendance-page select,
+.attendance-page textarea,
+.page:has(> .content) input,
+.page:has(> .content) select,
+.page:has(> .content) textarea {
+  max-width: 100%;
+}
+
+.layout button,
+.branches-page button,
+.attendance-page button,
+.page:has(> .content) button {
+  min-height: 40px;
+}
+
+.layout .panel,
+.layout .table-card,
+.branches-page .table-card,
+.attendance-page .table-card,
+.page:has(> .content) .table-card,
+.page:has(> .content) .table-wrapper {
+  max-width: 100%;
+}
+
+.layout .panel:has(table) {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.layout table,
+.branches-page table,
+.attendance-page table,
+.page:has(> .content) table {
+  white-space: nowrap;
+}
+
+.layout .modal-overlay,
+.branches-page .modal-overlay,
+.attendance-page .modal-overlay,
+.page:has(> .content) .modal-overlay {
+  padding: 16px;
+  overflow-y: auto;
+  z-index: 1200 !important;
+}
+
+.layout .modal-box,
+.layout .calendar-modal,
+.layout .holiday-modal,
+.layout .leave-detail-modal,
+.branches-page .modal-box,
+.attendance-page .modal-box,
+.page:has(> .content) .modal-box,
+.page:has(> .content) .credential-modal,
+.page:has(> .content) .detail-modal {
+  width: min(100%, 640px) !important;
+  max-width: calc(100vw - 32px) !important;
+  max-height: calc(100dvh - 32px) !important;
+}
+
+.layout .modal-body,
+.branches-page .modal-body,
+.attendance-page .modal-body,
+.page:has(> .content) .modal-body {
+  overflow-y: auto;
+}
+
+@media (max-width: 1280px) {
+  .layout .stats,
+  .layout .stats-grid,
+  .layout .cards,
+  .branches-page .summary-grid,
+  .attendance-page .summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .layout .chart-row,
+  .layout .calendar-section {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .branches-page > .content,
+  .attendance-page > .content,
+  .page:has(> .content) > .content {
+    padding-top: 76px !important;
+  }
+
+  .layout .main,
+  .branches-page .content,
+  .attendance-page .content,
+  .page:has(> .content) .content {
+    padding-inline: 24px !important;
+  }
+
+  .layout .header,
+  .branches-page .page-header,
+  .attendance-page .page-header,
+  .page:has(> .content) .header {
+    align-items: flex-start !important;
+  }
+
+  .layout .stats,
+  .layout .stats-grid,
+  .layout .cards,
+  .branches-page .summary-grid,
+  .attendance-page .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .layout,
+  .branches-page,
+  .attendance-page,
+  .page:has(> .content) {
+    overflow-x: hidden;
+  }
+
+  .layout .main,
+  .branches-page .content,
+  .attendance-page .content,
+  .page:has(> .content) .content {
+    padding: 76px 16px 28px !important;
+    gap: 18px !important;
+    overflow-x: hidden !important;
+  }
+
+  .layout .header,
+  .branches-page .page-header,
+  .attendance-page .page-header,
+  .page:has(> .content) .header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .layout .header h1,
+  .layout .header h2,
+  .branches-page .page-header h1,
+  .attendance-page .page-header h1,
+  .page:has(> .content) .header h1,
+  .page:has(> .content) .header h2 {
+    font-size: 24px !important;
+  }
+
+  .layout .header .admin-profile,
+  .layout .header > :last-child,
+  .page:has(> .content) .header > :last-child {
+    align-self: flex-start;
+    max-width: 100%;
+  }
+
+  .branches-page .header-actions {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .branches-page .header-actions .add-btn {
+    flex: 1;
+  }
+
+  .layout .toolbar,
+  .layout .filter-bar,
+  .branches-page .toolbar,
+  .attendance-page .toolbar,
+  .page:has(> .content) .toolbar,
+  .layout .table-header,
+  .layout .panel-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .layout .search-wrap,
+  .branches-page .search-input,
+  .layout .filter-group,
+  .layout .table-actions,
+  .layout .table-actions input,
+  .layout .table-actions select,
+  .layout .export,
+  .layout .export-actions,
+  .page:has(> .content) .search-wrap {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .layout .export,
+  .layout .export-actions,
+  .layout .table-actions {
+    flex-wrap: wrap;
+  }
+
+  .layout .btn-export,
+  .layout .btn-apply,
+  .layout .btn-add,
+  .branches-page .add-btn,
+  .page:has(> .content) .btn-add {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .layout .stats,
+  .layout .stats-grid,
+  .layout .cards,
+  .branches-page .summary-grid,
+  .attendance-page .summary-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .layout .card,
+  .branches-page .summary-card,
+  .attendance-page .summary-card {
+    min-height: 112px;
+    padding: 18px !important;
+    border-radius: 14px !important;
+  }
+
+  .layout .card h2,
+  .layout .card-value,
+  .branches-page .summary-card h2,
+  .attendance-page .summary-card h2 {
+    font-size: 28px !important;
+  }
+
+  .layout .chart-row {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .layout .chart-body {
+    height: 220px !important;
+  }
+
+  .layout .calendar-card {
+    padding: 16px !important;
+  }
+
+  .layout .calendar-header,
+  .layout .legend,
+  .layout .pagination,
+  .page:has(> .content) .pagination {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .layout .calendar-grid {
+    gap: 5px !important;
+  }
+
+  .layout .day {
+    border-radius: 10px !important;
+    font-size: 12px !important;
+  }
+
+  .layout .modal-footer,
+  .layout .modal-actions,
+  .layout .detail-actions,
+  .branches-page .modal-footer,
+  .page:has(> .content) .modal-footer {
+    flex-direction: column !important;
+  }
+
+  .layout .modal-footer button,
+  .layout .modal-actions button,
+  .layout .detail-actions button,
+  .branches-page .modal-footer button,
+  .page:has(> .content) .modal-footer button {
+    width: 100%;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .layout .main,
+  .branches-page .content,
+  .attendance-page .content,
+  .page:has(> .content) .content {
+    padding-inline: 12px !important;
+  }
+
+  .layout .header h1,
+  .layout .header h2,
+  .branches-page .page-header h1,
+  .attendance-page .page-header h1,
+  .page:has(> .content) .header h1,
+  .page:has(> .content) .header h2 {
+    font-size: 22px !important;
+  }
+
+  .layout .panel,
+  .layout .table-card,
+  .layout .calendar-card,
+  .layout .activity-card,
+  .branches-page .table-card,
+  .attendance-page .table-card,
+  .page:has(> .content) .table-card {
+    border-radius: 14px !important;
+  }
+
+  .layout th,
+  .layout td,
+  .branches-page th,
+  .branches-page td,
+  .attendance-page th,
+  .attendance-page td,
+  .page:has(> .content) th,
+  .page:has(> .content) td {
+    padding-inline: 14px !important;
+  }
+
+  .layout .pagination-controls,
+  .page:has(> .content) .pagination-controls {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+}
+
+@media (max-width: 380px) {
+  .layout .main,
+  .branches-page .content,
+  .attendance-page .content,
+  .page:has(> .content) .content {
+    padding-inline: 10px !important;
+  }
+
+  .layout .card,
+  .branches-page .summary-card,
+  .attendance-page .summary-card {
+    padding: 14px !important;
+  }
 }

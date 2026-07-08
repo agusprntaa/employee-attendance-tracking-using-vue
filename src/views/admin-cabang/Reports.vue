@@ -62,7 +62,6 @@ async function fetchReports() {
     renderWeekly();
     renderMonthly();
   } catch (err) {
-    console.error("REPORT ERROR:", err);
   } finally {
     loading.value = false;
   }

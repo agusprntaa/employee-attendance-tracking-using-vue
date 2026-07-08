@@ -268,7 +268,6 @@ async function submitEvent() {
     isEdit.value = false;
     selectedEvent.value = null;
   } catch (err) {
-    console.error(err);
   } finally {
     loading.value = false;
   }
@@ -285,7 +284,6 @@ async function fetchEvents() {
       status: resolveEventStatus(event),
     }));
   } catch (err) {
-    console.log(err);
   } finally {
     loading.value = false;
   }
@@ -306,7 +304,6 @@ async function confirmDelete() {
     selectedEvent.value = null;
     await fetchEvents();
   } catch (err) {
-    console.error("DELETE EVENT ERROR:", err.response?.data || err);
   } finally {
     loading.value = false;
   }

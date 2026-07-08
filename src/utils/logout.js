@@ -11,10 +11,6 @@ export async function logout() {
       await logoutAPI(refresh);
     }
   } catch (err) {
-    console.error(
-      "LOGOUT ERROR:",
-      err
-    );
   } finally {
     localStorage.removeItem("token");
 

@@ -10,6 +10,7 @@ import {
   getBranchSettings,
   updateBranchSettings,
 } from "@/services/adminCabang";
+import { getSafeErrorMessage } from "@/utils/errorMessage";
 
 const { user, loadUser } = useAuth();
 
@@ -51,8 +52,6 @@ async function fetchSettings() {
 
     const res = await getBranchSettings();
 
-    console.log("SETTINGS:", res.data);
-
     const data = res.data.data;
 
     form.value = {
@@ -90,9 +89,7 @@ async function fetchSettings() {
       weekly_reports: data.notifications?.weekly_reports ?? false,
     };
   } catch (err) {
-    console.error("SETTINGS ERROR:", err);
-
-    errorMessage.value = err.response?.data?.message || "Gagal memuat settings";
+    errorMessage.value = getSafeErrorMessage(err, "Gagal memuat settings");
   } finally {
     loading.value = false;
   }
@@ -141,16 +138,13 @@ async function saveSettings() {
 
     successMessage.value = "Settings berhasil disimpan";
   } catch (err) {
-    console.error("SAVE SETTINGS ERROR:", err);
-
     if (err.message === "Network Error") {
       errorMessage.value = "Tidak dapat terhubung ke server";
 
       return;
     }
 
-    errorMessage.value =
-      err.response?.data?.message || "Gagal menyimpan settings";
+    errorMessage.value = getSafeErrorMessage(err, "Gagal menyimpan settings");
   } finally {
     saving.value = false;
   }
@@ -252,7 +246,6 @@ onMounted(() => {
             </div>
           </div>
         </div>
-
       </template>
 
       <div class="save-bar">

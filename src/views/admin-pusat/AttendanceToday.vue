@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import adminPusatSidebar from "@/components/AdminPusatSidebar.vue";
 
 import { getTodayAttendance } from "@/services/adminPusat";
+import { getSafeErrorMessage } from "@/utils/errorMessage";
 
 const router = useRouter();
 
@@ -26,17 +27,12 @@ async function fetchDashboard() {
   try {
     const res = await getTodayAttendance();
 
-    console.log("DASHBOARD:", res.data);
-
     attendanceToday.value = res.data.data;
   } catch (err) {
-    console.error("ATTENDANCE TODAY ERROR:", err);
-
-    console.log("DETAIL ERROR:", err.response?.data);
-
-    errorMessage.value =
-      err.response?.data?.message ||
-      "Gagal mengambil data attendance today, cek backend";
+    errorMessage.value = getSafeErrorMessage(
+      err,
+      "Gagal mengambil data absensi hari ini",
+    );
   } finally {
     loading.value = false;
   }
@@ -84,7 +80,7 @@ onMounted(() => {
           <p>Monitoring kehadiran seluruh cabang secara realtime</p>
         </div>
 
-        <button class="back-btn" @click="goBack">×</button>
+        <!-- <button class="back-btn" @click="goBack">×</button> -->
       </div>
 
       <div v-if="errorMessage" class="error-box">

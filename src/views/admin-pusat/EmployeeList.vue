@@ -6,6 +6,7 @@ import autoTable from "jspdf-autotable";
 import { useRouter } from "vue-router";
 import { getAllEmployees } from "@/services/adminPusat";
 import adminPusatSidebar from "@/components/AdminPusatSidebar.vue";
+import { getSafeErrorMessage } from "@/utils/errorMessage";
 
 const router = useRouter();
 
@@ -59,8 +60,6 @@ async function fetchEmployees() {
       limit: 999,
     });
 
-    console.log("EMPLOYEES:", res.data);
-
     employees.value = res.data.data.data.map((emp) => ({
       id: emp.employee_id,
 
@@ -74,16 +73,11 @@ async function fetchEmployees() {
 
       created_at: emp.created_date,
     }));
-
-    console.log("ADMIN PUSAT EMP:", res.data.data.data);
   } catch (err) {
-    console.error("EMPLOYEE ERROR:", err);
-
-    console.log("DETAIL ERROR:", err.response?.data);
-
-    errorMessage.value =
-      err.response?.data?.message ||
-      "Gagal mengambil data employee, cek backend";
+    errorMessage.value = getSafeErrorMessage(
+      err,
+      "Gagal mengambil data karyawan",
+    );
   } finally {
     loading.value = false;
   }
@@ -110,8 +104,6 @@ function exportExcel() {
     successMessage.value = "Excel berhasil di-export";
     errorMessage.value = "";
   } catch (err) {
-    console.error("EXPORT EXCEL ERROR:", err);
-
     errorMessage.value = "Gagal export Excel, cek data atau library";
   }
 }
@@ -138,8 +130,6 @@ function exportPDF() {
     successMessage.value = "PDF berhasil di-export";
     errorMessage.value = "";
   } catch (err) {
-    console.error("EXPORT PDF ERROR:", err);
-
     errorMessage.value = "Gagal export PDF, cek data atau library";
   }
 }
@@ -163,12 +153,12 @@ watch([search, status], () => {
           <p>Kelola dan lihat seluruh data karyawan</p>
         </div>
 
-        <button
+        <!-- <button
           class="close-btn"
           @click="router.push('/admin-pusat/dashboard')"
         >
           ×
-        </button>
+        </button> -->
       </div>
 
       <div v-if="errorMessage" class="error-box">

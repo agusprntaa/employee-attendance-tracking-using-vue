@@ -12,6 +12,7 @@ import {
   deleteBranchAdmin,
   getBranches,
 } from "@/services/adminPusat";
+import { getSafeErrorMessage } from "@/utils/errorMessage";
 
 const { user } = useAuth();
 
@@ -85,21 +86,6 @@ async function fetchAdmins() {
       status: status.value,
       branch: branchFilter.value,
     });
-    console.log("%cFULL ADMIN RESPONSE", "color:cyan;font-weight:bold");
-
-    console.log(res);
-
-    console.log("%cRESPONSE DATA", "color:orange;font-weight:bold");
-
-    console.log(res.data);
-
-    console.log("%cINNER DATA", "color:green;font-weight:bold");
-
-    console.log(res.data?.data);
-
-    console.log("%cADMIN ARRAY", "color:purple;font-weight:bold");
-
-    console.log(res.data?.data?.admins?.data);
     // VALIDASI RESPONSE
     if (!res.data) {
       throw new Error("Response kosong dari backend");
@@ -122,29 +108,9 @@ async function fetchAdmins() {
     meta.value.total = res.data.data.admins.total_data || 0;
 
     meta.value.total_pages = res.data.data.admins.total_pages || 1;
-
-    console.log("%cFINAL ADMINS VALUE", "color:lime;font-weight:bold");
-
-    console.log(admins.value);
   } catch (err) {
-    console.log("%cFETCH ADMIN ERROR", "color:red;font-weight:bold");
-
-    console.log(err);
-
-    console.log("%cERROR RESPONSE", "color:red;font-weight:bold");
-
-    console.log(err.response);
-
-    console.log("%cERROR DATA", "color:red;font-weight:bold");
-
-    console.log(err.response?.data);
-
-    console.log("%cKEMUNGKINAN:", "color:yellow;font-weight:bold");
-
     if (!err.response) {
-      console.log("FE tidak bisa connect ke backend");
     } else {
-      console.log("Backend kirim response error");
     }
   } finally {
     loading.value = false;
@@ -155,18 +121,6 @@ async function fetchBranches() {
   try {
     const res = await getBranches();
 
-    console.log("%cBRANCH RESPONSE", "color:cyan;font-weight:bold");
-
-    console.log(res);
-
-    console.log("%cBRANCH BODY", "color:orange;font-weight:bold");
-
-    console.log(res.data);
-
-    console.log("%cBRANCH REAL DATA", "color:lime;font-weight:bold");
-
-    console.log(res.data?.data?.data);
-
     // endpoint branches pakai data.data
     branches.value = (res.data?.data?.data || []).map((branch, index) => ({
       ...branch,
@@ -174,13 +128,7 @@ async function fetchBranches() {
       // temporary FE id
       id: index + 1,
     }));
-
-    console.log("%cFINAL BRANCHES", "color:green;font-weight:bold");
-
-    console.log(branches.value);
-  } catch (err) {
-    console.error(err);
-  }
+  } catch (err) {}
 }
 
 onMounted(() => {
@@ -290,15 +238,6 @@ async function submitModal() {
     modalError.value = "";
 
     if (modalMode.value === "add") {
-      console.log("SUBMIT ADMIN:", {
-        username: form.value.username,
-        password: form.value.password,
-        role: "admin_cabang",
-        // branch_id: form.value.branch_id,
-        //branch name
-        branch_name: form.value.branch_name,
-        status: form.value.status,
-      });
       await addBranchAdmin({
         username: form.value.username,
 
@@ -347,11 +286,10 @@ async function submitModal() {
 
     fetchAdmins();
   } catch (err) {
-    console.log("ERROR FETCH:", err);
-    console.log("RESPONSE:", err.response);
-
-    modalError.value =
-      err.response?.data?.message || "Terjadi kesalahan pada server";
+    modalError.value = getSafeErrorMessage(
+      err,
+      "Terjadi kesalahan pada server",
+    );
   } finally {
     modalLoading.value = false;
   }
@@ -364,9 +302,7 @@ async function handleDelete(id) {
     await deleteBranchAdmin(id);
 
     fetchAdmins();
-  } catch (err) {
-    console.error(err);
-  }
+  } catch (err) {}
 }
 </script>
 
@@ -421,58 +357,65 @@ async function handleDelete(id) {
 
           <pre>{{ admins }}</pre>
         </div> -->
+        <div class="table-region">
+          <p class="mobile-table-hint">
+            ↔ Geser tabel ke samping untuk melihat data lebih lengkap
+          </p>
 
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Username</th>
-              <th>Nama Lengkap</th>
-              <th>Cabang</th>
-              <th>Status</th>
-              <th>Tanggal Dibuat</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Username</th>
+                  <th>Nama Lengkap</th>
+                  <th>Cabang</th>
+                  <th>Status</th>
+                  <th>Tanggal Dibuat</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
 
-          <tbody>
-            <tr v-for="admin in filteredAdmins" :key="admin.id">
-              <td>{{ adminCode(admin.id) }}</td>
+              <tbody>
+                <tr v-for="admin in filteredAdmins" :key="admin.id">
+                  <td>{{ adminCode(admin.id) }}</td>
 
-              <td class="bold">
-                {{ admin.username }}
-              </td>
+                  <td class="bold">
+                    {{ admin.username }}
+                  </td>
 
-              <td>
-                {{ admin.full_name || "-" }}
-              </td>
+                  <td>
+                    {{ admin.full_name || "-" }}
+                  </td>
 
-              <td class="highlight">
-                {{ admin.branch_name || "-" }}
-              </td>
+                  <td class="highlight">
+                    {{ admin.branch_name || "-" }}
+                  </td>
 
-              <td>
-                <span :class="['badge', admin.status?.toLowerCase()]">
-                  {{ admin.status === "active" ? "Aktif" : "Nonaktif" }}
-                </span>
-              </td>
+                  <td>
+                    <span :class="['badge', admin.status?.toLowerCase()]">
+                      {{ admin.status === "active" ? "Aktif" : "Nonaktif" }}
+                    </span>
+                  </td>
 
-              <td>
-                {{ formatDate(admin.created_at) }}
-              </td>
+                  <td>
+                    {{ formatDate(admin.created_at) }}
+                  </td>
 
-              <td class="actions">
-                <button @click="openEdit(admin)">
-                  <img src="/edit.png" class="action-icon" />
-                </button>
+                  <td class="actions">
+                    <button @click="openEdit(admin)">
+                      <img src="/edit.png" class="action-icon" />
+                    </button>
 
-                <button @click="handleDelete(admin.id)">
-                  <img src="/delete.png" class="action-icon" />
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                    <button @click="handleDelete(admin.id)">
+                      <img src="/delete.png" class="action-icon" />
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
 
         <div class="pagination">
           <span class="pagination-info">
@@ -644,6 +587,26 @@ async function handleDelete(id) {
   border-radius: 16px;
   border: 1px solid #e8e8f0;
   overflow: hidden;
+}
+
+.table-region {
+  min-width: 0;
+}
+
+.mobile-table-hint {
+  display: none;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.table-scroll table {
+  width: 100%;
+  min-width: 900px;
 }
 
 .toolbar {

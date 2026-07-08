@@ -2,6 +2,7 @@
 import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import API from "@/services/api";
+import { getSafeErrorMessage } from "@/utils/errorMessage";
 
 import {
   getProfileAPI,
@@ -47,15 +48,12 @@ onMounted(async () => {
   try {
     const res = await getProfileAPI();
 
-    console.log("RAW ERROR:", res.data.data);
-
     user.value = res.data.data;
 
     if (user.value.photo_url) {
       await loadPhoto(user.value.photo_url);
     }
   } catch (err) {
-    console.log("PROFILE ERROR:", err);
     error.value = "Gagal mengambil profile";
   }
 });
@@ -84,27 +82,13 @@ async function loadPhoto(path) {
       finalPath = finalPath.replace(BASE_URL, "");
     }
 
-    console.log("RAW PHOTO PATH:", path);
-
-    console.log("FINAL API PATH:", finalPath);
-
-    console.log("FETCH URL:", `${BASE_URL}${finalPath}`);
-
     const res = await API.get(finalPath, {
       responseType: "blob",
     });
 
-    console.log("%cIMAGE FETCH SUCCESS", "color: green; font-weight: bold");
-
     photoPreview.value = URL.createObjectURL(res.data);
   } catch (err) {
     imageError.value = true;
-
-    console.log("%cIMAGE FETCH FAILED", "color:red;font-weight:bold");
-
-    console.log(err);
-
-    console.log("CHECK BACKEND RESPONSE photo_url");
   }
 }
 
@@ -119,7 +103,6 @@ function getInitials(name) {
 
 function handleImageError() {
   imageError.value = true;
-  console.log("Profile image load failed, displaying initials");
 }
 
 async function handlePhoto(event) {
@@ -153,8 +136,6 @@ async function handlePhoto(event) {
 
     const res = await uploadProfilePhotoAPI(formData);
 
-    console.log("UPLOAD RESPONSE:", res.data);
-
     const latestUser = JSON.parse(localStorage.getItem("user"));
 
     latestUser.photo_url = res.data.data.photo_url;
@@ -168,11 +149,7 @@ async function handlePhoto(event) {
 
     success.value = "Foto profile berhasil diperbarui";
   } catch (err) {
-    console.log("%cUPLOAD ERROR", "color:red;font-weight:bold");
-
-    console.log(err);
-
-    error.value = err.response?.data?.message || "Upload foto gagal";
+    error.value = getSafeErrorMessage(err, "Upload foto gagal");
   } finally {
     uploading.value = false;
   }
@@ -193,11 +170,7 @@ async function saveProfile() {
       birth_date: user.value.birth_date,
     };
 
-    console.log("UPDATE PAYLOAD:", payload);
-
     const res = await updateProfileAPI(payload);
-
-    console.log("UPDATE RESPONSE:", res.data);
 
     user.value = {
       ...user.value,
@@ -222,11 +195,7 @@ async function saveProfile() {
       }, 1200);
     }
   } catch (err) {
-    console.log("%cUPDATE PROFILE ERROR", "color:red;font-weight:bold");
-
-    console.log(err);
-
-    error.value = err.response?.data?.message || "Gagal menyimpan perubahan";
+    error.value = getSafeErrorMessage(err, "Gagal menyimpan perubahan");
   } finally {
     loading.value = false;
   }
@@ -244,12 +213,7 @@ async function handleLogout() {
 <template>
   <div class="wrapper">
     <div class="header">
-      <button
-        v-if="!isSetup"
-        type="button"
-        class="back-btn"
-        @click="goBack"
-      >
+      <button v-if="!isSetup" type="button" class="back-btn" @click="goBack">
         <img src="/goBack.png" alt="" />
         <span>Kembali</span>
       </button>
@@ -268,7 +232,6 @@ async function handleLogout() {
               v-if="photoPreview && !imageError"
               :src="photoPreview"
               alt="profile"
-              @load="console.log('IMAGE SUCCESS')"
               @error="handleImageError"
             />
 
@@ -375,7 +338,11 @@ async function handleLogout() {
 .wrapper {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(37, 99, 235, 0.1), transparent 32rem),
+    radial-gradient(
+      circle at top left,
+      rgba(37, 99, 235, 0.1),
+      transparent 32rem
+    ),
     #f8fafc;
   color: #0f172a;
   padding-bottom: 112px;
@@ -405,7 +372,9 @@ async function handleLogout() {
   font-weight: 800;
   cursor: pointer;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .back-btn img {
@@ -501,7 +470,9 @@ async function handleLogout() {
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.2s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
 }
 
 .upload-btn:hover {
@@ -578,7 +549,10 @@ async function handleLogout() {
   font-size: 14px;
   font-weight: 600;
   outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
 }
 
 .field input:focus,
@@ -631,7 +605,10 @@ async function handleLogout() {
   font-weight: 800;
   cursor: pointer;
   box-shadow: 0 12px 26px rgba(37, 99, 235, 0.24);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .save-btn:hover {

@@ -7,7 +7,6 @@ import {
   getAttendanceHistory,
   checkoutAttendance,
   getActiveEventsTodayAPI,
-  requestEventFaceTokenAPI,
 } from "@/services/attendance";
 import { logout } from "@/utils/logout";
 import { LayoutDashboard, CalendarDays, User, LogOut } from "lucide-vue-next";
@@ -19,6 +18,7 @@ import LocationBanner from "@/components/LocationBanner.vue";
 import EmployeeBottomNav from "@/components/EmployeeBottomNav.vue";
 
 import { getStatusLabel, getStatusClass } from "@/utils/attendanceStatus";
+import { getSafeErrorMessage } from "@/utils/errorMessage";
 
 const router = useRouter();
 const { user, loadUser } = useAuth();
@@ -62,7 +62,14 @@ function parseLocalDate(dateString) {
 
   const clean = dateString.split(".")[0];
 
-  const [datePart, timePart] = clean.split("T");
+  const [datePart, timePart] = clean.includes("T")
+    ? clean.split("T")
+    : clean.split(" ");
+
+  if (!datePart || !timePart) {
+    const parsed = new Date(dateString);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
 
   const [year, month, day] = datePart.split("-").map(Number);
 
@@ -75,6 +82,8 @@ const checkoutInfo = computed(() => {
   if (!todayData.value?.attendance?.check_in) return null;
 
   const checkIn = parseLocalDate(todayData.value.attendance.check_in);
+
+  if (!checkIn) return null;
 
   const workHours = todayData.value.required_hours || 9;
 
@@ -108,10 +117,6 @@ onMounted(async () => {
 
     user.value = latestUser;
 
-    console.log("DASHBOARD USER:", user.value);
-
-    console.log("PHOTO URL:", user.value.photo_url);
-
     startClock();
 
     await getCurrentLocation();
@@ -119,7 +124,6 @@ onMounted(async () => {
     await fetchHistory();
     await fetchActiveEvents();
   } catch (err) {
-    console.error(err);
     openPopup("Gagal memuat data");
   }
 });
@@ -155,10 +159,7 @@ async function fetchToday() {
   try {
     const res = await API.get("/attendance/today");
     todayData.value = res.data.data;
-    console.log("TODAY DATA:", todayData.value);
-  } catch (err) {
-    console.error("TODAY ERROR:", err);
-  }
+  } catch (err) {}
 }
 
 // HISTORY
@@ -167,9 +168,7 @@ async function fetchHistory() {
     const res = await getAttendanceHistory(historyLimit);
 
     history.value = res.data.data.data || [];
-  } catch (err) {
-    console.error("HISTORY ERROR:", err);
-  }
+  } catch (err) {}
 }
 
 async function fetchActiveEvents() {
@@ -177,19 +176,13 @@ async function fetchActiveEvents() {
     const res = await getActiveEventsTodayAPI();
 
     activeEvents.value = Array.isArray(res.data?.data) ? res.data.data : [];
-    console.log("EVENT DATA:", activeEvents.value);
-
-    console.log("ACTIVE EVENTS:", activeEvents.value);
   } catch (err) {
-    console.error("ACTIVE EVENTS ERROR:", err);
     activeEvents.value = [];
   }
 }
 // NAVIGATION
 function goToScan() {
   if (!canCheckIn.value) return;
-  console.log("CHECK IN CLICKED");
-
   router.push("/employee/checkin-face");
   // router.push("/checkin-face");
 }
@@ -209,39 +202,26 @@ async function startEventAttendance(event) {
   if (event.already_checked_in) return;
   eventError.value = "";
 
-  try {
-    await requestEventFaceTokenAPI(event.event_id);
+  const selectedEventId = getEventId(event);
 
-    showEventModal.value = false;
-
-    router.push({
-      path: "/employee/checkin-face",
-      query: {
-        eventId: event.event_id,
-        eventName: event.name,
-      },
-    });
-  } catch (err) {
-    const code = err.response?.data?.code;
-
-    if (code === "NOT_EVENT_PARTICIPANT") {
-      eventError.value = "Kamu tidak terdaftar sebagai peserta event.";
-      return;
-    }
-
-    if (code === "EVENT_EXPIRED") {
-      eventError.value = "Event sudah selesai atau belum berlangsung.";
-      return;
-    }
-
-    if (code === "ALREADY_ATTENDED_EVENT") {
-      eventError.value = "Kamu sudah melakukan absensi pada event ini.";
-      return;
-    }
-
-    eventError.value =
-      err.response?.data?.message || "Gagal memulai absensi event.";
+  if (!selectedEventId) {
+    eventError.value = "Data event tidak valid.";
+    return;
   }
+
+  showEventModal.value = false;
+
+  router.push({
+    path: "/employee/checkin-face",
+    query: {
+      eventId: selectedEventId,
+      eventName: event.name,
+    },
+  });
+}
+
+function getEventId(event) {
+  return event.event_id ?? event.id;
 }
 
 function canStartEventAttendance(event) {
@@ -270,26 +250,11 @@ async function onClickCheckout() {
       early_leave_reason: "",
     });
 
-    console.log("CHECKOUT RESPONSE:", res);
-
-    console.log("CHECKOUT DATA:", res.data);
-
-    console.log("CHECKOUT INNER:", res.data.data);
-
     openPopup("Check-out berhasil");
 
     await fetchToday();
     await fetchHistory();
   } catch (err) {
-    console.error("CHECKOUT ERROR:", err.response?.data || err);
-    console.log("FULL ERROR:", err);
-
-    console.log("ERROR RESPONSE:", err.response);
-
-    console.log("ERROR DATA:", err.response?.data);
-
-    console.log("ERROR CODE:", err.response?.data?.code);
-
     const errorCode = err.response?.data?.code;
 
     if (errorCode === "EARLY_LEAVE_REASON_REQUIRED") {
@@ -297,7 +262,7 @@ async function onClickCheckout() {
       return;
     }
 
-    openPopup(err.response?.data?.message || "Gagal check-out");
+    openPopup(getSafeErrorMessage(err, "Gagal check-out"));
   } finally {
     loading.value = false;
   }
@@ -311,28 +276,15 @@ async function handleCheckout(reason = "") {
       early_leave_reason: reason,
     });
 
-    console.log("SUBMIT EARLY RESPONSE:", res);
-
-    console.log("SUBMIT EARLY DATA:", res.data);
-
-    console.log("EARLY REASON:", reason);
-
-    console.log("CHECKOUT:", res.data);
-
     openPopup("Check-out berhasil");
 
     showEarlyLeaveModal.value = false;
     earlyLeaveReason.value = "";
 
-    console.log("SEBELUM FETCH TODAY:", todayData.value);
-
     await fetchToday();
 
-    console.log("SETELAH FETCH TODAY:", todayData.value);
     await fetchHistory();
   } catch (err) {
-    console.error("CHECKOUT ERROR:", err.response?.data || err);
-
     const errorCode = err.response?.data?.code;
 
     if (errorCode === "EARLY_LEAVE_REASON_REQUIRED") {
@@ -340,7 +292,7 @@ async function handleCheckout(reason = "") {
       return;
     }
 
-    openPopup(err.response?.data?.message || "Gagal check-out");
+    openPopup(getSafeErrorMessage(err, "Gagal check-out"));
   } finally {
     loading.value = false;
   }
@@ -349,8 +301,6 @@ async function handleCheckout(reason = "") {
 // TIMEZONE
 function formatTime(utc) {
   if (!utc) return "-";
-
-  // console.log("RAW TIME:", utc);
 
   const d = new Date(utc);
   return d.toLocaleTimeString("id-ID", {
@@ -402,7 +352,6 @@ function checkoutLabel(item) {
 //       await logoutAPI(refresh);
 //     }
 //   } catch (err) {
-//     console.error("LOGOUT ERROR:", err);
 //   } finally {
 //     localStorage.clear();
 
@@ -633,7 +582,7 @@ async function handleLogout() {
         <div v-else class="event-list">
           <article
             v-for="event in activeEvents"
-            :key="event.event_id"
+            :key="getEventId(event)"
             class="event-item"
           >
             <div>

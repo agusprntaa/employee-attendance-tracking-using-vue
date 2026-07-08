@@ -14,6 +14,7 @@ import {
 } from "@/services/faceLandmarker";
 import { captureVideoFrame, evaluateFaceFrame } from "@/utils/faceQuality";
 import { useLocation } from "@/composables/useLocation";
+import { getSafeErrorMessage } from "@/utils/errorMessage";
 
 const router = useRouter();
 const route = useRoute();
@@ -222,6 +223,7 @@ async function finishCheckIn() {
 
     const response = await faceCheckInAPI({
       face_token: faceToken.value,
+      work_type: "WFO",
       latitude: latitude.value,
       longitude: longitude.value,
     });
@@ -247,8 +249,7 @@ async function finishCheckIn() {
 
 function handleError(error, stage) {
   const code = error.response?.data?.code;
-  const fallback =
-    error.response?.data?.message || error.message || "Proses check-in gagal";
+  const fallback = getSafeErrorMessage(error, "Proses check-in gagal");
 
   if (code === "FACE_NOT_REGISTERED") {
     const status = JSON.parse(

@@ -4,6 +4,7 @@ import { useRouter, useRoute } from "vue-router";
 import { useAuth } from "@/composables/useAuth";
 import AdminSidebar from "@/components/AdminSidebar.vue";
 import AdminProfile from "@/components/AdminProfile.vue";
+import { getSafeErrorMessage } from "@/utils/errorMessage";
 
 import {
   getEmployees,
@@ -74,8 +75,6 @@ async function fetchEmployees() {
       limit: limit.value,
     });
 
-    console.log("FETCH EMPLOYEES:", res.data.data.data);
-
     // employees.value = res.data.data.data;
     employees.value = res.data.data.data.map((emp) => ({
       ...emp,
@@ -84,7 +83,6 @@ async function fetchEmployees() {
     }));
     meta.value = res.data.data.pagination;
   } catch (err) {
-    console.error(err);
   } finally {
     loading.value = false;
   }
@@ -145,11 +143,8 @@ async function openDetail(empId) {
 
     const res = await getEmployeeDetail(empId);
 
-    console.log("EMPLOYEE DETAIL:", res.data);
-
     selectedEmployee.value = res.data.data;
   } catch (err) {
-    console.log(err);
   } finally {
     detailLoading.value = false;
   }
@@ -224,11 +219,7 @@ async function submitModal() {
         status: form.value.status,
       };
 
-      console.log("[FE] Add employee payload:", payload);
-
       const res = await addEmployee(payload);
-
-      console.log("[BE] Add employee success:", res.data);
 
       generatedCredential.value = {
         username: res.data.data.username,
@@ -273,30 +264,10 @@ async function submitModal() {
       closeModal();
     }
   } catch (err) {
-    // BACKEND ERROR
-    if (err.response) {
-      console.error("[BE ERROR]", {
-        status: err.response.status,
-        code: err.response.data?.code,
-        message: err.response.data?.message,
-      });
-
-      modalError.value = err.response.data?.message || "Backend error";
-
-      // NETWORK / CORS
-    } else if (err.request) {
-      console.error(
-        "[NETWORK ERROR] Backend tidak dapat diakses / CORS / ngrok",
-      );
-
-      modalError.value = "Backend tidak dapat diakses";
-
-      // FRONTEND ERROR
-    } else {
-      console.error("[FE ERROR]", err.message);
-
-      modalError.value = "Terjadi kesalahan pada frontend";
-    }
+    modalError.value = getSafeErrorMessage(
+      err,
+      "Data karyawan gagal disimpan",
+    );
   } finally {
     modalLoading.value = false;
   }
@@ -331,9 +302,7 @@ async function confirmDelete() {
     showDeleteModal.value = false;
 
     selectedId.value = null;
-  } catch (err) {
-    console.log(err);
-  }
+  } catch (err) {}
 }
 </script>
 

@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import { useLocation } from "@/composables/useLocation";
 import { checkInEventAPI } from "@/services/attendance";
+import { getSafeErrorMessage } from "@/utils/errorMessage";
 const router = useRouter();
 
 const loading = ref(false);
@@ -88,8 +89,6 @@ async function startScanner() {
       }
     });
   } catch (err) {
-    console.warn("Back camera gagal, mencoba kamera default...", err);
-
     try {
       await codeReader.decodeFromVideoDevice(
         undefined,
@@ -106,7 +105,6 @@ async function startScanner() {
         },
       );
     } catch (e) {
-      console.error(e);
       error.value = "Gagal mengakses kamera";
     }
   }
@@ -134,9 +132,7 @@ function stopScanner() {
 
     codeReader?.reset();
     codeReader = null;
-  } catch (e) {
-    console.warn("Scanner stop error", e);
-  }
+  } catch (e) {}
 }
 
 function openPopup(message) {
@@ -176,6 +172,7 @@ async function handleScan(decodedText) {
 
   try {
     const payload = {
+      event_id: attendanceFlow.value.eventId,
       face_token: attendanceFlow.value.faceToken,
       qr_token: decodedText.trim(),
       latitude: latitude.value,
@@ -194,12 +191,6 @@ async function handleScan(decodedText) {
 
     sessionStorage.removeItem("event_attendance_flow");
   } catch (err) {
-    console.log("FULL ERROR:", err);
-    console.log("ERROR RESPONSE:", err.response);
-    console.log("ERROR DATA:", err.response?.data);
-    console.log("ERROR CODE:", err.response?.data?.code);
-    console.log("ERROR MESSAGE:", err.response?.data?.message);
-    const message = err.response?.data?.message;
     const code = err.response?.data?.code;
     if (code === "TOKEN_NOT_VERIFIED") {
       openPopup("Verifikasi wajah harus dilakukan kembali.");
@@ -244,7 +235,7 @@ async function handleScan(decodedText) {
       scanned.value = false;
       return;
     }
-    openPopup(message || "Check in gagal.");
+    openPopup(getSafeErrorMessage(err, "Check in gagal."));
     scanned.value = false;
   } finally {
     loading.value = false;

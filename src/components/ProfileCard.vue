@@ -63,21 +63,15 @@ async function loadPhoto(path) {
 
     const endpoint = `/employee/profile/photo/view/${filename}`;
 
-    console.log("PROFILE CARD FETCH:", `${BASE_URL}${endpoint}`);
-
     const res = await API.get(endpoint, {
       responseType: "blob",
     });
 
     photoPreview.value = URL.createObjectURL(res.data);
 
-    console.log("%cPROFILE CARD IMAGE SUCCESS", "color:green;font-weight:bold");
   } catch (err) {
     imageError.value = true;
 
-    console.log("%cPROFILE CARD IMAGE FAILED", "color:red;font-weight:bold");
-
-    console.log(err);
   }
 }
 

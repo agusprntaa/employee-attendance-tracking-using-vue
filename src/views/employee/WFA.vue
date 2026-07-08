@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { useLocation } from "@/composables/useLocation";
 import { checkInAPI } from "@/services/attendance";
 import LocationBanner from "@/components/LocationBanner.vue";
+import { getSafeErrorMessage } from "@/utils/errorMessage";
 
 const router = useRouter();
 
@@ -54,12 +55,6 @@ async function submitWFA() {
       wfa_reason: text,
     });
 
-    console.log("FULL RESPONSE:", res);
-
-    console.log("DATA:", res.data);
-
-    console.log("INNER DATA:", res.data.data);
-
     router.push({
       path: "/employee/success",
       query: {
@@ -68,8 +63,6 @@ async function submitWFA() {
       },
     });
   } catch (err) {
-    console.log("FULL ERROR:", err);
-
     const code = err.response?.data?.code;
 
     if (code === "NOT_WORK_DAY") {
@@ -92,7 +85,7 @@ async function submitWFA() {
       return;
     }
 
-    error.value = err.response?.data?.message || "WFA gagal";
+    error.value = getSafeErrorMessage(err, "WFA gagal");
   } finally {
     loading.value = false;
   }

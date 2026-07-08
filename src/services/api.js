@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { refreshAPI } from './auth'
 import { logout } from '@/utils/logout'
+import { getSafeErrorMessage } from '@/utils/errorMessage'
 
 const API = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -20,19 +21,7 @@ async function refreshAccessToken() {
     throw new Error('No refresh token')
   }
 
-  console.log(
-    '%cREFRESH TOKEN REQUEST',
-    'color:orange;font-weight:bold'
-  )
-
   const res = await refreshAPI(refreshToken)
-
-  console.log(
-    '%cREFRESH TOKEN SUCCESS',
-    'color:green;font-weight:bold'
-  )
-
-  console.log(res.data)
 
   const newAccessToken =
     res.data.data.token
@@ -103,26 +92,25 @@ API.interceptors.response.use(
     const originalRequest =
       error.config
 
+    error.userMessage = getSafeErrorMessage(error)
+
+    if (!originalRequest) {
+      return Promise.reject(error)
+    }
+
     const status =
       error.response?.status
 
     const errorCode =
       error.response?.data?.code
 
-    console.log(
-      '%cAPI ERROR',
-      'color:red;font-weight:bold'
-    )
-
-    console.log(error.response)
-
     // ACCESS TOKEN EXPIRED
     if (
       status === 401 &&
       errorCode !== 'FACE_MISMATCH' &&
       !originalRequest._retry &&
-      !originalRequest.url.includes('/login') &&
-      !originalRequest.url.includes('/refresh')
+      !originalRequest.url?.includes('/login') &&
+      !originalRequest.url?.includes('/refresh')
     ) {
       originalRequest._retry = true
 
@@ -135,18 +123,16 @@ API.interceptors.response.use(
 
         return API(originalRequest)
       } catch (refreshError) {
-        console.log(
-          '%cREFRESH FAILED',
-          'color:red;font-weight:bold'
-        )
-
-        console.log(refreshError)
-
         localStorage.removeItem('token')
         localStorage.removeItem('refresh_token')
         localStorage.removeItem('user')
 
         window.location.href = '/'
+
+        refreshError.userMessage = getSafeErrorMessage(
+          refreshError,
+          'Sesi login telah berakhir. Silakan login kembali.'
+        )
 
         return Promise.reject(refreshError)
       }
@@ -156,11 +142,6 @@ API.interceptors.response.use(
     if (
       errorCode === 'SESSION_EXPIRED'
     ) {
-      console.log(
-        '%cSESSION EXPIRED',
-        'color:red;font-weight:bold'
-      )
-
       // localStorage.removeItem('token')
       // localStorage.removeItem('refresh_token')
       // localStorage.removeItem('user')

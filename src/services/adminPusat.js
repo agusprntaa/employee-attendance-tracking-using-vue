@@ -2,20 +2,20 @@ import API from "./api";
 
 // DASHBOARD
 export const getGlobalDashboard = () =>
-  API.get("/api/global/dashboard");
+  API.get("/global/dashboard");
 
 // EMPLOYEES
 export const getAllEmployees = (params) =>
-  API.get("/api/global/employees", {
+  API.get("/global/employees", {
     params,
   });
 
 export const getEmployeeDetail = (id) =>
-  API.get(`/api/global/employees/${id}`);
+  API.get(`/global/employees/${id}`);
 
 // ATTENDANCE
 export const getTodayAttendance = (params) =>
-  API.get("/api/global/attendance/today", {
+  API.get("/global/attendance/today", {
     params,
   });
 
@@ -23,7 +23,7 @@ export const getAttendanceAnalytics = (
   period = "weekly",
 ) =>
   API.get(
-    "/api/global/attendance/analytics",
+    "/global/attendance/analytics",
     {
       params: { period },
     },
@@ -31,18 +31,15 @@ export const getAttendanceAnalytics = (
 
 // BRANCHES
 export const getAllBranches = (params) =>
-  API.get("/api/global/branches", {
+  API.get("/global/branches", {
     params,
   });
 
 export const getBranchDetail = (id) =>
-  API.get(`/api/global/branches/${id}`);
+  API.get(`/global/branches/${id}`);
 
 export const createBranch = (data) =>
-  API.post("/api/global/branches", data);
-
-// export const createBranchAdmin = (data) =>
-//   API.post("/api/global/admin-cabang", data);
+  API.post("/global/branches", data);
 
 // GET ADMIN CABANG
 export function getBranchAdmins(
@@ -50,25 +47,25 @@ export function getBranchAdmins(
   limit = 10
 ) {
   return API.get(
-    `/api/global/branch-admin?page=${page}&limit=${limit}`
+    `/global/branch-admin?page=${page}&limit=${limit}`
   );
 }
 
 export function addBranchAdmin(payload) {
-  return API.post("/api/global/branch-admin", payload);
+  return API.post("/global/branch-admin", payload);
 }
 
 export function updateBranchAdmin(id, payload) {
   return API.put(
-    `/api/global/branch-admin/${id}`,
+    `/global/branch-admin/${id}`,
     payload
   );
 }
 
 export function deleteBranchAdmin(id) {
-  return API.delete(`/api/global/branch-admin/${id}`);
+  return API.delete(`/global/branch-admin/${id}`);
 }
 
 export function getBranches() {
-  return API.get("/api/global/branches");
+  return API.get("/global/branches");
 }

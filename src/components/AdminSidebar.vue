@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from "vue";
+import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { logout } from "@/utils/logout";
 
@@ -8,6 +8,7 @@ const route = useRoute();
 
 const showLogoutConfirm = ref(false);
 const showAttendanceMenu = ref(false);
+const sidebarOpen = ref(false);
 
 watch(
   () => route.path,
@@ -29,10 +30,49 @@ async function handleLogout() {
 
   await logout();
 }
+
+function navigateTo(path) {
+  router.push(path);
+  sidebarOpen.value = false;
+}
+
+function closeSidebar() {
+  sidebarOpen.value = false;
+}
+
+function handleKeydown(event) {
+  if (event.key === "Escape") {
+    sidebarOpen.value = false;
+    showLogoutConfirm.value = false;
+  }
+}
+
+onMounted(() => {
+  window.addEventListener("keydown", handleKeydown);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", handleKeydown);
+});
 </script>
 
 <template>
-  <aside class="sidebar">
+  <button
+    v-if="!sidebarOpen"
+    type="button"
+    class="sidebar-toggle"
+    aria-label="Buka menu"
+    :aria-expanded="sidebarOpen"
+    @click="sidebarOpen = true"
+  >
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
+
+  <div v-if="sidebarOpen" class="sidebar-overlay" @click="closeSidebar"></div>
+
+  <aside class="sidebar" :class="{ open: sidebarOpen }">
     <!-- <div class="logo-btw">
       <img src="/logo.png" />
     </div> -->
@@ -40,7 +80,7 @@ async function handleLogout() {
 
     <div class="nav">
       <button
-        @click="router.push('/admin-cabang/dashboard')"
+        @click="navigateTo('/admin-cabang/dashboard')"
         :class="{ active: route.path === '/admin-cabang/dashboard' }"
       >
         Dashboard
@@ -61,7 +101,7 @@ async function handleLogout() {
         <div v-if="showAttendanceMenu" class="submenu">
           <button
             class="submenu-btn"
-            @click="router.push('/admin-cabang/absen-kantor')"
+            @click="navigateTo('/admin-cabang/absen-kantor')"
             :class="{
               active: route.path === '/admin-cabang/absen-kantor',
             }"
@@ -71,7 +111,7 @@ async function handleLogout() {
 
           <button
             class="submenu-btn"
-            @click="router.push('/admin-cabang/absen-event')"
+            @click="navigateTo('/admin-cabang/absen-event')"
             :class="{
               active: route.path === '/admin-cabang/absen-event',
             }"
@@ -82,28 +122,28 @@ async function handleLogout() {
       </div>
 
       <button
-        @click="router.push('/admin-cabang/employees')"
+        @click="navigateTo('/admin-cabang/employees')"
         :class="{ active: route.path === '/admin-cabang/employees' }"
       >
         Karyawan
       </button>
 
       <button
-        @click="router.push('/admin-cabang/reports')"
+        @click="navigateTo('/admin-cabang/reports')"
         :class="{ active: route.path === '/admin-cabang/reports' }"
       >
         Laporan
       </button>
 
       <button
-        @click="router.push('/admin-cabang/calendar')"
+        @click="navigateTo('/admin-cabang/calendar')"
         :class="{ active: route.path === '/admin-cabang/calendar' }"
       >
         Kalender cuti
       </button>
 
       <button
-        @click="router.push('/admin-cabang/settings')"
+        @click="navigateTo('/admin-cabang/settings')"
         :class="{ active: route.path === '/admin-cabang/settings' }"
       >
         Pengaturan
@@ -119,7 +159,11 @@ async function handleLogout() {
       </button>
     </div>
   </aside>
-  <div v-if="showLogoutConfirm" class="modal">
+  <div
+    v-if="showLogoutConfirm"
+    class="modal"
+    @click.self="showLogoutConfirm = false"
+  >
     <div class="modal-box">
       <p>Yakin ingin keluar?</p>
 
@@ -148,6 +192,12 @@ async function handleLogout() {
   top: 0;
   overflow-y: auto;
   scrollbar-width: none;
+  z-index: 1000;
+}
+
+.sidebar-toggle,
+.sidebar-overlay {
+  display: none;
 }
 
 .sidebar::-webkit-scrollbar {
@@ -371,5 +421,64 @@ async function handleLogout() {
 .submenu-btn.active {
   background: #4f46e5;
   color: white !important;
+}
+
+@media (max-width: 1024px) {
+  .sidebar-toggle {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 1100;
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    border: 1px solid rgba(30, 27, 75, 0.12);
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+    cursor: pointer;
+  }
+
+  .sidebar-toggle span {
+    width: 20px;
+    height: 2px;
+    border-radius: 999px;
+    background: #1e1b4b;
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    display: block;
+    background: rgba(15, 23, 42, 0.45);
+    animation: fadeIn 0.2s ease;
+  }
+
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    transform: translateX(-100%);
+    transition: transform 0.24s ease;
+    box-shadow: 20px 0 45px rgba(15, 23, 42, 0.22);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 </style>

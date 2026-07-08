@@ -8,6 +8,7 @@ import {
   initFaceLandmarker,
 } from "@/services/faceLandmarker";
 import { captureVideoFrame, evaluateFaceFrame } from "@/utils/faceQuality";
+import { getSafeErrorMessage } from "@/utils/errorMessage";
 
 const POSES = [
   {
@@ -165,15 +166,7 @@ async function capturePhoto() {
       message: "Foto berhasil diambil",
     };
   } catch (error) {
-    console.log(error.response);
-
-    console.log(error.response?.data);
-
-    console.log(error.response?.data?.code);
-
-    console.log(error.response?.data?.message);
-
-    errorMessage.value = error.response?.data?.message || "Registrasi gagal";
+    errorMessage.value = getSafeErrorMessage(error, "Registrasi gagal");
   } finally {
     autoCaptureRunning = false;
   }
@@ -264,21 +257,6 @@ async function submitRegistration() {
 
     router.replace("/employee/dashboard");
   } catch (error) {
-    console.log("ERROR:");
-    console.log(error);
-
-    console.log("RESPONSE:");
-    console.log(error.response);
-
-    console.log("DATA:");
-    console.log(error.response?.data);
-
-    console.log("CODE:");
-    console.log(error.response?.data?.code);
-
-    console.log("MESSAGE:");
-    console.log(error.response?.data?.message);
-
     const code = error.response?.data?.code;
 
     if (code === "INCOMPLETE_POSES") {
@@ -295,7 +273,7 @@ async function submitRegistration() {
       return;
     }
 
-    errorMessage.value = error.response?.data?.message || "Registrasi gagal.";
+    errorMessage.value = getSafeErrorMessage(error, "Registrasi gagal.");
   } finally {
     loading.value = false;
   }

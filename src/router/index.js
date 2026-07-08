@@ -8,6 +8,16 @@ const routes = [
     name: 'Login',
     component: Login
   },
+  {
+    path: '/forbidden',
+    name: 'Forbidden',
+    component: () => import('../views/error/Forbidden.vue')
+  },
+  {
+    path: '/not-found',
+    name: 'NotFound',
+    component: () => import('../views/error/NotFound.vue')
+  },
 
   // ADMIN PUSAT
   {
@@ -40,17 +50,17 @@ const routes = [
     component: () => import('../views/admin-pusat/AdminCabang.vue')
   },
 
-  {
-    path: '/admin-pusat/absen-event',
-    name: 'AdminPusatAbsenEvent',
-    component: () => import('../views/admin-pusat/AbsenEvent.vue')
-  },
+  // {
+  //   path: '/admin-pusat/absen-event',
+  //   name: 'AdminPusatAbsenEvent',
+  //   component: () => import('../views/admin-pusat/AbsenEvent.vue')
+  // },
 
-  {
-    path: '/admin-pusat/absen-kantor',
-    name: 'AdminPusatAbsenKantor',
-    component: () => import('../views/admin-pusat/AbsenKantor.vue')
-  },
+  // {
+  //   path: '/admin-pusat/absen-kantor',
+  //   name: 'AdminPusatAbsenKantor',
+  //   component: () => import('../views/admin-pusat/AbsenKantor.vue')
+  // },
 
   // ADMIN CABANG
   {
@@ -108,11 +118,11 @@ const routes = [
     component: () => import('../views/employee/Dashboard.vue')
   },
 
-  // {
-  //   path: '/employee/change-password',
-  //   name: 'ChangePassword',
-  //   component: () => import('../views/employee/ChangePassword.vue')
-  // },
+  {
+    path: '/employee/change-password',
+    name: 'ChangePassword',
+    component: () => import('../views/employee/ChangePassword.vue')
+  },
 
   {
     path: '/employee/wfa',
@@ -158,7 +168,8 @@ const routes = [
 },
   {
     path: '/:pathMatch(.*)*',
-    redirect: '/'
+    name: 'FallbackNotFound',
+    component: () => import('../views/error/NotFound.vue')
   }
 ]
 
@@ -167,9 +178,17 @@ const router = createRouter({
   routes
 })
 
+function toBoolean(value) {
+  return value === true || value === 1 || value === "1" || value === "true";
+}
+
 // guard router role, tipe
 router.beforeEach((to) => {
   const token = localStorage.getItem("token");
+
+  if (to.name === "NotFound" || to.name === "FallbackNotFound") {
+    return true;
+  }
 
   const mustChangePassword =
     localStorage.getItem("must_change_password") === "true";
@@ -186,6 +205,10 @@ router.beforeEach((to) => {
 
   // BELUM LOGIN
   if (!token || !user) {
+    if (to.name === "Forbidden") {
+      return "/";
+    }
+
     if (to.path !== "/") {
       return "/";
     }
@@ -213,7 +236,9 @@ router.beforeEach((to) => {
   }
 
   const faceRegistered =
-    onboardingStatus?.face_registered ?? user.face_registered === true;
+    onboardingStatus?.face_registered !== undefined
+      ? toBoolean(onboardingStatus.face_registered)
+      : toBoolean(user.face_registered);
 
 // const faceRegistered =
 //   !!user.face_reference_path;
@@ -266,21 +291,21 @@ router.beforeEach((to) => {
     to.path.startsWith("/admin-pusat") &&
     !isAdminPusat
   ) {
-    return "/";
+    return "/forbidden";
   }
 
   if (
     to.path.startsWith("/admin-cabang") &&
     !isAdminCabang
   ) {
-    return "/";
+    return "/forbidden";
   }
 
   if (
     to.path.startsWith("/employee") &&
     !isEmployee
   ) {
-    return "/";
+    return "/forbidden";
   }
 
   return true;

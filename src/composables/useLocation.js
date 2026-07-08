@@ -49,6 +49,13 @@ export function useLocation() {
     error.value = ''
 
     return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        error.value = 'Browser tidak mendukung lokasi'
+        loading.value = false
+        resolve(false)
+        return
+      }
+
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           latitude.value = pos.coords.latitude

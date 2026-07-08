@@ -3,6 +3,7 @@ import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { loginAPI } from "@/services/auth";
 import { getOnboardingStatusAPI } from "@/services/employee";
+import { getSafeErrorMessage } from "@/utils/errorMessage";
 
 const router = useRouter();
 
@@ -41,7 +42,6 @@ function requestLocation() {
     (pos) => {
       locationGranted.value = true;
       locationError.value = "";
-      console.log("Lokasi:", pos.coords);
     },
     (err) => {
       locationGranted.value = false;
@@ -90,14 +90,9 @@ async function login() {
     });
 
     if (!res.data?.data) {
-      errorGlobal.value = "Response server tidak valid. Cek backend.";
+      errorGlobal.value = "Terjadi kesalahan pada server. Silakan coba lagi.";
       return;
     }
-
-    console.log("LOGIN RESPONSE:", res.data);
-    console.log("MUST CHANGE PASSWORD:", res.data.data.must_change_password);
-
-    console.log("TEMP PASSWORD:", res.data.data.temp_password);
 
     const {
       token,
@@ -107,17 +102,6 @@ async function login() {
       temp_password,
       expires_in,
     } = res.data.data;
-
-    console.log("USER LOGIN:", user);
-    console.log("FACE PATH:", user.face_registered);
-
-    console.log("ROLE:", user?.role);
-
-    console.log("TIPE:", user?.tipe);
-
-    console.log("MUST CHANGE PASSWORD:", must_change_password);
-
-    console.log("ACCESS TOKEN EXPIRES:", expires_in, "seconds");
 
     //mengubah error handle baru
     if (!token || !refresh_token) {
@@ -164,7 +148,10 @@ async function login() {
     } else if (user.role === "karyawan") {
       const onboardingResponse = await getOnboardingStatusAPI();
       const onboardingStatus = onboardingResponse.data.data;
-      localStorage.setItem("onboarding_status", JSON.stringify(onboardingStatus));
+      localStorage.setItem(
+        "onboarding_status",
+        JSON.stringify(onboardingStatus),
+      );
 
       if (onboardingStatus.must_change_password) {
         localStorage.setItem("must_change_password", "true");
@@ -182,25 +169,6 @@ async function login() {
       errorGlobal.value = "Role user tidak sesuai sistem. backend.";
     }
   } catch (err) {
-    console.error(err);
-
-    console.log("FULL ERROR:", err);
-
-    console.log("ERROR RESPONSE:", err.response);
-
-    console.log("ERROR DATA:", err.response?.data);
-
-    console.log("ERROR MESSAGE:", err.response?.data?.message);
-
-    console.log("ERROR CODE:", err.response?.data?.code);
-
-    console.log("STATUS:", err.response?.status);
-
-    console.log("REQUEST DATA:", {
-      username: username.value,
-      password: password.value,
-    });
-
     //mengubah error handle baru
     if (err.response?.status === 429) {
       errorGlobal.value =
@@ -220,7 +188,7 @@ async function login() {
       return;
     }
 
-    errorGlobal.value = err.response?.data?.message || "Login gagal";
+    errorGlobal.value = getSafeErrorMessage(err, "Login gagal");
   } finally {
     loading.value = false;
   }

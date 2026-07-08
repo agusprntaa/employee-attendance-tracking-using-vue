@@ -58,11 +58,7 @@ const leaveStats = ref({
 
 const fetchSummary = async () => {
   try {
-    console.log("[Leave Summary] Request");
-
     const { data } = await getLeaveSummary();
-
-    console.log("[Leave Summary] Success", data);
 
     leaveStats.value = {
       total: data.data.total_requests,
@@ -70,45 +66,30 @@ const fetchSummary = async () => {
       approved: data.data.approved,
       rejected: data.data.rejected,
     };
-  } catch (error) {
-    console.error("[Leave Summary] Error", error.response?.data || error);
-  }
+  } catch (error) {}
 };
 
 const fetchLeaveRequests = async () => {
   try {
-    console.log("[Leave Requests] Request");
-
     const { data } = await getLeaveRequests({
       status: selectedStatus.value || undefined,
       page: 1,
       limit: 100,
     });
 
-    console.log("[Leave Requests] Success", data);
-
     leaveRequests.value = data.data.data;
-  } catch (error) {
-    console.error("[Leave Requests] Error", error.response?.data || error);
-  }
+  } catch (error) {}
 };
 
 const fetchCalendar = async () => {
   try {
-    console.log("[Calendar] Request");
-
     const { data } = await getLeaveCalendar({
       month: currentDate.value.getMonth() + 1,
       year: currentDate.value.getFullYear(),
     });
 
-    console.log("[Calendar] Success", data);
-
     calendarEvents.value = data.data.dates;
-    console.log("[Calendar Events Raw]", calendarEvents.value);
-  } catch (error) {
-    console.error("[Calendar] Error", error.response?.data || error);
-  }
+  } catch (error) {}
 };
 
 //be belum memberikan recent activity
@@ -137,11 +118,7 @@ const fetchRecentActivities = async () => {
       time: formatActivityTime(item.created_at),
       type: item.type,
     }));
-
-    console.log("[Recent Activities] Success", recentActivities.value);
-  } catch (error) {
-    console.error("[Recent Activities] Error", error.response?.data || error);
-  }
+  } catch (error) {}
 }; // const recentActivities = ref([
 //   {
 //     id: 1,
@@ -177,12 +154,7 @@ const openDayModal = async (day) => {
 
     const fullDate = `${year}-${month}-${formattedDay}`;
 
-    console.log("[Calendar Detail] Request", fullDate);
-
     const { data } = await getCalendarDetail(fullDate);
-
-    console.log("[Calendar Detail] Success", data);
-    console.log("[Calendar Detail Full]", JSON.stringify(data, null, 2));
 
     selectedDate.value = fullDate;
 
@@ -191,9 +163,7 @@ const openDayModal = async (day) => {
       ...(data.data.leaves || []),
     ];
     showCalendarModal.value = true;
-  } catch (error) {
-    console.error("[Calendar Detail] Error", error.response?.data || error);
-  }
+  } catch (error) {}
 };
 
 const monthYear = computed(() => {
@@ -290,19 +260,13 @@ function formatDate(date) {
 
 const openLeaveDetail = async (item) => {
   try {
-    console.log("[Leave Detail] Request", item.id);
-
     const { data } = await getLeaveDetail(item.id);
-
-    console.log("[Leave Detail] Success", data);
 
     selectedLeave.value = data.data;
     adminNote.value = data.data.note || "";
 
     showLeaveDetailModal.value = true;
-  } catch (error) {
-    console.error("[Leave Detail] Error", error.response?.data || error);
-  }
+  } catch (error) {}
 };
 
 function closeLeaveModal() {
@@ -315,48 +279,34 @@ function closeLeaveModal() {
 
 const approveLeave = async (id) => {
   try {
-    console.log("[Approve Leave] Request", id);
-
     const response = await updateLeaveStatus(id, {
       status: "approved",
       note: adminNote.value,
     });
 
-    console.log("[Approve Leave] Success", response.data);
-
     await fetchSummary();
     await fetchLeaveRequests();
 
     showLeaveDetailModal.value = false;
-  } catch (error) {
-    console.error("[Approve Leave] Error", error.response?.data || error);
-  }
+  } catch (error) {}
 };
 
 const rejectLeave = async (id) => {
   try {
-    console.log("[Reject Leave] Request", id);
-
     const response = await updateLeaveStatus(id, {
       status: "rejected",
       note: adminNote.value,
     });
 
-    console.log("[Reject Leave] Success", response.data);
-
     await fetchSummary();
     await fetchLeaveRequests();
 
     showLeaveDetailModal.value = false;
-  } catch (error) {
-    console.error("[Reject Leave] Error", error.response?.data || error);
-  }
+  } catch (error) {}
 };
 
 const saveHoliday = async () => {
   try {
-    console.log("[Create Holiday] Request", holidayForm.value);
-
     const response = await createHoliday({
       name: holidayForm.value.title,
       date: holidayForm.value.date,
@@ -364,30 +314,21 @@ const saveHoliday = async () => {
       category: "khusus",
     });
 
-    console.log("[Create Holiday] Success", response.data);
-
     showHolidayModal.value = false;
 
     await fetchCalendar();
-  } catch (error) {
-    console.error("[Create Holiday] Error", error.response?.data || error);
-  }
+  } catch (error) {}
 };
 
 onMounted(async () => {
   try {
-    console.log("========== LEAVE PAGE INIT ==========");
-
     await Promise.all([
       fetchSummary(),
       fetchLeaveRequests(),
       fetchCalendar(),
       fetchRecentActivities(),
     ]);
-    console.log("========== LEAVE PAGE READY ==========");
-  } catch (error) {
-    console.error("[PAGE INIT ERROR]", error);
-  }
+  } catch (error) {}
 });
 </script>
 
