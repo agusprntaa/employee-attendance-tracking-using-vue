@@ -43,7 +43,6 @@ const allSelected = computed(() => {
 });
 const qr = ref(null);
 
-const qr = ref(null);
 const windowWidth = ref(window.innerWidth);
 
 function updateWindowWidth() {
