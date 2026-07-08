@@ -43,6 +43,20 @@ const allSelected = computed(() => {
 });
 const qr = ref(null);
 
+const qr = ref(null);
+const windowWidth = ref(window.innerWidth);
+
+function updateWindowWidth() {
+  windowWidth.value = window.innerWidth;
+}
+
+const qrSize = computed(() => {
+  if (windowWidth.value <= 380) return 170;
+  if (windowWidth.value <= 576) return 200;
+  if (windowWidth.value <= 768) return 230;
+  return 280;
+});
+
 const showQRModal = ref(false);
 
 const qrCountdown = ref("--:--");
@@ -446,7 +460,7 @@ onMounted(async () => {
 
           <div class="search-wrap">
             <input
-              v-model="search"
+              v-model="attendanceSearch"
               type="text"
               placeholder="Cari karyawan..."
             />
@@ -583,7 +597,7 @@ onMounted(async () => {
           </button>
 
           <input
-            v-model="search"
+            v-model="participantSearch"
             class="participant-search"
             placeholder="Cari karyawan..."
             type="text"

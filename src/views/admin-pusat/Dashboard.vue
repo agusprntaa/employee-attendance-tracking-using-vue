@@ -61,9 +61,9 @@ function goToEventAttendance() {
               <button class="btn-primary" @click="goToOfficeAttendance">
                 Absensi Kantor
               </button>
-              <button class="btn-secondary" @click="goToEventAttendance">
+              <!-- <button class="btn-secondary" @click="goToEventAttendance">
                 Absensi Event
-              </button>
+              </button> -->
             </div>
           </div>
         </div>

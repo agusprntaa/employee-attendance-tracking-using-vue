@@ -56,11 +56,11 @@ const routes = [
   //   component: () => import('../views/admin-pusat/AbsenEvent.vue')
   // },
 
-  // {
-  //   path: '/admin-pusat/absen-kantor',
-  //   name: 'AdminPusatAbsenKantor',
-  //   component: () => import('../views/admin-pusat/AbsenKantor.vue')
-  // },
+  {
+    path: '/admin-pusat/absen-kantor',
+    name: 'AdminPusatAbsenKantor',
+    component: () => import('../views/admin-pusat/AbsenKantor.vue')
+  },
 
   // ADMIN CABANG
   {

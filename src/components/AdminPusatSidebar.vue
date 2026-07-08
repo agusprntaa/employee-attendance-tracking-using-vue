@@ -128,6 +128,13 @@ onBeforeUnmount(() => {
       </button>
 
       <button
+        @click="navigateTo('/admin-pusat/absen-kantor')"
+        :class="{ active: route.path === '/admin-pusat/absen-kantor' }"
+      >
+        Absensi Kantor
+      </button>
+
+      <button
         @click="navigateTo('/admin-pusat/attendanceToday')"
         :class="{ active: route.path === '/admin-pusat/attendanceToday' }"
       >
