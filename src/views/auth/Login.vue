@@ -15,8 +15,8 @@ const errorPassword = ref("");
 const remember = ref(false);
 const errorGlobal = ref("");
 const showPassword = ref(false);
-const locationGranted = ref(false);
-const locationError = ref("");
+// const locationGranted = ref(false);
+// const locationError = ref("");
 
 onMounted(() => {
   const remembered = localStorage.getItem("rememberedLogin");
@@ -30,36 +30,36 @@ onMounted(() => {
   }
 });
 
-function requestLocation() {
-  locationError.value = "";
+// function requestLocation() {
+//   locationError.value = "";
 
-  if (!navigator.geolocation) {
-    locationError.value = "Browser tidak mendukung lokasi";
-    return;
-  }
+//   if (!navigator.geolocation) {
+//     locationError.value = "Browser tidak mendukung lokasi";
+//     return;
+//   }
 
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      locationGranted.value = true;
-      locationError.value = "";
-    },
-    (err) => {
-      locationGranted.value = false;
+//   navigator.geolocation.getCurrentPosition(
+//     (pos) => {
+//       locationGranted.value = true;
+//       locationError.value = "";
+//     },
+//     (err) => {
+//       locationGranted.value = false;
 
-      if (err.code === 1) {
-        locationError.value = "Izin lokasi ditolak";
-      } else if (err.code === 2) {
-        locationError.value = "Lokasi tidak tersedia";
-      } else {
-        locationError.value = "Gagal mengambil lokasi";
-      }
-    },
-    {
-      enableHighAccuracy: true,
-      timeout: 7000,
-    },
-  );
-}
+//       if (err.code === 1) {
+//         locationError.value = "Izin lokasi ditolak";
+//       } else if (err.code === 2) {
+//         locationError.value = "Lokasi tidak tersedia";
+//       } else {
+//         locationError.value = "Gagal mengambil lokasi";
+//       }
+//     },
+//     {
+//       enableHighAccuracy: true,
+//       timeout: 7000,
+//     },
+//   );
+// }
 
 async function login() {
   if (loading.value) return;
@@ -77,10 +77,10 @@ async function login() {
     return;
   }
 
-  if (!locationGranted.value) {
-    locationError.value = "Izin lokasi diperlukan";
-    return;
-  }
+  // if (!locationGranted.value) {
+  //   locationError.value = "Izin lokasi diperlukan";
+  //   return;
+  // }
   loading.value = true;
 
   try {
@@ -200,7 +200,7 @@ async function login() {
     <div class="card">
       <h2>ABSENSI KARYAWAN</h2>
 
-      <div
+      <!-- <div
         class="location-box"
         :class="{ active: locationGranted }"
         @click="requestLocation"
@@ -209,7 +209,7 @@ async function login() {
           {{ locationGranted ? "✓ Lokasi aktif" : "Klik untuk izin lokasi" }}
         </span>
       </div>
-      <p v-if="locationError" class="error">{{ locationError }}</p>
+      <p v-if="locationError" class="error">{{ locationError }}</p> -->
 
       <label for="username">Username</label>
 
